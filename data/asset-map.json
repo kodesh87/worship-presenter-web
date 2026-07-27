@@ -1,0 +1,551 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "scripts/extract-pptx-assets.mjs build-map",
+  "sourceDeck": "260704 - BIC Worship Presentation.pptx",
+  "sourceDeckSlides": 68,
+  "note": "Template -> source slide -> media part -> exported filename. Generated from the deck; `evidence` is the source slide's own text runs, which is how each row was confirmed. Rows with a null mediaPart are deliberately left on their solid backgroundColor; see `reason`. Files are copied byte-for-byte out of ppt/media — never rendered, resized or re-encoded.",
+  "entries": [
+    {
+      "templateId": "welcome",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 1,
+      "mediaPart": "ppt/media/image1.png",
+      "exportedFile": "welcome-bg.png",
+      "assetRef": "/assets/welcome-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 2205161,
+      "coverFraction": 1,
+      "evidence": [
+        "Welcome to",
+        "BANDUNG INTERNATIONAL COMMUNITY"
+      ]
+    },
+    {
+      "templateId": "bible-talk-sequence",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 2,
+      "mediaPart": "ppt/media/image2.png",
+      "exportedFile": "bt-seq-bg.png",
+      "assetRef": "/assets/bt-seq-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 1585352,
+      "coverFraction": 1,
+      "evidence": [
+        "Bible Talk",
+        "Sequence",
+        "Prayer Partner",
+        "Opening Song",
+        "Opening Prayer",
+        "Verse Reading"
+      ]
+    },
+    {
+      "templateId": "prayer-partners",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 3,
+      "mediaPart": "ppt/media/image3.png",
+      "exportedFile": "prayer-partners-bg.png",
+      "assetRef": "/assets/prayer-partners-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 1871680,
+      "coverFraction": 0.9997,
+      "evidence": [
+        "Prayer",
+        "Partners"
+      ]
+    },
+    {
+      "templateId": "opening-song-cue",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 4,
+      "mediaPart": "ppt/media/image4.png",
+      "exportedFile": "song-cue-bg.png",
+      "assetRef": "/assets/song-cue-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 1799099,
+      "coverFraction": 0.9129,
+      "evidence": [
+        "Opening",
+        "Song",
+        "Congregation, please stand"
+      ]
+    },
+    {
+      "templateId": "song-set",
+      "layoutKey": "title",
+      "refKind": "imageRef",
+      "elementId": "e2",
+      "sourceSlide": 5,
+      "mediaPart": "ppt/media/image5.jpeg",
+      "exportedFile": "song-title-bottom.jpeg",
+      "assetRef": "/assets/song-title-bottom.jpeg",
+      "nativeSize": {
+        "width": 2100,
+        "height": 2100
+      },
+      "bytes": 789151,
+      "coverFraction": 0.3961,
+      "evidence": [
+        "Far and Near the Fields Are Teeming",
+        "SDAH #358"
+      ]
+    },
+    {
+      "templateId": "song-set",
+      "layoutKey": "lyric",
+      "refKind": "backgroundImage",
+      "sourceSlide": 6,
+      "mediaPart": "ppt/media/image6.jpeg",
+      "exportedFile": "song-lyric-bg.jpeg",
+      "assetRef": "/assets/song-lyric-bg.jpeg",
+      "nativeSize": {
+        "width": 2592,
+        "height": 1728
+      },
+      "bytes": 1885576,
+      "coverFraction": 1,
+      "evidence": [
+        "1/3",
+        "Far and near the fields are teeming",
+        "With the sheaves of ripened grain;",
+        "Far and near their gold is gleaming",
+        "O'er the sunny slope and plain."
+      ]
+    },
+    {
+      "templateId": "verse-reading",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 12,
+      "mediaPart": "ppt/media/image7.jpeg",
+      "exportedFile": "verse-reading-bg.jpeg",
+      "assetRef": "/assets/verse-reading-bg.jpeg",
+      "nativeSize": {
+        "width": 4752,
+        "height": 3168
+      },
+      "bytes": 1361525,
+      "coverFraction": 1,
+      "evidence": [
+        "“One night the Lord said to Paul in a vision, ‘Do not be afraid, but speak and do not be silent; for I am with you, and no one will lay a ha",
+        "Acts 18:9, 10, NRSV"
+      ]
+    },
+    {
+      "templateId": "opening-prayer",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 13,
+      "mediaPart": "ppt/media/image3.png",
+      "exportedFile": "prayer-partners-bg.png",
+      "assetRef": "/assets/prayer-partners-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 1871680,
+      "coverFraction": 1,
+      "evidence": [
+        "Opening Prayer"
+      ]
+    },
+    {
+      "templateId": "bible-talk",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 14,
+      "mediaPart": "ppt/media/image8.png",
+      "exportedFile": "bible-talk-bg.png",
+      "assetRef": "/assets/bible-talk-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 1752261,
+      "coverFraction": 1,
+      "evidence": [
+        "Bible Talk",
+        "Break up into classes"
+      ]
+    },
+    {
+      "templateId": "closing-song-cue",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 15,
+      "mediaPart": "ppt/media/image4.png",
+      "exportedFile": "song-cue-bg.png",
+      "assetRef": "/assets/song-cue-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 1799099,
+      "coverFraction": 0.9129,
+      "evidence": [
+        "Closing",
+        "Song",
+        "Congregation, please stand"
+      ]
+    },
+    {
+      "templateId": "closing-prayer",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 23,
+      "mediaPart": "ppt/media/image9.png",
+      "exportedFile": "closing-prayer-bg.png",
+      "assetRef": "/assets/closing-prayer-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 1496614,
+      "coverFraction": 1,
+      "evidence": [
+        "Closing Prayer"
+      ]
+    },
+    {
+      "templateId": "break-time",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 24,
+      "mediaPart": "ppt/media/image10.png",
+      "exportedFile": "break-time-bg.png",
+      "assetRef": "/assets/break-time-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 1596638,
+      "coverFraction": 0.9997,
+      "evidence": [
+        "Break Time",
+        "5 MINUTES",
+        "BankMandiri",
+        "12345 67 8901 23",
+        "GerejaMasehiAdvent HariKetujuhBIC"
+      ]
+    },
+    {
+      "templateId": "ds-sequence",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 25,
+      "mediaPart": "ppt/media/image12.png",
+      "exportedFile": "ds-seq-bg.png",
+      "assetRef": "/assets/ds-seq-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 1526725,
+      "coverFraction": 1,
+      "evidence": [
+        "Divine Service",
+        "Sequence",
+        "Opening Song",
+        "Intercessory Prayer",
+        "Special Song",
+        "Sermon"
+      ]
+    },
+    {
+      "templateId": "bible-verse-contemplation",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 26,
+      "mediaPart": "ppt/media/image13.png",
+      "exportedFile": "verse-contemplation-bg.png",
+      "assetRef": "/assets/verse-contemplation-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 1715413,
+      "coverFraction": 1,
+      "evidence": [
+        "“..the true worshippers shall worship the Father in spirit and in truth..”",
+        "John 4 : 23"
+      ]
+    },
+    {
+      "templateId": "intercessory-prayer",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 35,
+      "mediaPart": "ppt/media/image15.png",
+      "exportedFile": "intercessory-prayer-bg.png",
+      "assetRef": "/assets/intercessory-prayer-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 1485950,
+      "coverFraction": 1,
+      "evidence": [
+        "Intercessory Prayer"
+      ]
+    },
+    {
+      "templateId": "intercessory-prayer-during",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 36,
+      "mediaPart": "ppt/media/image16.jpeg",
+      "exportedFile": "intercessory-during-bg.jpeg",
+      "assetRef": "/assets/intercessory-during-bg.jpeg",
+      "nativeSize": {
+        "width": 2188,
+        "height": 1458
+      },
+      "bytes": 254969,
+      "coverFraction": 1,
+      "evidence": [
+        "Now, dear Lord, as we pray,",
+        "take our hearts and minds far away",
+        "from the press of the world all around",
+        "to your throne where grace does abound.",
+        "May our lives be transformed by Your love,",
+        "may our souls be refreshed from above."
+      ]
+    },
+    {
+      "templateId": "special-song",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 39,
+      "mediaPart": "ppt/media/image21.png",
+      "exportedFile": "special-song-bg.png",
+      "assetRef": "/assets/special-song-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 1638486,
+      "coverFraction": 0.9998,
+      "evidence": [
+        "Special Song"
+      ]
+    },
+    {
+      "templateId": "sermon",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 40,
+      "mediaPart": "ppt/media/image22.png",
+      "exportedFile": "sermon-bg.png",
+      "assetRef": "/assets/sermon-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 1580762,
+      "coverFraction": 1,
+      "evidence": [
+        "Sermon",
+        "TimotiusWicaksana"
+      ]
+    },
+    {
+      "templateId": "closing-prayer-ds",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 50,
+      "mediaPart": "ppt/media/image24.png",
+      "exportedFile": "closing-prayer-ds-bg.png",
+      "assetRef": "/assets/closing-prayer-ds-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 1591365,
+      "coverFraction": 1,
+      "evidence": [
+        "Closing",
+        "Prayer",
+        "TimotiusWicaksana"
+      ]
+    },
+    {
+      "templateId": "thank-you",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 53,
+      "mediaPart": "ppt/media/image26.png",
+      "exportedFile": "thank-you-bg.png",
+      "assetRef": "/assets/thank-you-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 1436463,
+      "coverFraction": 1,
+      "evidence": [
+        "Please take a moment to reflect on the Word of God before leaving the seat.",
+        "God bless you"
+      ]
+    },
+    {
+      "templateId": "welcome-repeat",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 54,
+      "mediaPart": "ppt/media/image27.png",
+      "exportedFile": "welcome-repeat-bg.png",
+      "assetRef": "/assets/welcome-repeat-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 1892051,
+      "coverFraction": 1,
+      "evidence": [
+        "Welcome to",
+        "BANDUNG INTERNATIONAL COMMUNITY"
+      ]
+    },
+    {
+      "templateId": "offering-tithe",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 55,
+      "mediaPart": "ppt/media/image28.png",
+      "exportedFile": "offering-bg.png",
+      "assetRef": "/assets/offering-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 1547251,
+      "coverFraction": 1,
+      "evidence": [
+        "Offering & Tithe",
+        "1234567890123",
+        "GerejaMasehiAdvent HariKetujuhBIC",
+        "BankMandiri"
+      ]
+    },
+    {
+      "templateId": "midweek-prayer",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 57,
+      "mediaPart": "ppt/media/image31.png",
+      "exportedFile": "midweek-bg.png",
+      "assetRef": "/assets/midweek-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 1504627,
+      "coverFraction": 1,
+      "evidence": [
+        "Online Midweek",
+        "Prayer Meeting",
+        "Every Wednesday | 18.30 - 18.45",
+        "via Zoom @ example.org/live"
+      ]
+    },
+    {
+      "templateId": "fellowship-etiquette",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 66,
+      "mediaPart": "ppt/media/image54.png",
+      "exportedFile": "fellowship-bg.png",
+      "assetRef": "/assets/fellowship-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 2066058,
+      "coverFraction": 1,
+      "evidence": [
+        "(Return used plates, throw away trash, and finish your water.)"
+      ]
+    },
+    {
+      "templateId": "family-youth",
+      "layoutKey": "default",
+      "refKind": null,
+      "sourceSlide": 56,
+      "mediaPart": null,
+      "exportedFile": null,
+      "assetRef": null,
+      "reason": "Slide 56 has no chrome plate: its only pictures are the two weekly member photos (image29.png 10.2% cover, image30.jpg 10.4%) sitting on a flat #DCD7CE fill. Those photos are weekly content, not artwork.",
+      "evidence": [
+        "Family of the Week",
+        "ThePrasetyas(Arif, Mira, Nadia)’s Family",
+        "Prayer Request:",
+        "[prayer-request line redacted]",
+        "[prayer-request line redacted]",
+        "[prayer-request line redacted]"
+      ]
+    },
+    {
+      "templateId": "contact",
+      "layoutKey": "default",
+      "refKind": null,
+      "sourceSlide": 68,
+      "mediaPart": null,
+      "exportedFile": null,
+      "assetRef": null,
+      "reason": "Slide 68 has no full-bleed picture: image55.png covers 33.9% of the slide and image56.png (the QR code) 1.0%. A partial-cover picture is not a background, so the #2F3B2D fill is kept.",
+      "evidence": [
+        "For more information",
+        "example.org/contact"
+      ]
+    },
+    {
+      "templateId": "sermon-flyer",
+      "layoutKey": "default",
+      "refKind": null,
+      "sourceSlide": 41,
+      "mediaPart": null,
+      "exportedFile": null,
+      "assetRef": null,
+      "reason": "Slide 41's full-bleed image23.jpeg is that week's sermon flyer artwork with the sermon title and speaker baked into the pixels, not reusable chrome. The template is fullscreen-image and the weekly flyer fills the slide, so it keeps its #000000 fill.",
+      "evidence": []
+    },
+    {
+      "templateId": "announcements-header",
+      "layoutKey": "default",
+      "refKind": null,
+      "sourceSlide": null,
+      "mediaPart": null,
+      "exportedFile": null,
+      "assetRef": null,
+      "reason": "No source slide exists. This template was hand-added during the v1 transform and previously borrowed the Midweek Prayer render. It keeps its #2F3B2D fill.",
+      "evidence": []
+    },
+    {
+      "templateId": "announcement-flyer",
+      "layoutKey": "default",
+      "refKind": null,
+      "sourceSlide": null,
+      "mediaPart": null,
+      "exportedFile": null,
+      "assetRef": null,
+      "reason": "Pure placeholder: the whole slide is the operator-supplied announcement image. No background.",
+      "evidence": []
+    }
+  ]
+}

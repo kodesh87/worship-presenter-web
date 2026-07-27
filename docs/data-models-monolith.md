@@ -1,0 +1,161 @@
+# Data Models - Monolith
+
+This document describes the database schema, data relationships, and seed data structures of the monolithic `bic-pptx-workflow` project.
+
+## Database Engine
+
+The system uses **SQLite** (via the `better-sqlite3` driver) for lightweight, single-node file-based storage.
+The database file is located at `data.db` in the project root by default, or configured via the `DB_PATH` environment variable.
+Database settings optimize for reliability and concurrency using the following SQLite pragmas:
+- `journal_mode = WAL` (Write-Ahead Logging)
+- `busy_timeout = 5000` (Handles lock contentions up to 5s)
+- `foreign_keys = ON` (Enforces referential integrity)
+
+---
+
+## Schema Relationship Diagram
+
+```mermaid
+erDiagram
+    services ||--o{ announcement_items : "contains"
+    bible_books ||--|{ bible_verses : "contains"
+    
+    services {
+        INTEGER id PK
+        TEXT date
+        TEXT raw_payload
+        TEXT parsed_data
+        TEXT images_payload
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    announcement_items {
+        INTEGER id PK
+        TEXT image_url
+        INTEGER service_id FK
+        INTEGER sort_order
+        DATETIME created_at
+    }
+
+    hymns {
+        INTEGER id PK
+        INTEGER number UK
+        TEXT title
+        TEXT lyrics
+    }
+
+    accounts {
+        INTEGER id PK
+        TEXT username UK
+        TEXT password_hash
+        TEXT role
+        DATETIME created_at
+    }
+
+    settings {
+        TEXT key PK
+        TEXT value
+    }
+
+    bible_books {
+        INTEGER id PK
+        TEXT name
+        TEXT short_name
+    }
+
+    bible_verses {
+        INTEGER id PK
+        INTEGER book_id FK
+        INTEGER chapter
+        INTEGER verse
+        TEXT verse_text
+        TEXT translation UK
+    }
+```
+
+---
+
+## Table Definitions
+
+### 1. `services`
+Stores incoming service rundown records and their parsed structural formats.
+
+| Column Name | SQLite Type | Constraints | Description |
+|---|---|---|---|
+| `id` | `INTEGER` | PRIMARY KEY AUTOINCREMENT | Unique ID of the service record. |
+| `date` | `TEXT` | NOT NULL | Service date formatted as `YYYY-MM-DD`. |
+| `raw_payload` | `TEXT` | NOT NULL | Original unparsed rundown text sent by the bot. |
+| `parsed_data` | `TEXT` | | JSON string representing parsed items (roles, hymns, section headers). |
+| `images_payload` | `TEXT` | | JSON array string listing attached media URLs. |
+| `created_at` | `DATETIME` | DEFAULT CURRENT_TIMESTAMP | Record creation timestamp. |
+| `updated_at` | `DATETIME` | DEFAULT CURRENT_TIMESTAMP | Record last modification timestamp. |
+
+### 2. `announcement_items`
+Lists individual slide flyers mapped to services, allowing specific ordering.
+
+| Column Name | SQLite Type | Constraints | Description |
+|---|---|---|---|
+| `id` | `INTEGER` | PRIMARY KEY AUTOINCREMENT | Unique ID of the announcement slide. |
+| `image_url` | `TEXT` | NOT NULL | Path or HTTP URL of the image flyer. |
+| `service_id` | `INTEGER` | FOREIGN KEY -> `services(id)` ON DELETE CASCADE | Associated service ID. |
+| `sort_order` | `INTEGER` | NOT NULL DEFAULT 0 | Ordering index for slide rendering. |
+| `created_at` | `DATETIME` | DEFAULT CURRENT_TIMESTAMP | Timestamp of creation. |
+
+### 3. `hymns`
+Maintains the Seventh-day Adventist Hymnal (SDAH) lyrics library.
+
+| Column Name | SQLite Type | Constraints | Description |
+|---|---|---|---|
+| `id` | `INTEGER` | PRIMARY KEY AUTOINCREMENT | Unique record ID. |
+| `number` | `INTEGER` | NOT NULL UNIQUE | Hymn number (SDAH index). |
+| `title` | `TEXT` | NOT NULL | Title of the hymn. |
+| `lyrics` | `TEXT` | NOT NULL | Full text/lyrics of the hymn. |
+
+### 4. `accounts`
+Stores administrative and operator credentials.
+
+| Column Name | SQLite Type | Constraints | Description |
+|---|---|---|---|
+| `id` | `INTEGER` | PRIMARY KEY AUTOINCREMENT | Unique account ID. |
+| `username` | `TEXT` | NOT NULL UNIQUE | User identification name. |
+| `password_hash` | `TEXT` | NOT NULL | Password string hashed with BCrypt. |
+| `role` | `TEXT` | NOT NULL CHECK(role IN ('admin', 'operator')) | System authorization role. |
+| `created_at` | `DATETIME` | DEFAULT CURRENT_TIMESTAMP | Creation timestamp. |
+
+### 5. `settings`
+Key-value pair store for system preferences (e.g., presentation duration, retention configurations).
+
+| Column Name | SQLite Type | Constraints | Description |
+|---|---|---|---|
+| `key` | `TEXT` | PRIMARY KEY | Unique setting config name. |
+| `value` | `TEXT` | NOT NULL | Config setting value. |
+
+### 6. `bible_books`
+Index of the books of the Bible.
+
+| Column Name | SQLite Type | Constraints | Description |
+|---|---|---|---|
+| `id` | `INTEGER` | PRIMARY KEY | Book index identifier (e.g., 1 for Genesis). |
+| `name` | `TEXT` | NOT NULL | Full name of the book. |
+| `short_name` | `TEXT` | NOT NULL | Abbreviated name (e.g., `Gen`). |
+
+### 7. `bible_verses`
+Stores Bible scripture verses.
+
+| Column Name | SQLite Type | Constraints | Description |
+|---|---|---|---|
+| `id` | `INTEGER` | PRIMARY KEY AUTOINCREMENT | Unique verse record ID. |
+| `book_id` | `INTEGER` | NOT NULL FOREIGN KEY -> `bible_books(id)` | Book link ID. |
+| `chapter` | `INTEGER` | NOT NULL | Chapter number. |
+| `verse` | `INTEGER` | NOT NULL | Verse number. |
+| `verse_text` | `TEXT` | NOT NULL | Text of the verse. |
+| `translation` | `TEXT` | NOT NULL DEFAULT 'KJV' | Bible translation (Unique constraint combines book, chapter, verse, translation). |
+
+---
+
+## Seeding & Initialization
+
+1. **Hymnal Data:** Loaded during system initialization from the file `data/hymns.json` and upserted into the `hymns` table on conflict.
+2. **Bible Verses:** Imported via utility commands `npm run import:kjv` which processes the raw database.
+3. **Bootstrap Admin:** If the `accounts` table is empty and environment variables `AUTH_BOOTSTRAP_USER` and `AUTH_BOOTSTRAP_PASSWORD` are configured, the first admin account is automatically seeded.

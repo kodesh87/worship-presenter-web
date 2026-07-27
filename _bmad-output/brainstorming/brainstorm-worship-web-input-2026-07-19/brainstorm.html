@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎵 Brainstorm Party — Worship Web Input</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700;900&display=swap');
+
+  :root {
+    --bg-deep: #0f0e17;
+    --bg-card: #1a1932;
+    --bg-glass: rgba(26, 25, 50, 0.7);
+    --accent-gold: #f0c040;
+    --accent-violet: #a855f7;
+    --accent-rose: #f43f5e;
+    --accent-sky: #38bdf8;
+    --accent-emerald: #34d399;
+    --text-primary: #e8e6f0;
+    --text-muted: #9896a8;
+    --border-subtle: rgba(168, 85, 247, 0.15);
+    --glow-violet: 0 0 40px rgba(168, 85, 247, 0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* Animated background */
+  body::before {
+    content: '';
+    position: fixed;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 30% 20%, rgba(168, 85, 247, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(244, 63, 94, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(56, 189, 248, 0.04) 0%, transparent 50%);
+    animation: drift 30s ease-in-out infinite;
+    z-index: -1;
+  }
+
+  @keyframes drift {
+    0%, 100% { transform: translate(0, 0) rotate(0deg); }
+    33% { transform: translate(2%, -2%) rotate(1deg); }
+    66% { transform: translate(-1%, 1%) rotate(-1deg); }
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    padding: 4rem 0 3rem;
+    position: relative;
+  }
+
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 3rem;
+    font-weight: 900;
+    background: linear-gradient(135deg, var(--accent-gold), var(--accent-violet), var(--accent-rose));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.5rem;
+    animation: fadeInUp 0.8s ease-out;
+  }
+
+  .hero .subtitle {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    animation: fadeInUp 0.8s ease-out 0.2s both;
+  }
+
+  .hero .meta {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    animation: fadeInUp 0.8s ease-out 0.4s both;
+  }
+
+  .hero .meta span {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    background: var(--bg-glass);
+    padding: 0.3rem 0.8rem;
+    border-radius: 100px;
+    border: 1px solid var(--border-subtle);
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Cast section */
+  .cast {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin: 2rem 0 3rem;
+    animation: fadeInUp 0.8s ease-out 0.6s both;
+  }
+
+  .cast-member {
+    background: var(--bg-glass);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    padding: 1.2rem;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    transition: transform 0.3s, box-shadow 0.3s;
+  }
+
+  .cast-member:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--glow-violet);
+  }
+
+  .cast-member .icon {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .cast-member .name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-primary);
+  }
+
+  .cast-member .role {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 0.2rem;
+  }
+
+  /* Technique sections */
+  .technique-section {
+    margin-bottom: 3rem;
+    animation: fadeInUp 0.6s ease-out both;
+  }
+
+  .technique-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 2px solid;
+  }
+
+  .technique-header.role-play { border-color: var(--accent-gold); }
+  .technique-header.morpho { border-color: var(--accent-sky); }
+  .technique-header.disney { border-color: var(--accent-violet); }
+  .technique-header.build { border-color: var(--accent-emerald); }
+
+  .technique-header .badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    color: var(--bg-deep);
+  }
+
+  .technique-header.role-play .badge { background: var(--accent-gold); }
+  .technique-header.morpho .badge { background: var(--accent-sky); }
+  .technique-header.disney .badge { background: var(--accent-violet); }
+  .technique-header.build .badge { background: var(--accent-emerald); }
+
+  .technique-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+  }
+
+  /* Party dialogue */
+  .dialogue {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .turn {
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-start;
+    padding: 0.8rem 1rem;
+    background: var(--bg-glass);
+    border-radius: 12px;
+    border: 1px solid var(--border-subtle);
+    backdrop-filter: blur(8px);
+    transition: border-color 0.3s;
+  }
+
+  .turn:hover {
+    border-color: rgba(168, 85, 247, 0.35);
+  }
+
+  .turn .speaker-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+    width: 2rem;
+    text-align: center;
+  }
+
+  .turn .content {
+    flex: 1;
+  }
+
+  .turn .speaker-name {
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .turn .speaker-name.pak-tua { color: var(--accent-gold); }
+  .turn .speaker-name.naya { color: var(--accent-violet); }
+  .turn .speaker-name.galih { color: var(--accent-sky); }
+  .turn .speaker-name.dian { color: var(--accent-emerald); }
+
+  .turn .text {
+    font-size: 0.92rem;
+    color: var(--text-primary);
+  }
+
+  .turn .text em {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* Synthesis section */
+  .synthesis {
+    margin-top: 3rem;
+    padding: 2rem;
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(244, 63, 94, 0.08));
+    border-radius: 20px;
+    border: 1px solid rgba(168, 85, 247, 0.25);
+  }
+
+  .synthesis h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(135deg, var(--accent-gold), var(--accent-rose));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .insight-card {
+    background: rgba(15, 14, 23, 0.6);
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 0.8rem;
+    border-left: 3px solid var(--accent-violet);
+    font-size: 0.92rem;
+  }
+
+  .insight-card.decision {
+    border-left-color: var(--accent-gold);
+    background: rgba(240, 192, 64, 0.08);
+  }
+
+  .insight-card strong {
+    color: var(--accent-gold);
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    margin-top: 4rem;
+    padding: 2rem 0;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+  }
+
+  .footer .heart { color: var(--accent-rose); }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .hero h1 { font-size: 2rem; }
+    .cast { grid-template-columns: repeat(2, 1fr); }
+    .container { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- HERO -->
+  <div class="hero">
+    <h1>Worship Web Input</h1>
+    <div class="subtitle">Brainstorm Party — bagaimana operator gereja memasukkan detail ibadah via web</div>
+    <div class="meta">
+      <span>📅 19 Juli 2026</span>
+      <span>🎯 4 Teknik</span>
+      <span>💡 40+ Ide</span>
+      <span>🎭 Party Mode</span>
+    </div>
+  </div>
+
+  <!-- CAST -->
+  <div class="cast">
+    <div class="cast-member">
+      <span class="icon">🎵</span>
+      <div class="name">Pak Tua</div>
+      <div class="role">Church Elder / Worship Coordinator</div>
+    </div>
+    <div class="cast-member">
+      <span class="icon">💻</span>
+      <div class="name">Naya</div>
+      <div class="role">UX Designer Pragmatis</div>
+    </div>
+    <div class="cast-member">
+      <span class="icon">🔧</span>
+      <div class="name">Galih</div>
+      <div class="role">Backend Dev (paham codebase)</div>
+    </div>
+    <div class="cast-member">
+      <span class="icon">📱</span>
+      <div class="name">Dian</div>
+      <div class="role">Operator AV Gereja</div>
+    </div>
+  </div>
+
+  <!-- TECHNIQUE 1: Role Playing -->
+  <div class="technique-section">
+    <div class="technique-header role-play">
+      <span class="badge">Teknik 1</span>
+      <h2>Role Playing — Suara Setiap Stakeholder</h2>
+    </div>
+    <div class="dialogue">
+      <div class="turn">
+        <span class="speaker-icon">🎵</span>
+        <div class="content">
+          <div class="speaker-name pak-tua">Pak Tua:</div>
+          <div class="text">Saya biasanya terima rundown ibadah lewat WhatsApp. Kalau bisa saya ketik langsung di web — tanggal, siapa yang khotbah, lagu SDAH nomor berapa — itu sudah cukup. Jangan yang ribet-ribet. Saya harus bisa selesai sebelum rapat selesai.</div>
+        </div>
+      </div>
+      <div class="turn">
+        <span class="speaker-icon">📱</span>
+        <div class="content">
+          <div class="speaker-name dian">Dian:</div>
+          <div class="text">Yang paling sering bikin saya panik itu kalau data masuk telat dari Telegram. Kadang Sabtu pagi baru ada. Kalau ada web form, <strong>saya sendiri bisa input dari informasi rapat</strong> tanpa tunggu siapapun kirim ke bot. Minimal saya butuh: tanggal, 3-4 lagu, ayat tema, khotbah siapa judulnya apa.</div>
+        </div>
+      </div>
+      <div class="turn">
+        <span class="speaker-icon">💻</span>
+        <div class="content">
+          <div class="speaker-name naya">Naya:</div>
+          <div class="text">Kalau saya lihat user Pak Tua dan Dian — mereka butuh <em>structured form</em>, bukan textarea markdown. Individual field per elemen ibadah. Tapi harus ada <strong>hymn picker dengan autocomplete</strong> — ketik nomor "320" langsung muncul judul "Rejoice, Ye Pure in Heart". Dan jumlah lagu jangan di-fix 4 slot, harus dinamis.</div>
+        </div>
+      </div>
+      <div class="turn">
+        <span class="speaker-icon">🔧</span>
+        <div class="content">
+          <div class="speaker-name galih">Galih:</div>
+          <div class="text">Berita baiknya: <code>POST /api/services</code> sudah ada, <code>coerceStructuredFields</code> sudah handle patch per field, dan tabel <code>hymns</code> sudah berisi 695 lagu SDAH. Kita cuma perlu UI form yang output <code>ParsedRundown</code> JSON — backendnya sudah 80% siap. Yang perlu kita putuskan: tulis langsung ke <code>parsed_data</code>, atau generate <code>raw_payload</code> terus re-parse?</div>
+        </div>
+      </div>
+      <div class="turn">
+        <span class="speaker-icon">🎵</span>
+        <div class="content">
+          <div class="speaker-name pak-tua">Pak Tua:</div>
+          <div class="text">Saya juga mau bisa <strong>copy dari minggu lalu</strong>. Banyak elemen yang sama — cuma ganti pembicara dan lagu. Jangan harus isi dari nol setiap kali.</div>
+        </div>
+      </div>
+      <div class="turn">
+        <span class="speaker-icon">📱</span>
+        <div class="content">
+          <div class="speaker-name dian">Dian:</div>
+          <div class="text">Dan <strong>preview!</strong> Saya mau lihat seperti apa slide-nya sebelum disimpan. Kalau ada yang salah — nama salah, ayat salah — saya bisa langsung edit tanpa harus generate PPTX dulu baru tahu salah.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TECHNIQUE 2: Morphological Analysis -->
+  <div class="technique-section">
+    <div class="technique-header morpho">
+      <span class="badge">Teknik 2</span>
+      <h2>Morphological Analysis — Parameter × Opsi</h2>
+    </div>
+    <div class="dialogue">
+      <div class="turn">
+        <span class="speaker-icon">🔧</span>
+        <div class="content">
+          <div class="speaker-name galih">Galih:</div>
+          <div class="text">Saya petakan parameter-parameternya. <strong>Data Model:</strong> tiga opsi — tulis langsung ke parsed_data, generate raw_payload lalu re-parse, atau bikin staging table baru. <strong>Hymn Input:</strong> nomor-only, title-search autocomplete, browse modal, atau comma-separated bulk. <strong>Concurrency:</strong> pakai optimistic locking yang sudah ada (updated_at 409), pessimistic lock, atau last-write-wins.</div>
+        </div>
+      </div>
+      <div class="turn">
+        <span class="speaker-icon">💻</span>
+        <div class="content">
+          <div class="speaker-name naya">Naya:</div>
+          <div class="text">Dari sisi UX, saya vote: <strong>tulis langsung ke parsed_data</strong> (paling sederhana, skip parser overhead), <strong>title-search autocomplete</strong> (operator kadang ingat judul tapi lupa nomor), <strong>real-time field-level validation</strong> (feedback langsung), dan <strong>dedicated page</strong> bukan modal. Modal terlalu sempit untuk form sebanyak ini.</div>
+        </div>
+      </div>
+      <div class="turn">
+        <span class="speaker-icon">📱</span>
+        <div class="content">
+          <div class="speaker-name dian">Dian:</div>
+          <div class="text">Untuk auth scope — cukup <strong>operator + admin</strong>. Semua yang bisa login sekarang sudah punya salah satu dari dua role itu. Jangan bikin role baru, tambah complexity doang. Dan preview-nya pakai <strong>slide-plan rendering</strong> yang sama — saya mau lihat persis apa yang akan tampil di projector.</div>
+        </div>
+      </div>
+      <div class="turn">
+        <span class="speaker-icon">🔧</span>
+        <div class="content">
+          <div class="speaker-name galih">Galih:</div>
+          <div class="text">Kalau begitu kombo terbaiknya: <strong>web-form → parsed_data langsung → autocomplete hymn by number+title → real-time validation → operator/admin role → dedicated /services/new page → optimistic locking (existing pattern) → slide-plan preview</strong>. Semua ini maximize reuse dari yang sudah ada.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TECHNIQUE 3: Disney Method -->
+  <div class="technique-section">
+    <div class="technique-header disney">
+      <span class="badge">Teknik 3</span>
+      <h2>Disney Method — Dreamer → Realist → Critic</h2>
+    </div>
+    <div class="dialogue">
+      <div class="turn">
+        <span class="speaker-icon">🎵</span>
+        <div class="content">
+          <div class="speaker-name pak-tua">Pak Tua:</div>
+          <div class="text"><em>*memasuki Dreamer room*</em> — Bayangkan kalau saya buka web, klik "New Service", pilih tanggal, dan sistem sudah tahu ini Sabbath ke berapa dalam bulan ini. Otomatis suggest template yang biasa dipakai. Saya tinggal ganti nama pembicara dan nomor lagu. <strong>One-click clone dari minggu lalu</strong> — auto-increment tanggal, langsung edit yang berubah saja.</div>
+        </div>
+      </div>
+      <div class="turn">
+        <span class="speaker-icon">💻</span>
+        <div class="content">
+          <div class="speaker-name naya">Naya:</div>
+          <div class="text"><em>*di Dreamer room juga*</em> — Full liturgy builder! Drag-drop setiap elemen ibadah, visual timeline dari pembukaan sampai penutup. Hymn picker yang bisa play audio preview. Scripture input yang langsung render ayat KJV inline. Mobile-first supaya bisa isi di HP saat rapat.</div>
+        </div>
+      </div>
+      <div class="turn">
+        <span class="speaker-icon">🔧</span>
+        <div class="content">
+          <div class="speaker-name galih">Galih:</div>
+          <div class="text"><em>*pindah ke Realist room*</em> — Oke, ground truth. <code>POST /api/services</code> sudah ada — kita extend supaya terima structured JSON body, bukan cuma raw text. Tambahkan <code>source</code> field ("web" vs "telegram"). Buat <code>WorshipForm</code> component di <code>/services/new</code> dengan: date picker, dynamic hymn inputs, themeVerse, verseReading, sermon (speaker+title), specialSong, closingPrayer, familyYouth. Form generates <code>ParsedRundown</code> client-side, POST to API.</div>
+        </div>
+      </div>
+      <div class="turn">
+        <span class="speaker-icon">📱</span>
+        <div class="content">
+          <div class="speaker-name dian">Dian:</div>
+          <div class="text"><em>*masuk Critic room*</em> — Wait. Kalau operator bikin service untuk tanggal yang sudah ada dari Telegram — <strong>kita dapat duplikat</strong>. Harus ada date collision check. Dan jangan generate synthetic raw_payload — itu fragile. Parser bisa berubah, roundtrip pecah. Tulis langsung ke parsed_data, kasih raw_payload yang jujur: "Created via web form".</div>
+        </div>
+      </div>
+      <div class="turn">
+        <span class="speaker-icon">🔧</span>
+        <div class="content">
+          <div class="speaker-name galih">Galih:</div>
+          <div class="text"><em>*masih di Critic room*</em> — Setuju soal raw_payload. Dan satu lagi: <strong>hymn slot count bukan fixed</strong>. Ada ibadah 3 lagu, ada yang 5. Form harus dynamic list — "Add Hymn" button, bisa hapus per item. Dan optimistic concurrency: kalau Dian dan Pak Tua edit bersamaan, yang submit belakangan harus dapat warning 409, bukan silent overwrite.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TECHNIQUE 4: Build on What Works -->
+  <div class="technique-section">
+    <div class="technique-header build">
+      <span class="badge">Teknik 4</span>
+      <h2>Build on What Works — Amplify Existing Patterns</h2>
+    </div>
+    <div class="dialogue">
+      <div class="turn">
+        <span class="speaker-icon">🔧</span>
+        <div class="content">
+          <div class="speaker-name galih">Galih:</div>
+          <div class="text">Saya audit codebase kita. Yang sudah jalan dan bisa di-leverage: <code>coerceStructuredFields</code> + <code>applyStructuredFields</code> untuk PUT path — web form tinggal kirim field patches, backend apply ke existing parsed_data. <code>POST /api/services</code> sudah terima <code>parsed_data</code>. Tabel <code>hymns</code> sudah ada 695 entries. <code>updated_at</code> optimistic locking sudah enforced. <strong>Backend-nya 80% ready.</strong></div>
+        </div>
+      </div>
+      <div class="turn">
+        <span class="speaker-icon">💻</span>
+        <div class="content">
+          <div class="speaker-name naya">Naya:</div>
+          <div class="text">Dari UI side: <code>EditForm</code> sudah punya textarea + parse preview. Kita bisa extend dengan <strong>toggle: raw mode vs structured mode</strong>. Operator yang terbiasa bisa tetap pakai textarea, yang baru bisa pakai form fields. Dan <code>AnnouncementsManager</code> sudah punya drag-drop upload — bisa di-link dari worship form sebagai optional step.</div>
+        </div>
+      </div>
+      <div class="turn">
+        <span class="speaker-icon">📱</span>
+        <div class="content">
+          <div class="speaker-name dian">Dian:</div>
+          <div class="text">Preview component yang sudah ada di service detail page — <strong>reuse itu</strong> di form create juga. Saya mau lihat rundown lengkap sebelum save. Dan yang paling penting: <code>/services/new</code> belum ada — ini clean slate, kita bisa design dari nol tapi tetap match aesthetic yang sudah ada.</div>
+        </div>
+      </div>
+      <div class="turn">
+        <span class="speaker-icon">🎵</span>
+        <div class="content">
+          <div class="speaker-name pak-tua">Pak Tua:</div>
+          <div class="text">Webhook sudah punya upsert by date kan? Pakai logic yang sama — kalau operator create service untuk tanggal yang sudah ada, tampilkan peringatan: "Service untuk tanggal ini sudah ada. Mau edit yang existing?" Jangan diam-diam bikin duplikat.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SYNTHESIS -->
+  <div class="synthesis">
+    <h2>✨ Sintesis — Yang Kami Putuskan</h2>
+
+    <div class="insight-card">
+      <strong>🧩 Gap Sebenarnya:</strong> Backend sudah 80% ready. Yang kurang hanya frontend form yang berbicara dalam bahasa ParsedRundown yang sama dengan output Telegram/webhook.
+    </div>
+
+    <div class="insight-card">
+      <strong>📐 Arsitektur:</strong> Structured form di <code>/services/new</code> (create) + enhanced EditForm di <code>/services/[id]</code> (edit) dengan toggle raw/structured mode. Form produce ParsedRundown JSON langsung — tidak perlu synthetic raw_payload.
+    </div>
+
+    <div class="insight-card">
+      <strong>🎶 Hymn Input:</strong> Dynamic list (bukan fixed slots) dengan autocomplete — cari by nomor SDAH atau judul. Tampilkan first line sebagai konfirmasi. "Add Hymn" / "Remove" per item.
+    </div>
+
+    <div class="insight-card">
+      <strong>📅 Date Collision:</strong> Check existing service by date saat create. Jika sudah ada — tawarkan edit yang existing, bukan silent duplicate.
+    </div>
+
+    <div class="insight-card">
+      <strong>🔄 Backend Minimal:</strong> POST /api/services sudah ada — extend untuk terima structured body dengan <code>source: "web"</code>. PUT path sudah support field patches via coerceStructuredFields.
+    </div>
+
+    <div class="insight-card">
+      <strong>👁️ Preview:</strong> Reuse slide-plan rendering component — operator lihat persis apa yang akan tampil di projector sebelum save.
+    </div>
+
+    <div class="insight-card">
+      <strong>🔒 Concurrency:</strong> Honor existing optimistic locking (updated_at 409). Web form fetch updated_at on load, kirim balik on save, handle 409 dengan prompt refresh.
+    </div>
+
+    <div class="insight-card decision">
+      <strong>🎯 Arah Terpilih:</strong> Structured form at /services/new, enhanced EditForm with field mode toggle, same ParsedRundown shape as webhook output. Web-created services set raw_payload to honest "Created via web form" marker. Downstream (slide-plan, PPTX, presenter) tetap untouched.
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>Brainstorm Party by BMad × AntiGravity — 19 Juli 2026</p>
+    <p>🎵 Pak Tua · 💻 Naya · 🔧 Galih · 📱 Dian</p>
+    <p class="heart">♥</p>
+  </div>
+
+</div>
+
+</body>
+</html>

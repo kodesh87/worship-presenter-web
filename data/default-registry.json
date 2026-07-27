@@ -1,0 +1,1525 @@
+[
+  {
+    "schemaVersion": 1,
+    "id": "welcome",
+    "label": "Welcome",
+    "baseType": "text-placeholder",
+    "placeholders": [
+      {
+        "key": "date",
+        "type": "text",
+        "required": false
+      }
+    ],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#000000",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 5.63,
+            "y": 55.62,
+            "w": 56.42,
+            "h": 25.47,
+            "zIndex": 1,
+            "content": "Welcome to",
+            "style": {
+              "fontSize": 101.75,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 5.63,
+            "y": 80.48,
+            "w": 77.04,
+            "h": 7.97,
+            "zIndex": 1,
+            "content": "BANDUNG INTERNATIONAL COMMUNITY",
+            "style": {
+              "fontSize": 20.7,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          },
+          {
+            "id": "e3",
+            "type": "text",
+            "required": false,
+            "x": 5.63,
+            "y": 89.5,
+            "w": 50,
+            "h": 5.5,
+            "zIndex": 1,
+            "placeholderKey": "date",
+            "style": {
+              "fontSize": 14.67,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/welcome-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "bible-talk-sequence",
+    "label": "BibleTalkSequence",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#DCD7CE",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 58.45,
+            "y": 14.38,
+            "w": 36.13,
+            "h": 18.01,
+            "zIndex": 1,
+            "content": "Bible Talk \nSequence",
+            "style": {
+              "fontSize": 49.91,
+              "fontColor": "#FFFFFF",
+              "textAlign": "center"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 58.76,
+            "y": 36.73,
+            "w": 35.54,
+            "h": 53.35,
+            "zIndex": 1,
+            "content": "Prayer Partner \nOpening Song \nOpening Prayer \nVerse Reading \nBible Talk \nClosing Song \nClosing Prayer \n\nBreak Time",
+            "style": {
+              "fontSize": 21.43,
+              "fontColor": "#FFFFFF",
+              "textAlign": "center"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/bt-seq-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "prayer-partners",
+    "label": "PrayerPartners",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#652F13",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 11.67,
+            "y": 37.55,
+            "w": 32.5,
+            "h": 24.4,
+            "zIndex": 1,
+            "content": "Prayer \nPartners",
+            "style": {
+              "fontSize": 70.0,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/prayer-partners-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "opening-song-cue",
+    "label": "OpeningSongCue",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#DCD7CE",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 5.63,
+            "y": 32.17,
+            "w": 38.13,
+            "h": 30.42,
+            "zIndex": 1,
+            "content": "Opening \nSong",
+            "style": {
+              "fontSize": 80.37,
+              "textAlign": "left"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 5.63,
+            "y": 92.1,
+            "w": 68.97,
+            "h": 6.05,
+            "zIndex": 1,
+            "content": "Congregation,  please stand",
+            "style": {
+              "fontSize": 25.06,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/song-cue-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "verse-reading",
+    "label": "VerseReading",
+    "baseType": "text-placeholder",
+    "placeholders": [
+      {
+        "key": "reference",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "text",
+        "type": "text",
+        "required": true
+      }
+    ],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#000000",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "shape",
+            "required": false,
+            "x": 0,
+            "y": 0,
+            "w": 100,
+            "h": 100,
+            "zIndex": 0,
+            "style": {
+              "fillColor": "#000000"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 5.18,
+            "y": 19.33,
+            "w": 89.58,
+            "h": 53.63,
+            "zIndex": 1,
+            "placeholderKey": "text",
+            "style": {
+              "fontSize": 46.67,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          },
+          {
+            "id": "e3",
+            "type": "text",
+            "required": false,
+            "x": 5.83,
+            "y": 78.15,
+            "w": 81.63,
+            "h": 2.52,
+            "zIndex": 1,
+            "placeholderKey": "reference",
+            "style": {
+              "fontSize": 46.67,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/verse-reading-bg.jpeg"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "opening-prayer",
+    "label": "OpeningPrayer",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#000000",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 5.42,
+            "y": 73.7,
+            "w": 61.43,
+            "h": 22.69,
+            "zIndex": 1,
+            "content": "Opening Prayer",
+            "style": {
+              "fontSize": 81.6,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/prayer-partners-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "bible-talk",
+    "label": "BibleTalk",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#000000",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 50.83,
+            "y": 6.83,
+            "w": 49.8,
+            "h": 25.45,
+            "zIndex": 1,
+            "content": "Bible Talk",
+            "style": {
+              "fontSize": 101.66,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 59.16,
+            "y": 27.72,
+            "w": 39.17,
+            "h": 9.13,
+            "zIndex": 1,
+            "content": "Break up into classes",
+            "style": {
+              "fontSize": 23.6,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/bible-talk-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "closing-song-cue",
+    "label": "ClosingSongCue",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#DCD7CE",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 5.63,
+            "y": 32.17,
+            "w": 35.07,
+            "h": 30.42,
+            "zIndex": 1,
+            "content": "Closing \nSong",
+            "style": {
+              "fontSize": 80.37,
+              "textAlign": "left"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 5.63,
+            "y": 92.1,
+            "w": 68.97,
+            "h": 6.05,
+            "zIndex": 1,
+            "content": "Congregation,  please stand",
+            "style": {
+              "fontSize": 25.06,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/song-cue-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "closing-prayer",
+    "label": "ClosingPrayer_BT",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#000000",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 41.47,
+            "y": 39.9,
+            "w": 61.45,
+            "h": 22.69,
+            "zIndex": 1,
+            "content": "Closing Prayer",
+            "style": {
+              "fontSize": 81.62,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/closing-prayer-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "break-time",
+    "label": "BreakTime",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#000000",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": -7.92,
+            "y": 10.34,
+            "w": 64.53,
+            "h": 23.87,
+            "zIndex": 1,
+            "content": "Break Time",
+            "style": {
+              "fontSize": 80.0,
+              "fontColor": "#FFFFFF",
+              "textAlign": "center"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 4.59,
+            "y": 32.55,
+            "w": 39.52,
+            "h": 7.08,
+            "zIndex": 1,
+            "content": "5 MINUTES",
+            "style": {
+              "fontSize": 23.81,
+              "fontColor": "#FFFFFF",
+              "textAlign": "center"
+            }
+          },
+          {
+            "id": "e3",
+            "type": "text",
+            "required": false,
+            "x": 15,
+            "y": 73.37,
+            "w": 54.63,
+            "h": 20.33,
+            "zIndex": 1,
+            "content": "Bank Mandiri \n12345 67 8901 23 \nGereja Masehi Advent Hari Ketujuh BIC",
+            "style": {
+              "fontSize": 20.0,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/break-time-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "ds-sequence",
+    "label": "DivineServiceSequence",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#DCD7CE",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 9.53,
+            "y": 15.87,
+            "w": 33.78,
+            "h": 14.04,
+            "zIndex": 1,
+            "content": "Divine Service \nSequence",
+            "style": {
+              "fontSize": 42.58,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 9.81,
+            "y": 37.08,
+            "w": 33.22,
+            "h": 49.85,
+            "zIndex": 1,
+            "content": "Opening Song \nIntercessory Prayer \nSpecial Song \nSermon \nClosing Song \nClosing Prayer \nAnnouncements \n\nFellowship Meal",
+            "style": {
+              "fontSize": 20.03,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/ds-seq-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "bible-verse-contemplation",
+    "label": "BibleVerseContemplation",
+    "baseType": "text-placeholder",
+    "placeholders": [
+      {
+        "key": "reference",
+        "type": "text",
+        "required": true,
+        "defaultValue": "John 4:23"
+      },
+      {
+        "key": "text",
+        "type": "text",
+        "required": true,
+        "defaultValue": "But the hour is coming, and is now here, when the true worshipers will worship the Father in spirit and truth."
+      }
+    ],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#652F13",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 13.38,
+            "y": 26.3,
+            "w": 27.87,
+            "h": 41.29,
+            "zIndex": 1,
+            "placeholderKey": "text",
+            "style": {
+              "fontSize": 24.79,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 13.38,
+            "y": 72.22,
+            "w": 27.87,
+            "h": 6.38,
+            "zIndex": 1,
+            "placeholderKey": "reference",
+            "style": {
+              "fontSize": 24.79,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/verse-contemplation-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "intercessory-prayer",
+    "label": "IntercessoryPrayer",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#000000",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 5.63,
+            "y": 56.74,
+            "w": 61.93,
+            "h": 30.67,
+            "zIndex": 1,
+            "content": "Intercessory Prayer",
+            "style": {
+              "fontSize": 82.27,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/intercessory-prayer-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "intercessory-prayer-during",
+    "label": "IntercessoryDuring",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#5C2E16",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 11.39,
+            "y": 33.26,
+            "w": 77.23,
+            "h": 52.82,
+            "zIndex": 1,
+            "content": "Now, dear Lord, as we pray, \ntake our hearts and minds far away \nfrom the press of the world all around \nto your throne where grace does abound. \n\nMay our lives be transformed by Your love, \nmay our souls be refreshed from above. \nAt this moment, let people everywhere \njoin us now as we come to You in prayer.",
+            "style": {
+              "fontSize": 24.36,
+              "fontColor": "#FBFFFF",
+              "textAlign": "center"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/intercessory-during-bg.jpeg"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "special-song",
+    "label": "SpecialSong",
+    "baseType": "text-placeholder",
+    "placeholders": [
+      {
+        "key": "performer",
+        "type": "text",
+        "required": true
+      }
+    ],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#000000",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 26.25,
+            "y": 77.41,
+            "w": 47.5,
+            "h": 15.83,
+            "zIndex": 1,
+            "content": "Special Song",
+            "style": {
+              "fontSize": 69.41,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 26.25,
+            "y": 88.5,
+            "w": 47.5,
+            "h": 5.5,
+            "zIndex": 1,
+            "placeholderKey": "performer",
+            "style": {
+              "fontSize": 31.23,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/special-song-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "sermon",
+    "label": "Sermon",
+    "baseType": "text-placeholder",
+    "placeholders": [
+      {
+        "key": "title",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "speaker",
+        "type": "text",
+        "required": true
+      }
+    ],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#2F3B2D",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 58.32,
+            "y": 34.67,
+            "w": 31.26,
+            "h": 17.35,
+            "zIndex": 1,
+            "placeholderKey": "title",
+            "style": {
+              "fontSize": 69.41,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 57.31,
+            "y": 52.96,
+            "w": 31.77,
+            "h": 5.86,
+            "zIndex": 1,
+            "placeholderKey": "speaker",
+            "style": {
+              "fontSize": 25.73,
+              "fontColor": "#2F3B2D",
+              "textAlign": "center"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/sermon-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "sermon-flyer",
+    "label": "SermonFlyer",
+    "baseType": "fullscreen-image",
+    "placeholders": [
+      {
+        "key": "imageUrl",
+        "type": "image",
+        "required": true
+      }
+    ],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#000000",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "image-placeholder",
+            "required": true,
+            "x": 0,
+            "y": 0,
+            "w": 100,
+            "h": 100,
+            "zIndex": 0,
+            "placeholderKey": "imageUrl",
+            "style": {
+              "objectFit": "contain"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "closing-prayer-ds",
+    "label": "ClosingPrayer_DS",
+    "baseType": "text-placeholder",
+    "placeholders": [
+      {
+        "key": "person",
+        "type": "text",
+        "required": true
+      }
+    ],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#DCD7CE",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 8.78,
+            "y": 37.31,
+            "w": 31.26,
+            "h": 22.15,
+            "zIndex": 1,
+            "content": "Closing \nPrayer",
+            "style": {
+              "fontSize": 68.55,
+              "textAlign": "left"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 9.69,
+            "y": 62.02,
+            "w": 34.7,
+            "h": 4.28,
+            "zIndex": 1,
+            "placeholderKey": "person",
+            "style": {
+              "fontSize": 25.78,
+              "textAlign": "left"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/closing-prayer-ds-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "song-set",
+    "label": "SongSet",
+    "baseType": "song-set",
+    "placeholders": [
+      {
+        "key": "hymnNumber",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "songTitle",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "label",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "lyrics",
+        "type": "text",
+        "required": true
+      }
+    ],
+    "layouts": {
+      "title": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#000000",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "shape",
+            "required": false,
+            "x": 0,
+            "y": 0,
+            "w": 100,
+            "h": 66.67,
+            "zIndex": 0,
+            "style": {
+              "fillColor": "#5C2E16"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "image",
+            "required": false,
+            "x": 0,
+            "y": 60.39,
+            "w": 100,
+            "h": 39.61,
+            "zIndex": 0,
+            "imageRef": "/assets/song-title-bottom.jpeg"
+          },
+          {
+            "id": "e3",
+            "type": "text",
+            "required": false,
+            "x": 26.67,
+            "y": 21.04,
+            "w": 46.67,
+            "h": 11.45,
+            "zIndex": 1,
+            "placeholderKey": "hymnNumber",
+            "style": {
+              "fontSize": 47.66,
+              "fontColor": "#FFFFFF",
+              "textAlign": "center"
+            }
+          },
+          {
+            "id": "e4",
+            "type": "text",
+            "required": false,
+            "x": 8.29,
+            "y": 33.12,
+            "w": 83.43,
+            "h": 8.98,
+            "zIndex": 1,
+            "placeholderKey": "songTitle",
+            "style": {
+              "fontSize": 40.0,
+              "fontColor": "#FFFFFF",
+              "textAlign": "center"
+            }
+          }
+        ]
+      },
+      "lyric": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#5C2E16",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 43.79,
+            "y": 3.33,
+            "w": 12.42,
+            "h": 9.09,
+            "zIndex": 1,
+            "placeholderKey": "label",
+            "style": {
+              "fontSize": 36.57,
+              "fontColor": "#F0EEEB",
+              "textAlign": "center"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 2.08,
+            "y": 20.37,
+            "w": 95.83,
+            "h": 52.36,
+            "zIndex": 1,
+            "placeholderKey": "lyrics",
+            "style": {
+              "fontSize": 46.67,
+              "textAlign": "center"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/song-lyric-bg.jpeg"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "announcements-header",
+    "label": "AnnouncementsHeader",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#2F3B2D",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": true,
+            "x": 10,
+            "y": 35,
+            "w": 80,
+            "h": 15,
+            "zIndex": 1,
+            "content": "Announcements",
+            "style": {
+              "fontColor": "#FFFFFF",
+              "fontSize": 64.0,
+              "textAlign": "center"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": true,
+            "x": 10,
+            "y": 55,
+            "w": 80,
+            "h": 8,
+            "zIndex": 1,
+            "content": "Part C",
+            "style": {
+              "fontColor": "#FFFFFF",
+              "fontSize": 32.0,
+              "textAlign": "center"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "welcome-repeat",
+    "label": "Welcome",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#000000",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 5.63,
+            "y": 55.62,
+            "w": 56.42,
+            "h": 25.47,
+            "zIndex": 1,
+            "content": "Welcome to",
+            "style": {
+              "fontSize": 101.75,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 5.63,
+            "y": 80.48,
+            "w": 77.04,
+            "h": 6.19,
+            "zIndex": 1,
+            "content": "BANDUNG INTERNATIONAL COMMUNITY",
+            "style": {
+              "fontSize": 20.7,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/welcome-repeat-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "offering-tithe",
+    "label": "OfferingTithe",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#000000",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 42.5,
+            "y": 9.26,
+            "w": 53.71,
+            "h": 10.35,
+            "zIndex": 1,
+            "content": "Offering & Tithe",
+            "style": {
+              "fontSize": 50.39,
+              "fontColor": "#FFFFFF",
+              "textAlign": "right"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 34.58,
+            "y": 39.75,
+            "w": 61.89,
+            "h": 13.21,
+            "zIndex": 1,
+            "content": "1234567890123 \nGereja Masehi Advent Hari Ketujuh BIC",
+            "style": {
+              "fontSize": 31.95,
+              "fontColor": "#FFFFFF",
+              "textAlign": "right"
+            }
+          },
+          {
+            "id": "e3",
+            "type": "text",
+            "required": false,
+            "x": 42.92,
+            "y": 32.67,
+            "w": 53,
+            "h": 6.61,
+            "zIndex": 1,
+            "content": "Bank Mandiri",
+            "style": {
+              "fontSize": 31.95,
+              "fontColor": "#FFFFFF",
+              "textAlign": "right"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/offering-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "midweek-prayer",
+    "label": "MidweekPrayer",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#2F3B2D",
+        "backgroundImage": "/assets/midweek-bg.png",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": true,
+            "x": 8,
+            "y": 20,
+            "w": 84,
+            "h": 12,
+            "zIndex": 1,
+            "content": "Midweek Prayer Meeting",
+            "style": {
+              "fontColor": "#FFFFFF",
+              "fontSize": 48.0,
+              "textAlign": "center"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": true,
+            "x": 10,
+            "y": 40,
+            "w": 80,
+            "h": 35,
+            "zIndex": 1,
+            "content": "Join us midweek for prayer and fellowship.\nDay / time: [placeholder]\nAll are welcome.",
+            "style": {
+              "fontColor": "#FFFFFF",
+              "fontSize": 26.67,
+              "textAlign": "center"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "fellowship-etiquette",
+    "label": "FellowshipEtiquette",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#000000",
+        "elements": [],
+        "backgroundImage": "/assets/fellowship-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "contact",
+    "label": "Contact",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#2F3B2D",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 13.52,
+            "y": 41.13,
+            "w": 31.88,
+            "h": 24.1,
+            "zIndex": 1,
+            "content": "For more information",
+            "style": {
+              "fontSize": 60.99,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 62.42,
+            "y": 54.47,
+            "w": 19.25,
+            "h": 4.87,
+            "zIndex": 1,
+            "content": "example.org/contact",
+            "style": {
+              "fontSize": 25.03,
+              "fontColor": "#FFFFFF",
+              "textAlign": "center"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "family-youth",
+    "label": "FamilyYouth",
+    "baseType": "mix-placeholder",
+    "placeholders": [
+      {
+        "key": "familyText",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "youthText",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "familyPhoto",
+        "type": "image",
+        "required": true
+      },
+      {
+        "key": "youthPhoto",
+        "type": "image",
+        "required": true
+      }
+    ],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#DCD7CE",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 35.26,
+            "y": 3.33,
+            "w": 23.23,
+            "h": 4.9,
+            "zIndex": 1,
+            "content": "Family of the Week",
+            "style": {
+              "fontSize": 19.85,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          },
+          {
+            "id": "e3",
+            "type": "text",
+            "required": false,
+            "x": 35.47,
+            "y": 13.64,
+            "w": 59.27,
+            "h": 3.37,
+            "zIndex": 1,
+            "content": "Prayer Request:",
+            "style": {
+              "fontSize": 15.12,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          },
+          {
+            "id": "e4",
+            "type": "text",
+            "required": false,
+            "x": -14.44,
+            "y": 49.56,
+            "w": 42.01,
+            "h": 8.54,
+            "zIndex": 1,
+            "content": "Prayer Request",
+            "style": {
+              "fontSize": 32.67,
+              "fontColor": "#2F3B2D",
+              "textAlign": "center"
+            }
+          },
+          {
+            "id": "e5",
+            "type": "text",
+            "required": false,
+            "x": 36.3,
+            "y": 56.67,
+            "w": 23.23,
+            "h": 4.56,
+            "zIndex": 1,
+            "content": "Youth of the Week",
+            "style": {
+              "fontSize": 19.85,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          },
+          {
+            "id": "e7",
+            "type": "text",
+            "required": false,
+            "x": 35.12,
+            "y": 17.75,
+            "w": 59.27,
+            "h": 10.1,
+            "zIndex": 1,
+            "placeholderKey": "familyText",
+            "style": {
+              "fontSize": 15.12,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          },
+          {
+            "id": "e8",
+            "type": "text",
+            "required": false,
+            "x": 36.63,
+            "y": 66.97,
+            "w": 59.27,
+            "h": 3.37,
+            "zIndex": 1,
+            "content": "Prayer Request:",
+            "style": {
+              "fontSize": 15.12,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          },
+          {
+            "id": "e9",
+            "type": "text",
+            "required": false,
+            "x": 36.28,
+            "y": 71.08,
+            "w": 59.27,
+            "h": 16.83,
+            "zIndex": 1,
+            "placeholderKey": "youthText",
+            "style": {
+              "fontSize": 15.12,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          },
+          {
+            "id": "e10",
+            "type": "image-placeholder",
+            "required": false,
+            "x": 11.84,
+            "y": 0,
+            "w": 20.55,
+            "h": 49.54,
+            "zIndex": 0,
+            "placeholderKey": "familyPhoto",
+            "style": {
+              "objectFit": "cover"
+            }
+          },
+          {
+            "id": "e11",
+            "type": "image-placeholder",
+            "required": false,
+            "x": 11.75,
+            "y": 50,
+            "w": 20.75,
+            "h": 50.23,
+            "zIndex": 0,
+            "placeholderKey": "youthPhoto",
+            "style": {
+              "objectFit": "cover"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "announcement-flyer",
+    "label": "AnnouncementFlyer",
+    "baseType": "announcement",
+    "placeholders": [
+      {
+        "key": "imageUrl",
+        "type": "image[]",
+        "required": true
+      }
+    ],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#000000",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "image-placeholder",
+            "required": true,
+            "x": 0,
+            "y": 0,
+            "w": 100,
+            "h": 100,
+            "zIndex": 0,
+            "placeholderKey": "imageUrl",
+            "style": {
+              "objectFit": "contain"
+            }
+          }
+        ]
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "thank-you",
+    "label": "ThankYou",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#652F13",
+        "backgroundImage": "/assets/thank-you-bg.png",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": true,
+            "x": 15,
+            "y": 35,
+            "w": 70,
+            "h": 18,
+            "zIndex": 1,
+            "content": "Thank You",
+            "style": {
+              "fontColor": "#FFFFFF",
+              "fontSize": 64.0,
+              "textAlign": "center"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": true,
+            "x": 10,
+            "y": 58,
+            "w": 80,
+            "h": 8,
+            "zIndex": 1,
+            "content": "Bandung International Community",
+            "style": {
+              "fontColor": "#FFFFFF",
+              "fontSize": 26.67,
+              "textAlign": "center"
+            }
+          }
+        ]
+      }
+    }
+  }
+]

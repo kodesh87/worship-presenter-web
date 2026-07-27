@@ -1,0 +1,777 @@
+'use client';
+
+/**
+ * Operator console, arranged the way PowerPoint's presenter view is: the
+ * current slide top-left, the next slide top-right, a thumbnail filmstrip and
+ * the slide list bottom-left, and the operator's own panels (scripture,
+ * run-sheet) bottom-right, with an "All slides" grid for jumping anywhere in
+ * the deck.
+ *
+ * Two sizing rules make it comfortable from FullHD to 4K:
+ *  - the current slide is capped in *both* axes by `--presenter-stage`, so a
+ *    large monitor gives its extra pixels to the strip, the list and the
+ *    run-sheet instead of inflating one slide;
+ *  - below `lg` the two columns stack and the page scrolls, so a narrow window
+ *    never overflows horizontally.
+ *
+ * The shell declares `dark` rather than hardcoding zinc colours. Every control
+ * inside it is a theme-token component, so marking the surface dark is what
+ * makes `--background` / `--foreground` resolve dark for them; painting zinc on
+ * top while the tokens stayed light is what made the "Open projector" button
+ * white-on-white.
+ */
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type RefObject,
+} from 'react';
+import Link from 'next/link';
+import type { SlidePlanItem } from '@/lib/slide-plan';
+import type { ParsedItem } from '@/lib/parser';
+import SlideView from '@/components/SlideView';
+import { openPresentChannel, type PresentMessage } from '@/lib/present-channel';
+import {
+  parseSlideTransition,
+  SLIDE_TRANSITIONS,
+  SLIDE_TRANSITION_SPECS,
+  type SlideTransition,
+} from '@/lib/transitions';
+import { Button } from '@/components/ui/button';
+import SlideGridDialog from './SlideGridDialog';
+import {
+  PRESENTER_TONE_CLASS,
+  activePresenterEntry,
+  buildPresenterEntries,
+  buildPresenterRows,
+  clampSlideIndex,
+  rowContainsIndex,
+  type PresenterEntry,
+} from './presenter-model';
+
+type CssVars = CSSProperties & Record<`--${string}`, string>;
+
+/**
+ * The cap on the current slide. Width is the smaller of a fixed maximum and the
+ * width a 16:9 stage may have before it would push the rest of the column off
+ * the viewport, with a floor so a very short window still shows something.
+ * Capping the width of an `aspect-video` box caps the height with it, so the box
+ * stays exactly 16:9 and the slide never letterboxes inside its own frame.
+ *
+ * `30rem` is everything else in that column, measured rather than guessed:
+ * header 3.75, page padding 2, three 0.75 gaps 2.25, the "Current" label 1.25,
+ * transport row 2, filmstrip 7.95 (thumbnail 4.5 + its frame 0.75 + caption
+ * 1.15 + strip padding 0.75 + the horizontal scrollbar ~0.8), and 10.8 for the
+ * slide list.
+ *
+ * It was 21rem before the filmstrip. Note what that arithmetic means: while the
+ * `min()` binds, the stage takes exactly the height this term does *not*, so
+ * every rem added here lands on the slide list one-for-one at any viewport. The
+ * strip is therefore paid for by the current slide (about 6% of its width at
+ * FullHD, nothing at all at 2K and above where the 64rem cap binds instead) and
+ * the vertical list keeps the room it had.
+ *
+ * The floor went 20rem -> 24rem for the same reason, in the other direction. On
+ * a short window (a 1366x768 laptop leaves ~660px) the fixed costs dominate and
+ * the floor is what binds, so the reserve stops being a guarantee and the
+ * leftover falls to the list instead; measured there, 20rem spent the
+ * filmstrip's height out of the current slide and left the list with more than
+ * it needs. 24rem keeps the slide readable and still fits — the column needs
+ * ~525px at that floor, against the ~516px the 20rem floor needed before, so it
+ * adds no clipping risk that the shipped layout did not already carry.
+ */
+const STAGE_VARS: CssVars = {
+  '--presenter-stage': 'max(24rem, min(64rem, calc((100dvh - 30rem) * 16 / 9)))',
+};
+
+const BADGE_BASE =
+  'rounded border px-1 py-px text-[9px] font-bold uppercase tracking-wider';
+
+const BADGE_CLASS = `shrink-0 ${BADGE_BASE}`;
+
+const PANEL_CLASS = 'rounded-lg border border-border bg-card/40';
+
+/**
+ * A popup rather than a tab, because the operator drags this onto the second
+ * screen the way PowerPoint's presenter setup expects. Width and height alone
+ * already make most browsers open a window; `popup` states the intent.
+ */
+const PROJECTOR_FEATURES = 'popup=1,width=1280,height=720,left=120,top=120';
+
+/**
+ * Stable per service, so a second click — or a Presenter reload that lost the
+ * handle — targets the *same* window instead of opening a second projector.
+ * Two projectors answering `request-sync` on one `BroadcastChannel` would fight
+ * over the deck, so the browser's own named-window reuse is the backstop behind
+ * the handle we keep.
+ */
+function projectorWindowName(serviceId: number): string {
+  return `bic-projector-${serviceId}`;
+}
+
+function SlideListRow({
+  entry,
+  active,
+  activeRef,
+  onSelect,
+}: {
+  entry: PresenterEntry;
+  active: boolean;
+  activeRef: RefObject<HTMLButtonElement | null>;
+  onSelect: (index: number) => void;
+}) {
+  return (
+    <button
+      ref={active ? activeRef : null}
+      type="button"
+      aria-current={active ? 'true' : undefined}
+      onClick={() => onSelect(entry.index)}
+      className={`flex w-full items-center gap-2 rounded px-2 py-1.5 text-left transition-colors ${
+        active
+          ? 'bg-primary text-primary-foreground'
+          : 'text-foreground hover:bg-muted'
+      }`}
+    >
+      <span
+        className={`w-7 shrink-0 text-right font-mono text-[11px] ${
+          active ? 'text-primary-foreground/70' : 'text-muted-foreground'
+        }`}
+      >
+        {entry.index + 1}
+      </span>
+      <span
+        className={`${BADGE_CLASS} ${
+          active
+            ? 'border-primary-foreground/30 bg-primary-foreground/15 text-primary-foreground'
+            : PRESENTER_TONE_CLASS[entry.tone]
+        }`}
+      >
+        {entry.label}
+      </span>
+      <span className="truncate text-xs">{entry.title ?? ''}</span>
+    </button>
+  );
+}
+
+/**
+ * One frame of the filmstrip: the real slide at thumbnail size, its number and
+ * its semantic label. `ArtifactSlide` letterboxes itself, so the frame is a
+ * fixed-width 16:9 box and the slide fills it exactly.
+ *
+ * Memoized deliberately. Every arrow press re-renders the Presenter, and
+ * without this the whole strip — one `ArtifactSlide` tree per slide, each with
+ * its own text-fit measurement — reconciles on every slide change. All props
+ * are stable except `active`, so only the two frames whose highlight actually
+ * moved re-render.
+ */
+const FilmstripFrame = memo(function FilmstripFrame({
+  slide,
+  entry,
+  active,
+  activeRef,
+  onSelect,
+}: {
+  slide: SlidePlanItem | undefined;
+  entry: PresenterEntry;
+  active: boolean;
+  activeRef: RefObject<HTMLButtonElement | null>;
+  onSelect: (index: number) => void;
+}) {
+  // The caption is clipped at 8rem, so the full text lives in the tooltip —
+  // minus the headline when it only repeats the label ("Thank You · Thank You").
+  const detail =
+    entry.title && entry.title !== entry.label ? ` · ${entry.title}` : '';
+  return (
+    <button
+      ref={active ? activeRef : null}
+      type="button"
+      aria-current={active ? 'true' : undefined}
+      title={`${entry.index + 1} · ${entry.label}${detail}`}
+      onClick={() => onSelect(entry.index)}
+      className={`w-32 shrink-0 rounded-md border p-1 text-left transition-colors ${
+        active
+          ? 'border-primary bg-primary/15 ring-2 ring-primary'
+          : 'border-border hover:bg-muted'
+      }`}
+    >
+      <span className="block aspect-video overflow-hidden rounded-sm bg-black">
+        {slide ? <SlideView slide={slide} /> : null}
+      </span>
+      <span className="mt-1 flex items-center gap-1 overflow-hidden">
+        <span
+          className={`shrink-0 font-mono text-[10px] ${
+            active ? 'text-foreground' : 'text-muted-foreground'
+          }`}
+        >
+          {entry.index + 1}
+        </span>
+        <span
+          className={`${BADGE_BASE} truncate ${PRESENTER_TONE_CLASS[entry.tone]}`}
+        >
+          {entry.label}
+        </span>
+      </span>
+    </button>
+  );
+});
+
+export default function PresenterOperator({
+  serviceId,
+  serviceDate,
+  slides,
+  runSheetItems,
+  transition: deckTransition,
+}: {
+  serviceId: number;
+  serviceDate: string;
+  slides: SlidePlanItem[];
+  runSheetItems: ParsedItem[];
+  /**
+   * The deck's configured style, read server-side — the same one every PPTX
+   * download is generated from. It is where a session starts and what a new
+   * session starts from again, because the live override below is never
+   * written anywhere.
+   */
+  transition: SlideTransition;
+}) {
+  const [index, setIndex] = useState(0);
+  const [gridOpen, setGridOpen] = useState(false);
+  const [blank, setBlank] = useState(false);
+  // Session-local, deliberately. Nothing persists it: no fetch, no setting, no
+  // storage. Closing this window is what makes the deck's own style the truth
+  // again, which is the whole contract of the control.
+  const [liveTransition, setLiveTransition] =
+    useState<SlideTransition>(deckTransition);
+  const [scriptureRef, setScriptureRef] = useState('');
+  const [scriptureBusy, setScriptureBusy] = useState(false);
+  const [scriptureError, setScriptureError] = useState<string | null>(null);
+  const [projectorBlocked, setProjectorBlocked] = useState(false);
+  const channelRef = useRef<BroadcastChannel | null>(null);
+  const indexRef = useRef(0);
+  const blankRef = useRef(false);
+  const transitionRef = useRef<SlideTransition>(deckTransition);
+  const activeRowRef = useRef<HTMLButtonElement | null>(null);
+  const activeFrameRef = useRef<HTMLButtonElement | null>(null);
+  const projectorRef = useRef<Window | null>(null);
+
+  const projectorUrl = `/services/${serviceId}/present/projector`;
+
+  const entries = useMemo(() => buildPresenterEntries(slides), [slides]);
+  const rows = useMemo(() => buildPresenterRows(entries), [entries]);
+
+  /**
+   * Focus the projector if it is already up, otherwise open it. Never a second
+   * one: the live handle answers first, and the stable window name catches the
+   * case where this component was remounted and lost it.
+   */
+  const openProjector = useCallback(() => {
+    const existing = projectorRef.current;
+    if (existing && !existing.closed) {
+      existing.focus();
+      return;
+    }
+    const opened = window.open(
+      projectorUrl,
+      projectorWindowName(serviceId),
+      PROJECTOR_FEATURES
+    );
+    projectorRef.current = opened;
+    // `null` means the popup blocker ate it — surface the plain link instead of
+    // leaving the operator clicking a button that does nothing.
+    setProjectorBlocked(opened === null);
+    opened?.focus();
+  }, [projectorUrl, serviceId]);
+
+  const broadcast = useCallback((msg: PresentMessage) => {
+    channelRef.current?.postMessage(msg);
+  }, []);
+
+  const setIndexAndSync = useCallback(
+    (next: number) => {
+      const clamped = clampSlideIndex(next, slides.length);
+      indexRef.current = clamped;
+      setIndex(clamped);
+      // Carries the blank state and the live style unchanged rather than
+      // dropping either: advancing while blanked must move the deck and leave
+      // the projector black, and advancing after a style change must not put
+      // the projector back on the deck's configured style.
+      broadcast({
+        type: 'sync',
+        index: clamped,
+        blank: blankRef.current,
+        transition: transitionRef.current,
+      });
+    },
+    [broadcast, slides.length]
+  );
+
+  /**
+   * Blanks or restores the projector. Takes the state it wants rather than
+   * flipping whatever the receiver happens to hold, so a projector that missed
+   * a message — or two of them, or the same one twice — converges instead of
+   * ending up inverted. The deck index is untouched by design.
+   */
+  const setBlankAndSync = useCallback(
+    (next: boolean) => {
+      blankRef.current = next;
+      setBlank(next);
+      broadcast({ type: 'blank', blank: next });
+    },
+    [broadcast]
+  );
+
+  const toggleBlank = useCallback(() => {
+    setBlankAndSync(!blankRef.current);
+  }, [setBlankAndSync]);
+
+  /**
+   * Redirects the projector to another style for the rest of this session and
+   * stores nothing. Names the style it wants rather than asking for the next
+   * one, so two projector windows converge on the same answer however many
+   * messages either of them missed.
+   */
+  const setTransitionAndSync = useCallback(
+    (next: SlideTransition) => {
+      transitionRef.current = next;
+      setLiveTransition(next);
+      broadcast({ type: 'transition', transition: next });
+    },
+    [broadcast]
+  );
+
+  useEffect(() => {
+    const ch = openPresentChannel(serviceId);
+    channelRef.current = ch;
+    if (!ch) return;
+
+    // Read from the refs, never from the rendered values: this listener is
+    // installed once per service and would otherwise answer with whatever the
+    // deck looked like at mount.
+    const currentState = (): PresentMessage => ({
+      type: 'sync',
+      index: indexRef.current,
+      blank: blankRef.current,
+      transition: transitionRef.current,
+    });
+
+    const onMessage = (ev: MessageEvent<PresentMessage>) => {
+      const msg = ev.data;
+      if (!msg || typeof msg !== 'object') return;
+      if (msg.type === 'request-sync') {
+        ch.postMessage(currentState());
+      }
+    };
+    ch.addEventListener('message', onMessage);
+    ch.postMessage(currentState());
+    return () => {
+      ch.removeEventListener('message', onMessage);
+      ch.close();
+      channelRef.current = null;
+    };
+  }, [serviceId]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      // While the jump grid is open the arrows belong to its selection.
+      if (gridOpen) return;
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      // `SELECT` for the same reason as the text fields: while the transition
+      // picker holds focus the arrows and space are its own, and a handler that
+      // also advanced the deck would move a slide the operator did not ask for
+      // every time they opened the list.
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        e.preventDefault();
+        setIndexAndSync(index + 1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        setIndexAndSync(index - 1);
+      } else if (e.key === 'b' || e.key === 'B' || e.key === '.') {
+        // PowerPoint's own black-screen keys, so an operator who already runs
+        // slides does not have to learn a second habit. Modifier chords are
+        // left to the browser — Ctrl+B and friends are not ours to take.
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        e.preventDefault();
+        toggleBlank();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [gridOpen, index, setIndexAndSync, toggleBlank]);
+
+  // Keeps both slide indexes following the deck: the same mechanism for the
+  // filmstrip as for the list, one axis apart. Reads and scrolls the DOM only —
+  // nothing here belongs in state. `nearest` on both axes means neither call
+  // can scroll an ancestor that was already showing the target.
+  useEffect(() => {
+    activeRowRef.current?.scrollIntoView({ block: 'nearest' });
+    activeFrameRef.current?.scrollIntoView({
+      block: 'nearest',
+      inline: 'nearest',
+    });
+  }, [index]);
+
+  const current = slides[index];
+  const next = slides[index + 1];
+  const atEnd = index >= slides.length - 1;
+  const activeEntry = activePresenterEntry(entries, index);
+
+  const pushScripture = async () => {
+    setScriptureBusy(true);
+    setScriptureError(null);
+    try {
+      const res = await fetch(
+        `/api/scripture?ref=${encodeURIComponent(scriptureRef.trim())}`
+      );
+      if (!res.ok) {
+        setScriptureError(res.status === 404 ? 'Not found' : 'Lookup failed');
+        return;
+      }
+      const data = (await res.json()) as { reference: string; text: string };
+      broadcast({
+        type: 'scripture',
+        reference: data.reference,
+        text: data.text,
+      });
+    } catch {
+      setScriptureError('Lookup failed');
+    } finally {
+      setScriptureBusy(false);
+    }
+  };
+
+  return (
+    <div className="dark flex min-h-dvh flex-col bg-background text-foreground lg:h-dvh lg:overflow-hidden">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+        <div className="min-w-0">
+          <h1 className="truncate text-lg font-semibold">
+            Presenter · {serviceDate}
+          </h1>
+          <p className="truncate text-xs text-muted-foreground">
+            Slide {slides.length === 0 ? 0 : index + 1} / {slides.length}
+            {activeEntry ? ` · ${activeEntry.label}` : ''}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => setGridOpen(true)}
+            disabled={slides.length === 0}
+          >
+            All slides
+          </Button>
+          <Button variant="outline" onClick={openProjector}>
+            Open projector
+          </Button>
+          {/* `nativeButton={false}` because this one really is a link: Base UI
+              otherwise warns that a component acting as a button was handed
+              something that is not a native `<button>`. */}
+          <Button
+            variant="ghost"
+            nativeButton={false}
+            render={<Link href={`/services/${serviceId}`} />}
+          >
+            Run-Sheet
+          </Button>
+        </div>
+        {projectorBlocked ? (
+          <p className="basis-full text-xs text-amber-300">
+            The browser blocked the projector window. Allow popups for this site,
+            or{' '}
+            <a
+              className="underline underline-offset-2"
+              href={projectorUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              open the projector in a tab
+            </a>
+            .
+          </p>
+        ) : null}
+      </header>
+
+      <main
+        style={STAGE_VARS}
+        className="mx-auto flex min-h-0 w-full max-w-[96rem] flex-1 flex-col gap-4 p-4 lg:flex-row"
+      >
+        <div className="flex min-h-0 min-w-0 flex-col gap-3 lg:grow-0 lg:basis-[var(--presenter-stage)]">
+          {/* Blanking is announced *around* the stage, never over it: the whole
+              point of the control is that the congregation loses the slide and
+              the operator does not, so current and next keep rendering exactly
+              as before and only the frame and the badge change. */}
+          <section>
+            <p className="mb-1 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Current
+              {blank ? (
+                <span
+                  role="status"
+                  className={`${BADGE_CLASS} border-amber-400/50 bg-amber-400/15 text-amber-300`}
+                >
+                  Projector blanked
+                </span>
+              ) : null}
+            </p>
+            <div
+              className={`aspect-video w-full overflow-hidden rounded-lg border bg-black ${
+                blank ? 'border-amber-400/70' : 'border-border'
+              }`}
+            >
+              {current ? <SlideView slide={current} /> : null}
+            </div>
+          </section>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIndexAndSync(index - 1)}
+              disabled={index <= 0}
+            >
+              ← Prev
+            </Button>
+            <Button
+              onClick={() => setIndexAndSync(index + 1)}
+              disabled={atEnd}
+            >
+              Next →
+            </Button>
+            <Button
+              variant={blank ? 'destructive' : 'outline'}
+              aria-pressed={blank}
+              onClick={toggleBlank}
+            >
+              {blank ? 'Resume screen (B)' : 'Blank screen (B)'}
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={() => broadcast({ type: 'clear-scripture' })}
+            >
+              Clear scripture
+            </Button>
+
+            {/* Live-only, and it has to read that way at a glance. An operator
+                who believed this had changed the deck would stop asking for the
+                real setting to be fixed, and the next download would surprise
+                them; hence the badge on the label rather than a tooltip, and
+                the explicit line below whenever the two disagree. */}
+            <label
+              htmlFor="live-transition"
+              className="ml-auto flex items-center gap-2 text-xs text-muted-foreground"
+            >
+              <span className="flex items-center gap-1.5">
+                Transition
+                <span
+                  className={`${BADGE_CLASS} border-border bg-muted text-muted-foreground`}
+                >
+                  Live only · not saved
+                </span>
+              </span>
+              <select
+                id="live-transition"
+                className="rounded-md border border-input bg-background px-2 py-1.5 text-sm text-foreground focus-visible:border-ring focus-visible:outline-none"
+                value={liveTransition}
+                onChange={(e) => {
+                  setTransitionAndSync(parseSlideTransition(e.target.value));
+                  // Hand the keyboard straight back to the deck. A `<select>`
+                  // that keeps focus owns the arrow keys, so the very next
+                  // press for "next slide" would silently pick another style
+                  // instead of moving the service on.
+                  e.currentTarget.blur();
+                }}
+              >
+                {SLIDE_TRANSITIONS.map((id) => (
+                  <option key={id} value={id}>
+                    {SLIDE_TRANSITION_SPECS[id].label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {liveTransition !== deckTransition ? (
+              <p role="status" className="basis-full text-xs text-amber-300">
+                Projecting with {SLIDE_TRANSITION_SPECS[liveTransition].label}{' '}
+                for this session only — nothing was saved. The deck stays on{' '}
+                {SLIDE_TRANSITION_SPECS[deckTransition].label}, and so do PPTX
+                downloads and the next Presenter you open.
+              </p>
+            ) : null}
+          </div>
+
+          {/* The filmstrip. Scrolling lives inside this container, so a 62-slide
+              deck never widens the page — `min-w-0` on the column is what lets
+              the flex child be narrower than its content. */}
+          <section
+            aria-label="Slide filmstrip"
+            className={`min-w-0 shrink-0 overflow-hidden ${PANEL_CLASS}`}
+          >
+            <div className="flex gap-2 overflow-x-auto p-1.5 [scrollbar-width:thin]">
+              {entries.map((entry) => (
+                <FilmstripFrame
+                  key={entry.instanceId}
+                  slide={slides[entry.index]}
+                  entry={entry}
+                  active={entry.index === index}
+                  activeRef={activeFrameRef}
+                  onSelect={setIndexAndSync}
+                />
+              ))}
+            </div>
+          </section>
+
+          <section
+            className={`flex min-h-0 flex-1 flex-col overflow-hidden ${PANEL_CLASS}`}
+          >
+            <h2 className="border-b border-border px-3 py-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Slides
+            </h2>
+            <div className="min-h-0 flex-1 overflow-y-auto p-1.5 max-lg:max-h-[45vh]">
+              {rows.map((row) =>
+                row.kind === 'slide' ? (
+                  <SlideListRow
+                    key={row.key}
+                    entry={row.entry}
+                    active={row.entry.index === index}
+                    activeRef={activeRowRef}
+                    onSelect={setIndexAndSync}
+                  />
+                ) : (
+                  <div
+                    key={row.key}
+                    className={`my-1 rounded ${
+                      rowContainsIndex(row, index) ? 'bg-muted/40' : ''
+                    }`}
+                  >
+                    <p className="flex items-center gap-1.5 px-2 pt-1.5 pb-1 text-xs">
+                      <span
+                        className={`${BADGE_CLASS} border-primary/40 bg-primary/15 text-primary`}
+                      >
+                        Song Set
+                      </span>
+                      <span className="truncate font-medium">{row.label}</span>
+                    </p>
+                    <div className="ml-3 border-l border-border pl-1">
+                      {row.entries.map((entry) => (
+                        <SlideListRow
+                          key={entry.instanceId}
+                          entry={entry}
+                          active={entry.index === index}
+                          activeRef={activeRowRef}
+                          onSelect={setIndexAndSync}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
+          </section>
+        </div>
+
+        <aside className="flex min-h-0 min-w-0 flex-col gap-4 lg:flex-1 lg:basis-[18rem]">
+          <section>
+            <p className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Next
+            </p>
+            <div className="aspect-video w-full max-w-[32rem] overflow-hidden rounded-lg border border-border bg-black">
+              {next ? (
+                <SlideView slide={next} />
+              ) : (
+                <div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
+                  End of deck — nothing after this slide.
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className={`p-3 ${PANEL_CLASS}`}>
+            <h2 className="mb-2 text-sm font-semibold">Scripture (KJV)</h2>
+            <p className="mb-2 text-xs text-muted-foreground">
+              On-demand only — not used for deck theme slides.
+            </p>
+            <input
+              className="mb-2 w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none"
+              placeholder="John 4:23"
+              value={scriptureRef}
+              onChange={(e) => setScriptureRef(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  void pushScripture();
+                }
+              }}
+            />
+            <Button
+              size="sm"
+              onClick={() => void pushScripture()}
+              disabled={scriptureBusy || !scriptureRef.trim()}
+            >
+              {scriptureBusy ? 'Looking up…' : 'Push to projector'}
+            </Button>
+            {scriptureError && (
+              <p className="mt-2 text-xs text-amber-300">{scriptureError}</p>
+            )}
+          </section>
+
+          <section
+            className={`flex min-h-0 flex-1 flex-col overflow-hidden ${PANEL_CLASS}`}
+          >
+            <h2 className="border-b border-border px-3 py-2 text-sm font-semibold">
+              Run-Sheet
+            </h2>
+            <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto p-3 text-sm max-lg:max-h-[45vh]">
+              {runSheetItems.map((item, i) => (
+                <li key={i} className="border-b border-border/70 pb-2">
+                  {item.type === 'section' ? (
+                    <div className="text-xs font-semibold uppercase text-muted-foreground">
+                      {item.title}
+                      {item.timing ? (
+                        <span className="ml-2 font-normal normal-case">
+                          ({item.timing})
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : item.type === 'role' ? (
+                    <div className="flex justify-between gap-2">
+                      <span>{item.role}</span>
+                      <span className="text-muted-foreground">
+                        {item.name}
+                        {item.timing ? ` · ${item.timing}` : ''}
+                      </span>
+                    </div>
+                  ) : item.type === 'hymn' ? (
+                    <div>
+                      SDAH {item.number} · {item.title}
+                      {item.timing ? (
+                        <span className="text-muted-foreground">
+                          {' '}
+                          ({item.timing})
+                        </span>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </section>
+        </aside>
+      </main>
+
+      <SlideGridDialog
+        open={gridOpen}
+        onOpenChange={setGridOpen}
+        slides={slides}
+        entries={entries}
+        currentIndex={index}
+        onPick={(picked) => {
+          setIndexAndSync(picked);
+          setGridOpen(false);
+        }}
+      />
+    </div>
+  );
+}

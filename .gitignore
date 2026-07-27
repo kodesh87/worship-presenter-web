@@ -1,0 +1,78 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+!.env.example
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+data.db
+data.db-*
+data.db-wal
+data.db-shm
+data.db.bak-*
+
+# Local corpus dumps / source decks (not runtime assets)
+.work/
+/*.pptx
+
+# Ephemeral generated PPTX cache (FR-10b)
+.cache/
+
+# Hub-local uploads (default UPLOADS_DIR). Sermon graphics are harmless, but the
+# same directory holds family- and youth-of-the-week photos of real members —
+# runtime data on a durable host path, never repository content.
+/data/uploads/
+
+# --- Public repository guard -------------------------------------------------
+# This repo is public. A congregation's own data never enters it.
+# Private overrides live here and are seeded automatically when present.
+data/local/
+
+# Real service exports, member photos and uploaded flyers.
+data/uploads/
+slides/
+slides-all/
+slides-new/
+
+# Source presentation decks are extraction inputs, never committed.
+*.pptx
+*.potx
+
+# Local databases and their backups.
+data/*.db
+data.db.bak-*

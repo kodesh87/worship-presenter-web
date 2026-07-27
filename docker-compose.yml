@@ -1,0 +1,49 @@
+services:
+  web:
+    profiles: ["prod"]
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      - DB_PATH=/data/data.db
+      - PPTX_CACHE_DIR=/data/cache/pptx
+    env_file:
+      - ${ENV_FILE:-../.env}
+    volumes:
+      # Prefer single file bind mount for SQLite db as requested.
+      # If this fails on Windows Docker Desktop, switch to directory mount.
+      - ${HOST_DB_FILE:-D:/LiveServer/presenter.example.org/data.db}:/data/data.db
+      - ${HOST_PPTX_CACHE:-D:/LiveServer/presenter.example.org/cache/pptx}:/data/cache/pptx
+      - ${HOST_UPLOADS_DIR:-D:/LiveServer/presenter.example.org/uploads}:/app/data/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/login').then(res => process.exit([200, 302, 401].includes(res.status) ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      target: deps
+    command: npm run dev
+    ports:
+      - "127.0.0.1:3001:3000"
+    environment:
+      - DB_PATH=/data/data.db
+      - PPTX_CACHE_DIR=/data/cache/pptx
+    env_file:
+      - .env
+    volumes:
+      # Mount the source code for hot reloading
+      - .:/app
+      # Keep container's native compiled node_modules
+      - /app/node_modules
+      # Separate default database path for dev profile
+      - ${HOST_DEV_DB_FILE:-D:/LiveServer/presenter.example.org/data.dev.db}:/data/data.db
+      - ${HOST_DEV_PPTX_CACHE:-D:/LiveServer/presenter.example.org/cache/dev-pptx}:/data/cache/pptx
+      - ${HOST_DEV_UPLOADS_DIR:-D:/LiveServer/presenter.example.org/dev-uploads}:/app/data/uploads

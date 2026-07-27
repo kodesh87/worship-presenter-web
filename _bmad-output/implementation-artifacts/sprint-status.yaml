@@ -1,0 +1,172 @@
+# generated: 2026-07-10
+# last_updated: 2026-07-26
+# project: BIC Worship Presentation Automation
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+
+generated: 2026-07-10
+last_updated: 2026-07-26 # Epics 15/16 closed; Epic 14 debt action items closed
+project: BIC Worship Presentation Automation
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # --- Epics 1–5: shipped story ACs (vertical slice on main) ---
+  epic-1: done
+  1-1-next-js-foundation-and-monorepo-setup: done
+  1-2-basic-authentication-and-roles: done
+  epic-1-retrospective: optional
+  epic-2: done
+  2-1-telegram-webhook-endpoint: done
+  2-2-rundown-parser-and-hymnal-db-integration: done
+  epic-2-retrospective: optional
+  epic-3: done
+  3-1-core-presentation-generation-pptx: done
+  epic-3-retrospective: optional
+  epic-4: done
+  4-1-web-hub-service-list-and-run-sheet: done
+  epic-4-retrospective: optional
+  epic-5: done
+  5-1-parser-robustness: done
+  5-2-delete-service: done
+  5-3-edit-and-regenerate: done
+  5-4-image-support: done
+  epic-5-retrospective: optional
+
+  # --- Epic 6: Phase 1 gap closure (PRD-complete MVP) ---
+  epic-6: done
+  6-1-persistent-announcement-list: done
+  6-2-per-person-admin-operator-auth: done
+  6-3-deck-blueprint-fidelity: done
+  6-4-section-aware-hymn-mapping: done
+  6-5-picoclaw-intake-readback: done
+  6-6-automated-tests-parser-auth-webhook: done
+  6-7-image-url-allowlist-ssrf: done
+  6-8-deploy-sqlite-hardening: done
+  epic-6-retrospective: optional
+
+  # --- Epic 7: Phase 1 residuals ---
+  epic-7: done
+  7-1-services-list-search-api: done
+  7-2-run-sheet-timings: done
+  7-3-part-c-standing-slides: done
+  7-4-font-deploy-note: done
+  epic-7-retrospective: optional
+
+  # --- Epic 8: Phase 2 Web Slideshow (FR-9/15) ---
+  epic-8: done
+  8-1-web-slideshow-slide-plan: done
+  epic-8-retrospective: optional
+
+  # --- Epic 9: Phase 3 Telegram corrections (FR-12/13b) ---
+  epic-9: done
+  9-1-telegram-correction-concurrency: done
+  epic-9-retrospective: optional
+
+  # --- Epic 10: Phase 4 PPTX retention (FR-10b) ---
+  epic-10: done
+  10-1-pptx-retention-cache: done
+  epic-10-retrospective: optional
+
+  # --- Epic 11: Phase 5 Presenter Mode (FR-16) ---
+  epic-11: done
+  11-1-presenter-mode: done
+  epic-11-retrospective: optional
+
+  # --- Epic 12: Phase 6 KJV scripture (FR-19) ---
+  epic-12: done
+  12-1-kjv-scripture-display: done
+  epic-12-retrospective: optional
+
+  # --- Epic 13: Hub UX + LiveServer gap (post-acad206 vibe → BMAD) ---
+  epic-13: done
+  13-1-liveserver-docker-deploy: done
+  13-2-hub-shell-header-profile: done
+  13-3-local-announcement-uploads: done
+  epic-13-retrospective: optional
+
+  # --- Epic 14: Worship Web Input Boundary (post-b679ff7 vibe → BMAD) ---
+  epic-14: in-progress
+  14-1-worship-web-input-boundary: done
+  14-2-worship-web-input-ux-refinements: done
+  14-3-worship-web-input-ui-tweaks: done
+  14-4-service-page-create-parity-shell: done
+  14-5-sermon-section-kjv-resolve: done
+  14-6-worship-form-ux-polish: done
+  epic-14-retrospective: optional
+
+  # --- Epic 15: Parser & Rendering Refinements (Phase 2) ---
+  epic-15: done
+  15-1-lyric-formatting-and-flow-skips: done
+  epic-15-retrospective: done
+
+  # --- Epic 16: Slide Artifact Model Refactoring ---
+  epic-16: done
+  16-1-artifact-registry-canvas-editor-foundation: done
+  16-2-build-slide-plan-artifact-hydration: done
+  16-3-unified-pptx-web-artifact-rendering: done
+  16-4-live-preview-semantic-artifact-badges: done
+  16-5-canvas-element-authoring: done
+  epic-16-retrospective: done
+
+action_items:
+  - epic: 14
+    action: "Harden BMAD gate in AGENTS.md (+ sync .agents/AGENTS.md, .cursorrules, CLAUDE.md): forbid large feature work without Epic→Story→Spec; call out Antigravity/Google AI Pro jump-to-code bias"
+    owner: "kodesh87"
+    status: done
+  - epic: 14
+    action: "Commit and push worship web input CR patches"
+    owner: "kodesh87"
+    status: done
+  - epic: 14
+    action: "Extract fat api/services* handlers to src/lib/*"
+    owner: "Developer"
+    status: done
+  - epic: 14
+    action: "Optional: reduce hymnIndex HTML payload if needed"
+    owner: "Developer"
+    status: done
+  - epic: 16
+    action: "Inspect a generated deck and the projector before the next service (registry now owns layout; only order/content are machine-verified)"
+    owner: "kodesh87"
+    status: open
+  - epic: 16
+    action: "Reset welcome, verse-reading, special-song, family-youth, bible-verse-contemplation on the production DB (missing-only seeding keeps the old rows)"
+    owner: "kodesh87"
+    status: open
+  - epic: 16
+    action: "Add a seed conformance test: every declared placeholder bound to exactly one element, every planner template id present"
+    owner: "Developer"
+    status: open
+  - epic: 16
+    action: "Add a ceiling assertion for deck bytes / generation time"
+    owner: "Developer"
+    status: open
+  - epic: 16
+    action: "Repair the two pre-existing stale checks in scripts/smoke-deck-fidelity.mjs left from the Epic 14 field renames"
+    owner: "Developer"
+    status: open
+  - epic: 15
+    action: "Consider moving the hardcoded song-title skip rules out of slide-plan.ts now that the Artifact Registry exists"
+    owner: "Developer"
+    status: open
