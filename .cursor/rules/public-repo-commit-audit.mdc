@@ -1,0 +1,29 @@
+---
+description: Before every commit/push, run the public-repo audit — this repo is public
+alwaysApply: true
+---
+
+# Commit / push public-repo audit (mandatory)
+
+This repository is **public**. Treat every commit and every push as a publication.
+
+## Before `git commit` and before `git push`
+
+Run this gate. Do not skip it because the change “looks small”.
+
+1. **Staging check** — refuse to stage or commit:
+   - `.env*`, `data/local/`, `data/uploads/`, `data.db*`, `slides*/`, `*.pptx` / `*.potx`
+   - Real names, photos, prayer requests, phones, addresses, bank accounts, payment QR codes, live hostnames
+2. **Guard test** (required):
+   ```bash
+   node --import ./tests/register-ts-resolve.mjs --test --experimental-strip-types tests/public-repo-guard.test.mjs
+   ```
+   Prefer `npm test` when time allows (includes the same guard).
+3. **On failure** — fix the tracked content. Never weaken, delete, or bypass `tests/public-repo-guard.test.mjs`.
+4. **Push** — only after the guard is green on the commit you are about to publish.
+
+## Out of scope for “quick” exceptions
+
+There is no exception for docs-only, agent-rules-only, or “already reviewed” changes. Public history is forever.
+
+See `.constitution/public-repository.md` and `docs/PRIVATE-DATA.md`.

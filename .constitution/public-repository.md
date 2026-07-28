@@ -45,6 +45,12 @@ asserted PPTX copy.
    directories, non-`public/` images, source decks, or known private literals /
    real names are tracked. If it fails, fix the content — never weaken the test.
 
+### Commit / push gate
+
+Agents and humans must run the public-repo guard before every commit and every
+push. Cursor: `.cursor/rules/public-repo-commit-audit.mdc`. All hosts: the
+**Commit / push audit** section in root `AGENTS.md`.
+
 ## Active vs frozen repository
 
 - **Active:** this repository (`worship-presenter-web`) — all product work,

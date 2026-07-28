@@ -13,6 +13,8 @@ This repository is public. Before any commit:
 - Private registry override: `data/local/default-registry.json` (gitignored)
 - If `tests/public-repo-guard.test.mjs` fails, fix the content — do not weaken the test
 
+**Commit/push gate:** also follow `.cursor/rules/public-repo-commit-audit.mdc` — run the guard before every commit and every push.
+
 Full constitution: `.constitution/public-repository.md` and `docs/PRIVATE-DATA.md`.
 
 The legacy repo `bic-pptx-workflow` is frozen; develop only here (`worship-presenter-web`).

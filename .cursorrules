@@ -36,6 +36,18 @@ finding is the point — do not weaken the test to make it pass.
 The same rule is restated in `.constitution/public-repository.md` so agent hosts
 and humans share one hard gate.
 
+## Commit / push audit (mandatory)
+
+This repository is public. Before **every** `git commit` and **every** `git push`:
+
+1. Refuse to stage `.env*`, `data/local/`, `data/uploads/`, `data.db*`, `slides*/`,
+   `*.pptx` / `*.potx`, or any real congregation / payment / production-host data.
+2. Run the guard (or full `npm test`):
+   `node --import ./tests/register-ts-resolve.mjs --test --experimental-strip-types tests/public-repo-guard.test.mjs`
+3. Fix content on failure — never weaken the guard. Do not push until it is green.
+
+Cursor agents also load `.cursor/rules/public-repo-commit-audit.mdc`.
+
 ## Active vs frozen repository
 
 - **Active:** this repository (`worship-presenter-web`) — all product work lives
