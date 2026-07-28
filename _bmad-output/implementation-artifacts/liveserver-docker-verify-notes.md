@@ -16,12 +16,12 @@
 - **Status:** **PENDING HUMAN VERIFICATION**
 - **Action Required:** Operator must run:
   ```powershell
-  New-Item -ItemType Directory -Force -Path "C:\WorshipPresenter\presenter.example.org\app"
-  # Copy/clone code into app, copy .env to C:\WorshipPresenter\presenter.example.org\.env
-  cd C:\WorshipPresenter\presenter.example.org\app
+  New-Item -ItemType Directory -Force -Path "D:\LiveServer\presenter.example.church\app"
+  # Copy/clone code into app, copy .env to D:\LiveServer\presenter.example.church\.env
+  cd D:\LiveServer\presenter.example.church\app
   .\scripts\liveserver-up.ps1
   ```
-  Check that the container starts up and SQLite `data.db` is correctly created on the host at `C:\WorshipPresenter\presenter.example.org\data.db`.
+  Check that the container starts up and SQLite `data.db` is correctly created on the host at `D:\LiveServer\presenter.example.church\data.db`.
 
 ## 4. Webhook Smoke
 - **Status:** **PENDING HUMAN VERIFICATION**
@@ -29,11 +29,11 @@
 
 ## 5. Login
 - **Status:** **PENDING HUMAN VERIFICATION**
-- **Action Required:** Navigate to `http://127.0.0.1:3000/login` or via the Tunnel at `https://presenter.example.org` and log in.
+- **Action Required:** Navigate to `http://127.0.0.1:3000/login` or via the Tunnel at `https://presenter.example.church` and log in.
 
 ## 6. PPTX Download
 - **Status:** **PENDING HUMAN VERIFICATION**
-- **Action Required:** Generate a PPTX to verify that `better-sqlite3` runs correctly in the container and the cache directory on the host (`C:\WorshipPresenter\presenter.example.org\cache\pptx`) receives the generated files.
+- **Action Required:** Generate a PPTX to verify that `better-sqlite3` runs correctly in the container and the cache directory on the host (`D:\LiveServer\presenter.example.church\cache\pptx`) receives the generated files.
 
 ## 7. Persistence Check
 - **Status:** **PENDING HUMAN VERIFICATION**

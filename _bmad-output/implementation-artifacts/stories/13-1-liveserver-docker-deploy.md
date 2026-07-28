@@ -1,4 +1,4 @@
-# Story 13.1: LiveServer Docker deploy (presenter.example.org)
+# Story 13.1: LiveServer Docker deploy (presenter.example.church)
 
 Status: done
 
@@ -6,7 +6,7 @@ Status: done
 
 As the operator,
 I want the hub runnable on the home-PC LiveServer via Docker Desktop + Cloudflare Tunnel,
-So that `https://presenter.example.org` stays up with durable SQLite/cache/uploads on the host.
+So that `https://presenter.example.church` stays up with durable SQLite/cache/uploads on the host.
 
 ## Acceptance Criteria
 

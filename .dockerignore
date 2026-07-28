@@ -1,0 +1,11 @@
+node_modules
+.next
+.git
+.work
+*.db*
+.cache
+_bmad-output
+_bmad
+Dockerfile
+.dockerignore
+docker-compose*.yml

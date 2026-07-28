@@ -58,34 +58,34 @@ This is the kind of semi-structured text the events department sends to Telegram
 SABBATH, JULY 11, 2026
 
 BIBLE TALK (09.30-10.50 /80 min)
-》welcome remarks: Mrs. Wulan
-》Prayer Partners : Mrs. Wulan (5m)
-Song Leader  : Mrs. Wulan
+》welcome remarks: Mrs. Ada
+》Prayer Partners : Mrs. Ada (5m)
+Song Leader  : Mrs. Ada
 [  ] Opening song : SDAH #159 The Old Rugged Cross
-Memory Text & Opening Prayer : Bagas
+Memory Text & Opening Prayer : Aro
 Bible Talk :  (40m)
 [  ] Closing Song : SDAH #163 At The Cross
-Closing Prayer  : Mr. Damar (1m)
-》announcement of break : Mr. Damar
+Closing Prayer  : Mr. Andrew (1m)
+》announcement of break : Mr. Andrew
 
 Break (5m)
 
 DIVINE SERVICE (10.50- 12.05/ 75 min)
-Song Leader : Mrs. Ayu
+Song Leader : Mrs. Elen
 [  ] Opening Song : SDAH #83 O Worship the King
-Intercessory Prayer: Ms.Kirana (5m)
+Intercessory Prayer: Ms. River (5m)
 [  ] Before int. prayer : #671 now dear Lord as we pray
 [  ] After int. prayer : #684 hear our prayer o Lord
 Special Song : -
-Sermon : Timotius Wicaksana "Working Out" (45m)
+Sermon : Raymond Example "Working Out" (45m)
 [  ] Closing Song : SDAH #249 Praise Him ! Praise Him !
 Closing Prayer: The Speaker(1m)
-》Closing Remarks & Announcements : Mr. Tirta (5m)
-Prayer for Food : Mr. Tirta (2m)
+》Closing Remarks & Announcements : Mr. Aldi (5m)
+Prayer for Food : Mr. Aldi (2m)
 ```
 
 Observations for parsing/design:
 - Songs here total 5 (2 in Bible Talk, 3 in Divine Service incl. 2 short prayer-response numbers `#671`/`#684`) — song count is genuinely variable week to week.
 - "Special Song : -" → an optional item that may be empty; the generator must handle "none".
-- Names carry honorifics (Mrs./Mr./Ms.) and some are first-name only ("Bagas"); "The Speaker" is a reference, not a literal name.
+- Names carry honorifics (Mrs./Mr./Ms.) and some are first-name only ("Aro"); "The Speaker" is a reference, not a literal name.
 - Timings and section headers (BIBLE TALK / DIVINE SERVICE) mirror the two agenda "Sequence" slides in the deck.

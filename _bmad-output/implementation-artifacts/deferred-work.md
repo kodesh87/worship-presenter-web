@@ -103,7 +103,7 @@ Historical source reviews: code review `jules main...2d87307` (2026-07-18); spec
   evidence: Registry backgrounds are already-compressed JPEGs; dedup + DEFLATE cut 39 MB to ~10 MB, but only structural properties are asserted, so a future seed asset change could regress size unnoticed.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-16-2-artifact-pipeline-completion.md`
-  summary: `scripts/smoke-deck-fidelity.mjs` carries two pre-existing stale checks that predate this change — `EditForm has structured fields + raw payload` (expects `themeReference` / `familyYouth` / `Raw Telegram text`, none of which exist since the Epic 14 renames) and `structured family update in PPTX` (expects `Youth: Tirta` although split family/youth fields take precedence over the legacy combined `familyYouth`).
+  summary: `scripts/smoke-deck-fidelity.mjs` carries two pre-existing stale checks that predate this change — `EditForm has structured fields + raw payload` (expects `themeReference` / `familyYouth` / `Raw Telegram text`, none of which exist since the Epic 14 renames) and `structured family update in PPTX` (expects `Youth: Aldi` although split family/youth fields take precedence over the legacy combined `familyYouth`).
   evidence: `themeReference` matches nowhere in `src/`, and `EditForm.tsx` at baseline `338c1a2` already contained zero occurrences of `familyYouth` and `Raw Telegram text`. Left untouched rather than masked.
 
 ## Deferred from: spec-epic-14-debt-service-routes-and-hymn-index (2026-07-26)

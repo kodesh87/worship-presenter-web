@@ -1,0 +1,4 @@
+interface:
+  display_name: "Coding to Spec"
+  short_description: "Return coding blockers to specification work"
+  default_prompt: "Use $coding-to-spek to return an upstream documentation or specification blocker to Codex."

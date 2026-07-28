@@ -1,0 +1,4 @@
+interface:
+  display_name: "Coding to Review"
+  short_description: "Send review-ready code with complete evidence"
+  default_prompt: "Use $coding-to-review to validate implementation evidence and prepare the Antigravity review handover."

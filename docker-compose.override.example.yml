@@ -1,0 +1,13 @@
+# Example overrides for local deployment (do not commit secrets here)
+# Copy this to docker-compose.override.yml to use it automatically.
+
+services:
+  web:
+    # Example: run on a different port locally
+    # ports:
+    #   - "127.0.0.1:8080:3000"
+    
+    # Example: custom volume path
+    # volumes:
+    #   - C:/my-custom-path/data.db:/data/data.db
+    #   - C:/my-custom-path/pptx-cache:/data/cache/pptx
