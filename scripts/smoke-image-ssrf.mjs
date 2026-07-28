@@ -66,7 +66,12 @@ fs.writeFileSync(tmp, runner);
 
 const r = spawnSync(
   process.execPath,
-  ['--experimental-strip-types', tmp],
+  [
+    '--import',
+    pathToFileURL(path.join(root, 'tests', 'register-ts-resolve.mjs')).href,
+    '--experimental-strip-types',
+    tmp,
+  ],
   { encoding: 'utf8', cwd: root }
 );
 check('runtime allowlist + private IP rules', r.status === 0 && /OK/.test(r.stdout || ''));

@@ -1,7 +1,8 @@
 ---
-project_name: 'bic-pptx-workflow'
+project_name: 'worship-presenter-web'
 user_name: 'kodesh87'
-date: '2026-07-19'
+date: '2026-07-29'
+legacy_frozen_repo: 'bic-pptx-workflow'
 sections_completed:
   [
     'technology_stack',
@@ -92,6 +93,8 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Do not trust cookie `role` alone after demotion; use `requireSession` / `requireAdminSession` DB re-check for privileged API routes
 - Open redirects: only `safeNextPath` for post-login `next` targets
 - Offline PPTX remains the reliability path for Sabbath; do not make venue success depend on live hub connectivity
+- **Public repository:** never commit congregation PII, live payment details, `data/local/`, `data/uploads/`, `slides*/`, `*.pptx`/`*.potx`, local DBs, or `.env`. Prefer `data/local/default-registry.json` for private seed overrides. Enforcement: `.constitution/public-repository.md`, `AGENTS.md`, `.gitignore`, `tests/public-repo-guard.test.mjs` — do not weaken the guard.
+- **Frozen legacy:** do not continue product work in `bic-pptx-workflow`; this repo is the only active root.
 
 ---
 
@@ -111,4 +114,4 @@ _This file contains critical rules and patterns that AI agents must follow when 
 - Review periodically for outdated rules
 - Remove rules that become obvious over time
 
-Last Updated: 2026-07-19
+Last Updated: 2026-07-29

@@ -1,0 +1,18 @@
+---
+description: Public repository — never commit congregation or payment data
+alwaysApply: true
+---
+
+# Public repository guard
+
+This repository is public. Before any commit:
+
+- Never commit real people's names, photos, prayer requests, phones, addresses
+- Never commit bank accounts, payment QR codes, or live payment details
+- Never commit `data/local/`, `data/uploads/`, `slides*/`, `*.pptx`/`*.potx`, local DBs, or `.env`
+- Private registry override: `data/local/default-registry.json` (gitignored)
+- If `tests/public-repo-guard.test.mjs` fails, fix the content — do not weaken the test
+
+Full constitution: `.constitution/public-repository.md` and `docs/PRIVATE-DATA.md`.
+
+The legacy repo `bic-pptx-workflow` is frozen; develop only here (`worship-presenter-web`).

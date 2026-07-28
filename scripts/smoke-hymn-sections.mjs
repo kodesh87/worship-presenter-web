@@ -20,10 +20,16 @@ function check(name, cond) {
   }
 }
 
+const planSrc = fs.readFileSync(
+  path.join(root, 'src', 'lib', 'slide-plan.ts'),
+  'utf8'
+);
 const pptxSrc = fs.readFileSync(path.join(root, 'src', 'lib', 'pptx.ts'), 'utf8');
 check(
-  'pptx uses bucketHymnsBySection (no hard slice)',
-  /bucketHymnsBySection/.test(pptxSrc) && !/hymns\.slice\(0,\s*2\)/.test(pptxSrc)
+  'slide-plan uses bucketHymnsBySection; pptx consumes buildSlidePlan',
+  /bucketHymnsBySection/.test(planSrc) &&
+    !/hymns\.slice\(0,\s*2\)/.test(planSrc) &&
+    /buildSlidePlan/.test(pptxSrc)
 );
 
 const helperSrc = fs.readFileSync(
@@ -83,7 +89,12 @@ fs.writeFileSync(tmp, runner);
 
 const r = spawnSync(
   process.execPath,
-  ['--experimental-strip-types', tmp],
+  [
+    '--import',
+    pathToFileURL(path.join(root, 'tests', 'register-ts-resolve.mjs')).href,
+    '--experimental-strip-types',
+    tmp,
+  ],
   { encoding: 'utf8', cwd: root }
 );
 check(

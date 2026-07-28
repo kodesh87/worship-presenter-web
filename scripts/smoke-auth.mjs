@@ -1,5 +1,6 @@
 /**
- * Smoke: unauth redirect / operator 403 on admin / last-admin delete / no bible.
+ * Smoke: unauth redirect / operator 403 on admin / last-admin delete /
+ * deck surfaces never import KJV (Presenter scripture API is allowed).
  * Spins up `next start` against a temp SQLite DB (does not touch data.db).
  */
 import { spawn } from 'child_process';
@@ -24,33 +25,24 @@ function check(name, cond) {
   }
 }
 
-// --- No bible / KJV imports in app source ---
-function walk(dir, out = []) {
-  for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
-    const p = path.join(dir, ent.name);
-    if (ent.isDirectory()) {
-      if (ent.name === 'node_modules' || ent.name === '.next') continue;
-      walk(p, out);
-    } else if (/\.(ts|tsx|js|jsx|mjs|cjs)$/.test(ent.name)) {
-      out.push(p);
-    }
-  }
-  return out;
-}
-
-const srcFiles = walk(path.join(root, 'src'));
+// --- Deck surfaces must never import KJV (Presenter scripture API may) ---
+const deckFiles = [
+  path.join(root, 'src', 'lib', 'pptx.ts'),
+  path.join(root, 'src', 'lib', 'slide-plan.ts'),
+];
 let bibleHit = null;
-for (const file of srcFiles) {
+for (const file of deckFiles) {
   const text = fs.readFileSync(file, 'utf8');
   if (
-    /tp_bible|kjv|bible_verses|bible_book_translations/i.test(text) ||
-    /\.work[/\\]tp_bible/i.test(text)
+    /lookupScripture|bible_verses|tp_bible|from ['"]@\/lib\/scripture/i.test(
+      text
+    )
   ) {
     bibleHit = file;
     break;
   }
 }
-check('no bible/kjv imports in src/', bibleHit === null);
+check('deck plan/pptx never import KJV scripture lookup', bibleHit === null);
 if (bibleHit) console.error('  found in', path.relative(root, bibleHit));
 
 // Next 16 renamed the middleware convention to `proxy` (Node.js runtime).
@@ -208,6 +200,7 @@ const child = spawn(process.execPath, [nextBin, 'start', '-p', String(port)], {
     AUTH_BOOTSTRAP_PASSWORD: BOOTSTRAP_PASSWORD,
     WEBHOOK_SECRET,
     NODE_ENV: 'production',
+    WPW_USE_SHIPPED_REGISTRY: '1',
   },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
@@ -234,7 +227,7 @@ try {
   );
   check(
     'unauthenticated hub does not leak Services markup',
-    !/No Services Found|Worship Hub<\/h1>/i.test(unauth.body) ||
+    !/No Services Found|BIC Presenter Hub/i.test(unauth.body) ||
       /\/login/.test(loc)
   );
 
@@ -289,7 +282,7 @@ try {
   });
   check(
     'operator can access hub',
-    opHub.status === 200 && /Worship Hub/i.test(opHub.body)
+    opHub.status === 200 && /BIC Presenter Hub/i.test(opHub.body)
   );
 
   const opAdminPage = await fetchRaw(`${base}/admin`, {

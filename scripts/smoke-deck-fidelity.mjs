@@ -74,15 +74,17 @@ const editSrc = fs.readFileSync(
   path.join(root, 'src', 'app', 'services', '[id]', 'EditForm.tsx'),
   'utf8'
 );
+// Epic 14 renamed themeReference → theme fields, familyYouth → split
+// family/youth prayer requests, and the raw block label.
 check(
   'EditForm has structured fields + raw payload',
-  /themeReference/.test(editSrc) &&
-    /verseReference/.test(editSrc) &&
-    /familyYouth/.test(editSrc) &&
+  /verseReference/.test(editSrc) &&
+    /familyPrayerRequest/.test(editSrc) &&
+    /youthPrayerRequest/.test(editSrc) &&
     /sermonSpeaker/.test(editSrc) &&
     /specialSong/.test(editSrc) &&
     /closingPrayerPerson/.test(editSrc) &&
-    /Raw Telegram text/.test(editSrc)
+    /Raw Rundown Text/.test(editSrc)
 );
 
 // --- HTTP smoke ---
@@ -206,6 +208,8 @@ const child = spawn(process.execPath, [nextBin, 'start', '-p', String(port)], {
     AUTH_BOOTSTRAP_PASSWORD: BOOTSTRAP_PASSWORD,
     WEBHOOK_SECRET,
     NODE_ENV: 'production',
+    // Assert against the committed public seed, not data/local/.
+    WPW_USE_SHIPPED_REGISTRY: '1',
   },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
@@ -309,7 +313,8 @@ try {
   );
   check(
     'Part C contact copy rendered from the registry',
-    /For more information/i.test(deckText) && /s\.id\/bic-wa/.test(deckText)
+    /For more information/i.test(deckText) &&
+      /example\.org\/contact/.test(deckText)
   );
 
   const listRes = await fetchRaw(`${base}/api/services`, {
@@ -336,7 +341,7 @@ try {
           text: 'But they who wait for the Lord shall renew their strength',
         },
         specialSong: 'Choir — Be Still',
-        familyYouth: 'Youth: Tirta — exam week',
+        youthPrayerRequest: 'Tirta — exam week',
       },
     }),
   });
@@ -360,9 +365,10 @@ try {
   });
   const xml2 = await pptxText(pptx2.body);
   check('structured theme update in PPTX', /Isaiah 40:31/.test(xml2));
+  // youthPrayerRequest fills the youthText slot (label is separate plate copy).
   check(
     'structured family update in PPTX',
-    /Youth: Tirta/.test(xml2)
+    /Tirta/.test(xml2) && /exam week/.test(xml2)
   );
   check(
     'Special Song divider appears when set',

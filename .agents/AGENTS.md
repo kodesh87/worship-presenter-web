@@ -33,6 +33,16 @@ is tracked, an image is committed outside `public/`, a deck is committed, or a
 known private literal or real name reaches a tracked file. If it fails, the
 finding is the point — do not weaken the test to make it pass.
 
+The same rule is restated in `.constitution/public-repository.md` so agent hosts
+and humans share one hard gate.
+
+## Active vs frozen repository
+
+- **Active:** this repository (`worship-presenter-web`) — all product work lives
+  here.
+- **Frozen:** the legacy private repository `bic-pptx-workflow` is retired. Do
+  not implement features or continue development there.
+
 ---
 
 <!-- BEGIN:nextjs-agent-rules -->

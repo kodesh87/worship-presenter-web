@@ -28,8 +28,15 @@ const LOCAL_SEED_PATH = path.join(
   'default-registry.json'
 );
 
-/** The private override when present, otherwise the committed seed. */
+/**
+ * The private override when present, otherwise the committed seed.
+ *
+ * Automated tests and fidelity smokes set `WPW_USE_SHIPPED_REGISTRY=1` so a
+ * developer's gitignored `data/local/` override cannot change expected PPTX
+ * copy or fail the public-repo placeholder assertions.
+ */
 export function resolveSeedPath(): string {
+  if (process.env.WPW_USE_SHIPPED_REGISTRY === '1') return SEED_PATH;
   return fs.existsSync(LOCAL_SEED_PATH) ? LOCAL_SEED_PATH : SEED_PATH;
 }
 
