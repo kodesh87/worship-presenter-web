@@ -80,7 +80,12 @@ Google AI Pro / Antigravity (and similar “jump-to-code” agents) tend to skip
    - An explicit user-invoked Correct Course / Spec / Create Story / Dev Story / Quick Dev skill run.
 2. **Required sequence for new product work:** Epic → Story → Spec (when needed) → implement (`bmad-dev-story` / approved Quick Dev) → `bmad-code-review`. Do not jump from PRD/Spec edit straight to thousands of lines of app code.
 3. **If code already diverged from artifacts:** stop feature coding; run `bmad-correct-course` (or ask the user to) and reconcile docs/sprint status before more implementation.
-4. **While coding an approved story/spec:** keep `parsed` contracts, form fields, APIs, and slide behavior aligned with the SPEC/companions and story AC. If you must change behavior, update the artifact in the same change set — never leave docs lying.
+4. **While coding an approved story/spec:** keep `parsed` contracts, form fields, APIs, and slide behavior aligned with the SPEC/companions and story AC. If you must change behavior, update the artifact in the same change set — never leave docs lying. This explicitly includes the architecture and UX spines:
+   - Add, rename, or remove a **route or surface** → update the IA table in `EXPERIENCE.md` in the same change set.
+   - Override a **design token** or add a UI component with a visual delta → update `DESIGN.md`.
+   - Change a **structural invariant** (auth gate, storage target, slide-order source, sync channel, schema path) → amend the architecture spine via `bmad-architecture` Update. Never renumber an existing `AD-n`; add the next one.
+
+   These four artifact families drifted precisely because nothing named them here.
 
 ## Authority map
 
@@ -91,6 +96,9 @@ Google AI Pro / Antigravity (and similar “jump-to-code” agents) tend to skip
 | Sprint tracking | `_bmad-output/implementation-artifacts/sprint-status.yaml` |
 | Product requirements | `_bmad-output/planning-artifacts/prds/**` |
 | Epics | `_bmad-output/planning-artifacts/epics.md` |
+| Structural invariants | `_bmad-output/planning-artifacts/architecture/**/ARCHITECTURE-SPINE.md` — an epic spine inherits its parent read-only and cites parent decisions as `INIT AD-n` |
+| Visual identity (tokens, components) | `_bmad-output/planning-artifacts/ux-designs/**/DESIGN.md` |
+| Experience, IA, surfaces, flows | `_bmad-output/planning-artifacts/ux-designs/**/EXPERIENCE.md` |
 | Runtime rules for this repo | `_bmad-output/project-context.md` |
 | Package versions | `package.json` (over architecture prose) |
 

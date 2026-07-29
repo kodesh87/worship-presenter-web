@@ -8,7 +8,7 @@ inputDocuments:
   - _bmad-output/planning-artifacts/prds/prd-bic-pptx-workflow-2026-07-10/prd.md
   - _bmad-output/planning-artifacts/prds/prd-bic-pptx-workflow-2026-07-10/addendum.md
   - _bmad-output/planning-artifacts/architecture/architecture-bic-pptx-workflow-2026-07-10/ARCHITECTURE-SPINE.md
-  - _bmad-output/planning-artifacts/architecture-epic-16/ARCHITECTURE-SPINE.md
+  - _bmad-output/planning-artifacts/architecture/architecture-epic-16/ARCHITECTURE-SPINE.md
   - _bmad-output/planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/DESIGN.md
   - _bmad-output/planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/EXPERIENCE.md
   - _bmad-output/planning-artifacts/epics.md

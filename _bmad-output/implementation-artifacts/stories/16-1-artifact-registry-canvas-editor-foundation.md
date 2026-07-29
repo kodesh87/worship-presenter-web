@@ -23,7 +23,7 @@ Deliver the persistence, validation, authorization, API, seed, and minimal editi
 1. `_bmad-output/specs/spec-slide-artifact-model/SPEC.md`
 2. `_bmad-output/specs/spec-slide-artifact-model/registry-contract.md`
 3. `_bmad-output/specs/spec-slide-artifact-model/artifact-catalog.md`
-4. `_bmad-output/planning-artifacts/architecture-epic-16/ARCHITECTURE-SPINE.md`
+4. `_bmad-output/planning-artifacts/architecture/architecture-epic-16/ARCHITECTURE-SPINE.md`
 5. `_bmad-output/project-context.md`
 6. `package.json`
 
