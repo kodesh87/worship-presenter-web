@@ -150,6 +150,25 @@ const FORBIDDEN_NAME_HASHES = new Set([
   '0f20b5a458ac66a2',
   'c0dfb0bc178c4b94',
   'e87f468fb9123488',
+  // Added last, and the sharpest lesson in this file. The sermon speaker's real
+  // full name sat in `data/asset-map.json` as one glued token, `<Given><Surname>`,
+  // on slides 40 and 50 — the deck prints the speaker on the sermon slide and
+  // again on the closing-prayer slide derived from it. It survived every sweep
+  // above: a word-boundary `git grep` cannot see a name with no boundary before
+  // it, and neither given name nor surname had ever been listed here.
+  //
+  // Worth recording precisely, because it is easy to draw the wrong lesson: the
+  // `WORDS` regex below DOES split such a token — `"<Given><Surname>"` yields
+  // ["Given", "Surname"] — so the matcher was never the problem. The list was.
+  //
+  // The first draft of this very comment spelled the name out to illustrate the
+  // point, and this test failed on itself. That is the header's warning landing
+  // exactly where it was aimed: a guard that names what it protects publishes it.
+  // A guard built on known values cannot find a name nobody registered, and no
+  // regex change fixes that. What fixes it is not generating the value: see the
+  // `note` in data/asset-map.json about `evidence` for payload-bearing slides.
+  '8bd8b63d5cc9b960',
+  '9db4ea1003429d28',
 ]);
 
 function fingerprint(value) {
