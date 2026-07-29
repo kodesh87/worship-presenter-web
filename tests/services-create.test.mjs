@@ -178,6 +178,89 @@ test('empty master sync keeps master unless clearMaster', () => {
   assert.equal(master.length, 0);
 });
 
+/**
+ * FR-11b consequence: the create/edit form manages the Announcement List, and the
+ * order the operator puts the flyers in is the order they appear on the slides
+ * (FR-6: "Each Announcement List item produces one announcement slide … in list
+ * order"). Nothing asserted that a *reorder* survived the sync — the existing
+ * coverage happened to use inputs already in stored order, so a sync that ignored
+ * position would have stayed green.
+ */
+test('announcement sync preserves operator-chosen order, including a reorder', () => {
+  const db = getDb();
+  db.prepare('DELETE FROM announcement_items').run();
+
+  const info = db
+    .prepare(
+      `INSERT INTO services (date, raw_payload, parsed_data)
+       VALUES (?, ?, ?)`
+    )
+    .run(
+      '2026-08-08',
+      'SABBATH, AUGUST 8, 2026',
+      JSON.stringify({ date: '2026-08-08', items: [] })
+    );
+  const serviceId = Number(info.lastInsertRowid);
+
+  const url = (name) => `https://example.com/${name}.png`;
+  const recurring = (name) => ({ image_url: url(name), is_recurring: true });
+  const masterUrls = () =>
+    listAnnouncementItems()
+      .filter((i) => i.service_id === null)
+      .map((i) => i.image_url);
+
+  syncWorshipAnnouncements(
+    serviceId,
+    coerceWorshipAnnouncements([recurring('a'), recurring('b'), recurring('c')])
+  );
+  assert.deepEqual(
+    masterUrls(),
+    [url('a'), url('b'), url('c')],
+    'first sync did not store the submitted order'
+  );
+
+  // The operator drags the third flyer to the top and swaps the other two.
+  syncWorshipAnnouncements(
+    serviceId,
+    coerceWorshipAnnouncements([recurring('c'), recurring('a'), recurring('b')])
+  );
+  assert.deepEqual(
+    masterUrls(),
+    [url('c'), url('a'), url('b')],
+    'a reorder was not persisted — announcement slides would render in the old order'
+  );
+
+  // sort_order must actually carry the order rather than the read happening to
+  // return insertion order: distinct, ascending, and matching the listed sequence.
+  const rows = listAnnouncementItems().filter((i) => i.service_id === null);
+  const orders = rows.map((r) => r.sort_order);
+  assert.equal(
+    new Set(orders).size,
+    orders.length,
+    `duplicate sort_order values would make slide order arbitrary: ${orders.join(',')}`
+  );
+  assert.deepEqual(
+    orders,
+    [...orders].sort((a, b) => a - b),
+    `sort_order is not ascending in listed order: ${orders.join(',')}`
+  );
+
+  // A one-off keeps its position among the recurring items it was placed between.
+  syncWorshipAnnouncements(
+    serviceId,
+    coerceWorshipAnnouncements([
+      recurring('c'),
+      { image_url: url('one-off'), is_recurring: false },
+      recurring('a'),
+    ])
+  );
+  const oneOffs = listAnnouncementItems().filter(
+    (i) => i.service_id === serviceId
+  );
+  assert.equal(oneOffs.length, 1);
+  assert.equal(oneOffs[0].image_url, url('one-off'));
+});
+
 test('applyStructuredFields clears legacy familyYouth when split prayers set', () => {
   let parsed = parseRundown('SABBATH, JULY 25, 2026\nDIVINE SERVICE\nSDAH #1');
   parsed.familyYouth = 'Legacy combined';

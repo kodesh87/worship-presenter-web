@@ -1,8 +1,8 @@
 ---
 title: BIC Worship Presentation Automation
-status: draft
+status: active
 created: 2026-07-10
-updated: 2026-07-19
+updated: 2026-07-29
 ---
 
 # PRD: BIC Worship Presentation Automation
@@ -359,6 +359,28 @@ An Operator in Presenter Mode can search the Verse Database by reference and pus
 - Dismissing the passage returns the projector to the current Deck slide; the Deck and Weekly Data Payload are unmodified.
 - Requires Presenter Mode (available from Phase 5); Scripture Display itself ships in Phase 6.
 
+### 4.10 Artifact Registry & Template Authoring *(delivered 2026-07-26; retrospectively specified 2026-07-29)*
+
+**Description:** Slide layout is owned by a registry of Artifact templates rather than by code. An Administrator edits a template's positioned elements in a constrained canvas editor, and the change applies to every downstream surface — PPTX and Web Slideshow alike — without a deploy. This section was written **after** the capability shipped, by Correct Course 2026-07-29 (`../../sprint-change-proposal-2026-07-29.md`): the subsystem had no requirement in this document while `epics.md` declared *"PRD FR numbers are authoritative."* Structural invariants were already recorded in `architecture/architecture-epic-16/ARCHITECTURE-SPINE.md`; the contract is in `../../../specs/spec-slide-artifact-model/` and `../../../implementation-artifacts/spec-16-2-artifact-pipeline-completion.md`.
+
+**Functional Requirements:**
+
+#### FR-20: Author slide layouts at runtime through an Artifact Registry
+An Administrator can change how any Slide Type is laid out — element position, size, and content binding — through a registry-backed canvas editor, and the change takes effect on the next generated Deck and on the Web Slideshow without a code change. Realizes a maintainability need (§9: one maintainer, few moving parts), not a user journey.
+
+**Consequences (testable):**
+- Layouts live in a SQLite-backed registry seeded from validated JSON; editing a template changes both PPTX and Web Slideshow output with no code deploy.
+- `buildSlidePlan` emits `ArtifactInstance[]` with placeholders resolved from the Weekly Data Payload; PPTX and Web Slideshow render from the same positioned elements — no per-surface layout branch.
+- An Administrator can edit an existing template on a constrained canvas, and can add or delete text boxes and shapes they authored themselves.
+- Seeded element ids and any element marked `required` are immutable: the save API rejects their removal or rename with 400, and read-only base types (`FullScreenImage`, `SongSet`, `Announcement`) expose no add/delete affordance at all.
+- A template can be restored to its seeded definition.
+- **Boundary — this is not per-church configurability** (§5 non-goal). The registry is one global template set for BIC's single established deck, editable by an Admin. It changes *who owns layout*, not how many workflows the product supports.
+- **FR-4, FR-5 and FR-6 obligations are unchanged.** NFR-3 readability remains the binding constraint on lyric slides; moving layout into data does not relax it. A registry edit that produces an unreadable lyric slide violates NFR-3 exactly as a code change would.
+
+**Feature-specific NFRs:**
+- Because layout is now data, the seeded registry is a correctness surface: every declared placeholder must bind to exactly one element and every planner template id must be present. A conformance test for this is tracked as an open action item in `sprint-status.yaml`.
+- Seeding inserts **missing** template ids only. An existing deployment therefore keeps its old rows when a seeded template changes — the migration is an operational step, not an automatic one.
+
 ## 5. Non-Goals (Explicit)
 
 - Not a general worship-presentation product — v1 serves BIC's single established workflow, not configurable per-church workflows.
@@ -419,6 +441,26 @@ Rundown in via Telegram → correct offline deck out, editable, behind a login. 
 ### Phase 6 — Scripture Display *(nice-to-have)*
 - On-demand KJV scripture lookup/display inside Presenter Mode: **FR-19**
 
+### Phase-gate decision (recorded 2026-07-29)
+
+This section makes Phases 2–6 contingent — *"built in order only if Phase 1 proves genuinely useful in weekly service"* — and **SM-3** (§7) makes that contingency measurable: at least a full quarter of consecutive weekly use, with a leading continue/stop gate at ~week 4. Phases 2–6 were nonetheless all built and shipped (Epics 8–12) without that gate being evaluated, and no artifact recorded whether it had been passed, waived, or skipped. The gap was found by the 2026-07-29 implementation-readiness assessment.
+
+**Decision (owner, 2026-07-29): the SM-3 build-order gate is waived retroactively for Phases 2–6.** Rationale as given by the owner: shipping with the full feature set is preferred to holding specified, working capability behind a 13-week observation window on a solo-maintainer project where the need was already evident in weekly use.
+
+**What this waiver does not cover:**
+
+- **SM-3 remains a live product metric.** Sustained weekly use is still the measure of whether this system works. The waiver removes it as a *gate on build order*, not as a signal.
+- **The counter-metrics still bind.** SM-C1 (don't trade fidelity for speed), SM-C2 (don't over-delete), SM-C3 (don't re-centralize on one person) apply to all shipped phases.
+- **The five Phase-1 pre-requisite spikes above are a separate matter and are not waived here.** Three remain unrecorded: font proven on a clean machine, church fidelity sign-off on a sample rebuilt slide set, and the 5–10 historical Rundown corpus. Two of those are the church's judgment, not the developer's.
+- **Future capability records its own decision, at the time it is taken.** Any new phase or major capability writes its go/no-go here when decided, rather than being reconstructed afterwards. That is the practice this entry exists to establish.
+
+### Delivered outside the original phase plan
+
+Capability that shipped without a phase assignment in this section, recorded here for traceability:
+
+- **FR-20 — Artifact Registry & template authoring** (§4.10), delivered 2026-07-26 as Epic 16 and retrospectively specified 2026-07-29. It is not a phase because it is not a user-facing increment; it changes who owns slide layout.
+- **Epic 13** (LiveServer Docker/tunnel deploy, shared header/profile/dashboard search, hub-local announcement uploads) and **Epic 15** (lyric formatting as continuous text, chorus after every verse, song-title skips in prayer flow). Epic 13's planning drift was reconciled by Correct Course 2026-07-19. Epic 15 is best read as an FR-5 refinement, with one caveat worth stating: FR-5 says a Reff *"repeats after each verse"* and Epic 15 implemented chorus injection after every verse — consistent, but the behavior was decided in a SPEC rather than here.
+
 ### Explicitly out of the phased plan (deferred to the vision)
 - Multiple churches / configurable per-church workflows.
 - Contemporary or non-hymnal songs.
@@ -474,12 +516,15 @@ The revision rounds resolved every substantive question from the maintainer's di
 
 ## 10. Cross-Cutting NFRs
 
-- **Offline reliability (load-bearing).** A downloaded PPTX must present a full Service — all slides, images, fonts — with zero network access. This is the guarantee that protects the Sabbath. The Phase-2 Web Slideshow is best-effort offline after its initial online load, scoped to one Service (FR-15).
-- **Generation performance.** Assembling/regenerating a full ~68-slide Service must fit within the ≤ 5-minute late-change window (SM-5), including PPTX export.
-- **Readability.** Lyric slides must never be over-full; splitting rules (FR-5) exist so the congregation can read every slide from the pews.
-- **Headless-safe rendering.** Deck generation runs without a human-driven PowerPoint; fonts and backgrounds must render correctly headless (no reliance on a commercial font or on interactive PowerPoint). Backgrounds may arrive via multiple mechanisms (solid fill, full-bleed image) and all supported paths must render.
-- **Robust parsing.** picoclaw's Rundown parsing must tolerate the real semi-structured format (honorifics, first-name-only names, markers `》`/`[ ]`, `"-"` empties, `"The Speaker"` references, variable song counts) and **fail visibly, not silently**. Beyond the invalid-hymn flag (FR-2), picoclaw/the API surface **every line or input they could not confidently map**, and every image whose role could not be resolved or that is missing, to the Reviewer — a general "unmapped input" channel, not a hymn-only one. This matters more given Phase 1 has no in-browser slide preview: the visible-flag surface, the sender readback (FR-1), and the downloaded-PPTX spot-check are the safety net.
-- **Access control.** All Service data and actions require authentication and are gated by Role (FR-18); no public endpoints expose member PII or Services.
+*Stable ids **NFR-1 … NFR-7** were added 2026-07-29 by Correct Course. Until then these were unnumbered prose, so no story or test could cite one and NFR coverage could not be traced the way FR coverage can — story 6.6 cited an `NFR-4` that resolved to nothing. **No wording changed**: the ids follow the order the bullets already had. NFR-7 was lifted here from §4.2/§11, where the font requirement lived split across two sections, so all seven are citable from one place.*
+
+- **NFR-1 — Offline reliability (load-bearing).** A downloaded PPTX must present a full Service — all slides, images, fonts — with zero network access. This is the guarantee that protects the Sabbath. The Phase-2 Web Slideshow is best-effort offline after its initial online load, scoped to one Service (FR-15).
+- **NFR-2 — Generation performance.** Assembling/regenerating a full ~68-slide Service must fit within the ≤ 5-minute late-change window (SM-5), including PPTX export.
+- **NFR-3 — Readability.** Lyric slides must never be over-full; splitting rules (FR-5) exist so the congregation can read every slide from the pews. *(Binding on FR-20 registry edits too — moving layout into data does not relax this.)*
+- **NFR-4 — Headless-safe rendering.** Deck generation runs without a human-driven PowerPoint; fonts and backgrounds must render correctly headless (no reliance on a commercial font or on interactive PowerPoint). Backgrounds may arrive via multiple mechanisms (solid fill, full-bleed image) and all supported paths must render.
+- **NFR-5 — Robust parsing.** picoclaw's Rundown parsing must tolerate the real semi-structured format (honorifics, first-name-only names, markers `》`/`[ ]`, `"-"` empties, `"The Speaker"` references, variable song counts) and **fail visibly, not silently**. Beyond the invalid-hymn flag (FR-2), picoclaw/the API surface **every line or input they could not confidently map**, and every image whose role could not be resolved or that is missing, to the Reviewer — a general "unmapped input" channel, not a hymn-only one. This matters more given Phase 1 has no in-browser slide preview: the visible-flag surface, the sender readback (FR-1), and the downloaded-PPTX spot-check are the safety net.
+- **NFR-6 — Access control.** All Service data and actions require authentication and are gated by Role (FR-18); no public endpoints expose member PII or Services.
+- **NFR-7 — Font licensing and availability.** Fonts are freely-licensed and headless-safe. The generator **embeds** its fonts in the PPTX when headless embedding is feasible; otherwise a **standardized** font is documented and installed on the presentation machine(s). Verified on a *clean* machine — one where the font is not already installed. (Stated in full at §4.2 and §11; consolidated here so it carries an id.)
 
 ## 11. Dependencies
 

@@ -1,8 +1,8 @@
 ---
-stepsCompleted: [step-01-validate-prerequisites, step-02-design-epics, step-03-create-stories, step-04-post-merge-realign, step-05-audit-hygiene-2026-07-19]
-inputDocuments: ['_bmad-output/planning-artifacts/prds/prd-bic-pptx-workflow-2026-07-10/prd.md', '_bmad-output/planning-artifacts/architecture/architecture-bic-pptx-workflow-2026-07-10/ARCHITECTURE-SPINE.md', '_bmad-output/planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/DESIGN.md']
-last_realigned: '2026-07-19'
-note: 'FR inventory + coverage map refreshed after close-audit-product-partials (FR-3/FR-4 Done). Remaining product Partials: FR-11 edit dual-path, FR-19 KJV corpus not in data/. See ../implementation-artifacts/deferred-work.md.'
+stepsCompleted: [step-01-validate-prerequisites, step-02-design-epics, step-03-create-stories, step-04-post-merge-realign, step-05-audit-hygiene-2026-07-19, step-06-correct-course-2026-07-29]
+inputDocuments: ['_bmad-output/planning-artifacts/prds/prd-bic-pptx-workflow-2026-07-10/prd.md', '_bmad-output/planning-artifacts/architecture/architecture-bic-pptx-workflow-2026-07-10/ARCHITECTURE-SPINE.md', '_bmad-output/planning-artifacts/architecture/architecture-epic-16/ARCHITECTURE-SPINE.md', '_bmad-output/planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/DESIGN.md', '_bmad-output/planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/EXPERIENCE.md']
+last_realigned: '2026-07-29'
+note: 'Realigned by Correct Course 2026-07-29 (sprint-change-proposal-2026-07-29.md): FR-11b and FR-20 added to the inventory and coverage map; NFRs given the stable ids PRD §10 now carries; coverage map refreshed past Epics 14-16 (FR-11 Partial → Done); Epic 14 closed; Epic 16 story-file reality stated. Remaining product Partial: FR-19 (KJV corpus still not under data/, import:kjv remains an ops step). See ../implementation-artifacts/deferred-work.md.'
 ---
 
 # BIC Worship Presentation Automation - Epic Breakdown
@@ -29,6 +29,7 @@ Epic/story breakdown for BIC Worship Presentation Automation. **PRD FR numbers a
 | FR-10 | Manual delete Service (full cleanup) | 1 |
 | FR-10b | Auto-delete generated Decks by retention | 4 |
 | FR-11 | Edit Service inputs via web form | 1 |
+| FR-11b | Create a Service via Web Form (Raw Rundown paste + structured fields; date-collision warning with explicit override; in-form Announcement List) | 1 |
 | FR-12 | Telegram correction path | 3 |
 | FR-13 | Regenerate Service in place (≤ 5 min) | 1 |
 | FR-13b | First-save-wins concurrency | 3 |
@@ -38,13 +39,21 @@ Epic/story breakdown for BIC Worship Presentation Automation. **PRD FR numbers a
 | FR-17 | Full Order of Service Run-Sheet (browser) | 1 |
 | FR-18 | Per-person accounts + Admin/Operator roles | 1 |
 | FR-19 | On-demand Scripture Display (KJV) | 6 |
+| FR-20 | Runtime-editable Artifact Registry + canvas template authoring (Admin) | post-Phase-1 (delivered 2026-07-26) |
 
-### Non-functional themes (from PRD §9 — not separately numbered in PRD)
+### Non-functional Requirements (PRD §10 — ids introduced 2026-07-29)
 
-- Presentation offline reliability  
-- Generation performance (≤ 5 min)  
-- Headless-safe rendering  
-- Robust parsing (no silent failures)
+Until 2026-07-29 the PRD presented these as unnumbered prose, so no story or test could cite one and this section listed only four of them as "themes" — mis-cited to §9 (Constraints and Guardrails) instead of §10. The ids below are the PRD's own, added by the same Correct Course.
+
+| NFR | Requirement | Epic representation |
+|-----|-------------|---------------------|
+| NFR-1 | Offline reliability (load-bearing) — a downloaded PPTX presents a full Service with zero network access | Epic 3 + Epic 7 (FR-14) |
+| NFR-2 | Generation performance — full ~68-slide assemble/regenerate within the ≤ 5-min late-change window | Epic 3 + Epic 5 (FR-13) |
+| NFR-3 | Readability — lyric slides never over-full; splitting governed by FR-5 | **None.** No epic and no UX artifact owns "is this readable from the pews?" — see the readiness report F4-6 |
+| NFR-4 | Headless-safe rendering — no interactive PowerPoint; all background paths render | Epic 3 + Epic 6 (Story 6.3) |
+| NFR-5 | Robust parsing — tolerate the real semi-structured format and **fail visibly**, surfacing every unmapped line or image (a general channel, not hymn-only) | Epic 5 (5.1) + Epic 6 (6.6). **Partial:** the general unmapped-input channel has no UX surface (F4-5) |
+| NFR-6 | Access control — all Service data and actions authenticated and Role-gated; no public endpoint exposes member PII | Epic 1 + Epic 6 (6.2, 6.7) via FR-18 |
+| NFR-7 | Font licensing and availability — freely-licensed, headless-safe; embedded when feasible, else a standardized documented font, verified on a **clean** machine | Epic 7 (7-4 deploy note). **Tension:** 7-4 documents Arial, which is not freely licensed — see readiness report M5-4 |
 
 ### Architecture Decisions
 
@@ -58,7 +67,7 @@ UX-DR1: High-contrast UI on Tailwind / Shadcn defaults (as-built hub/run-sheet).
 
 ### FR Coverage Map (honest)
 
-| FR | Primary epic | Status (2026-07-19 audit) |
+| FR | Primary epic | Status (2026-07-29 correct course) |
 |----|--------------|---------------------------|
 | FR-1 | Epic 2 + Epic 6 | Done (webhook+upsert+readback; `.claude/skills/picoclaw-webhook/`) |
 | FR-2 | Epic 2 | Done (695-hymn corpus) |
@@ -71,7 +80,8 @@ UX-DR1: High-contrast UI on Tailwind / Shadcn defaults (as-built hub/run-sheet).
 | FR-9 | Epic 8 | Done (slideshow preview) |
 | FR-10 | Epic 5 | Done |
 | FR-10b | Epic 10 | Done (`.cache/pptx/` retention) |
-| FR-11 | Epic 5 | Partial (raw text + images edit; dual-path with Announcement List) |
+| FR-11 | Epic 5 + Epic 14 | Done (Epic 14 closed the dual-path Partial: `/services/[id]` presents the same worship form as create with a working save path — Story 14.4 — and the Announcement List is managed in-form — Story 14.6) |
+| FR-11b | Epic 14 (14-1, 14-4) | Done (`/services/new`; date-collision warning with explicit override asserted in `tests/services-lib.test.mjs:161`) |
 | FR-12 | Epic 9 | Done (webhook `action: correct`) |
 | FR-13 | Epic 5 | Done (re-parse / re-download) |
 | FR-13b | Epic 9 | Done (`updated_at` / 409) |
@@ -80,7 +90,8 @@ UX-DR1: High-contrast UI on Tailwind / Shadcn defaults (as-built hub/run-sheet).
 | FR-16 | Epic 11 | Done (presenter + projector BroadcastChannel) |
 | FR-17 | Epic 4 + Epic 7 | Done (timings on Run-Sheet) |
 | FR-18 | Epic 1 + Epic 6 | Done (per-person admin/operator) |
-| FR-19 | Epic 12 | Partial (`import:kjv` + Presenter lookup; KJV corpus not committed under `data/`) |
+| FR-19 | Epic 12 | Partial (`import:kjv` + Presenter lookup; KJV corpus still not committed under `data/` — re-verified 2026-07-29, `data/` holds `hymns.json` only) |
+| FR-20 | Epic 16 | Done (Artifact Registry + canvas editor; contract in `../specs/spec-slide-artifact-model/` and `../implementation-artifacts/spec-16-2-artifact-pipeline-completion.md`) |
 
 ## Epic List
 
@@ -104,11 +115,13 @@ Retrospective BMAD for vibe-coded commits `acad206..458aa01` (plus local-upload 
 
 Planning drift closed by Correct Course 2026-07-19 (`sprint-change-proposal-2026-07-19.md`): PRD / Architecture / UX as-built amended to follow code.
 
-### Epic 14: Worship Web Input Boundary *(in-progress — Story 14.6)*
+### Epic 14: Worship Web Input Boundary *(done — closed 2026-07-29 by Correct Course)*
 
 Retrospective BMAD for commit `b679ff7` closed Story `14-1`. Spec: `spec-worship-web-input/SPEC.md`. FR-11 Edit Service inputs via web form. Story `14-2` (UX refinements: Parse button, hymn autocomplete, unified raw input) reopened the epic via Correct Course (`sprint-change-proposal-14-2-ux.md`). Stories `14-3` (UI tweaks) and `14-4` (show→create-parity + shell; CAP-7/CAP-8) continue the epic from operator testing of `/services/[id]`. Story `14-5` (Sermon Card split + CAP-6 KJV resolve) from post-14.4 operator testing. Story `14-6` (remove Service Highlights, hymn number+title display, Announcement Flyers helper UX) from post-14.5 operator testing / SPEC companion revisions.
 
 Planning drift for 14.1 closed by Correct Course 2026-07-19 (`sprint-change-proposal-2026-07-19.md`).
+
+**Closed 2026-07-29** by Correct Course (`sprint-change-proposal-2026-07-29.md`): all six stories `14-1`…`14-6` were already `done`, so both this heading and `epic-14: in-progress` contradicted the sprint tracker's own definition (*"done: All stories in epic completed"*). **FRs realized: FR-11 and FR-11b** — the latter was absent from this document entirely until the same Correct Course, despite being a Phase-1 requirement in `prd.md` (§6) and the documented fallback for a Telegram intake outage (UJ-5).
 
 ### Epic 15: Parser & Rendering Refinements (Phase 2) *(done — retrospective 2026-07-26)*
 
@@ -191,7 +204,7 @@ So that FR-1 Telegram round-trip is complete.
 
 As a maintainer,  
 I want regression tests for auth, webhook, and rundown parsing,  
-So that NFR-4 and story testing notes are covered.
+So that NFR-5 (robust parsing) and NFR-6 (access control) are covered.
 
 ### Story 6.7: Image URL Allowlist (SSRF Harden)
 
@@ -211,27 +224,31 @@ Rearchitect the slide plan from a flat `SlideKind` enum into a template-based Ar
 
 Delivered across Stories 16.1–16.5. Specs: `../specs/spec-slide-artifact-model/SPEC.md` (contract), `../implementation-artifacts/spec-16-2-artifact-pipeline-completion.md` (Stories 16.2–16.5). `epics-parallel-delivery-analysis.md`, which proposed an alternative 16.2–16.8 decomposition, is **superseded** — its AR19 reconciliation never happened, so this three-story breakdown remained authoritative.
 
+**Realizes FR-20** (§4.10 of the PRD), added 2026-07-29. Until then this epic — a runtime-editable template system that changes how every slide is produced — had no FR ancestry at all, in a document that declares PRD FR numbers authoritative.
+
+**Story-file reality (recorded 2026-07-29):** only Story 16.1 has a story file. Stories 16.2–16.5 shipped with no story file and therefore no acceptance criteria; their four `done` keys have been retired from `sprint-status.yaml` rather than backfilled with AC written to match already-shipped code. `spec-16-2-artifact-pipeline-completion.md` is the delivery contract for all four. The user-story statements below are retained as the scope record — they are not evidence that a tracked, AC-bearing delivery unit existed.
+
 ### Story 16.1: Artifact Registry & Canvas Editor Foundation *(delivered)*
 As an administrator,
 I want a SQLite-backed Artifact Registry seeded from validated JSON, with 7 base types and a constrained canvas editor for existing templates,
 So that global slide layouts can be safely edited and restored without deploying code changes (CAP-1, CAP-2, CAP-3, CAP-9).
 
-### Story 16.2: buildSlidePlan Refactoring & Placeholder Resolution *(delivered)*
+### Story 16.2: buildSlidePlan Refactoring & Placeholder Resolution *(delivered — no story file; contract: `spec-16-2-artifact-pipeline-completion.md`)*
 As the system,
 I want `buildSlidePlan` to output `ArtifactInstance[]` and resolve dynamic placeholders (and standing defaults) from `ParsedRundown` and `SlidePlanMedia`,
 So that the output feeds downstream consumers uniformly (CAP-4, CAP-7, CAP-8).
 
-### Story 16.3: Unified Rendering across PPTX & Web Slideshow *(delivered)*
+### Story 16.3: Unified Rendering across PPTX & Web Slideshow *(delivered — no story file; contract: `spec-16-2-artifact-pipeline-completion.md`)*
 As the system,
 I want PPTX (`pptx.ts`) and Web Slideshow (`SlideView.tsx`) to render directly from the positioned elements defined in the Artifact JSON,
 So that layout changes apply instantly across both formats without hardcoded switch statements (CAP-6).
 
-### Story 16.4: Live Slide Preview & Semantic Badges *(delivered)*
+### Story 16.4: Live Slide Preview & Semantic Badges *(delivered — no story file; contract: `spec-16-2-artifact-pipeline-completion.md`)*
 As an operator,
 I want the Live Slide Preview to group children under parents (e.g. SongSets) and display semantic Artifact labels,
 So that the preview accurately reflects the worship structure and Artifact taxonomy (CAP-5).
 
-### Story 16.5: Canvas Element Authoring *(delivered)*
+### Story 16.5: Canvas Element Authoring *(delivered — no story file; contract: `spec-16-2-artifact-pipeline-completion.md`)*
 As an administrator,
 I want to add and delete my own text boxes and shapes on an editable Artifact template,
 So that layouts can be extended without a code change.

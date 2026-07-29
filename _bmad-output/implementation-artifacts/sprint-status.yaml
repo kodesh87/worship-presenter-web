@@ -1,5 +1,5 @@
 # generated: 2026-07-10
-# last_updated: 2026-07-26
+# last_updated: 2026-07-29
 # project: BIC Worship Presentation Automation
 # project_key: NOKEY
 # tracking_system: file-system
@@ -24,7 +24,7 @@
 #   - done: Retrospective has been completed
 
 generated: 2026-07-10
-last_updated: 2026-07-26 # Epics 15/16 closed; Epic 14 debt action items closed
+last_updated: 2026-07-29 # Correct Course: Epic 14 closed, 16.2-16.5 keys retired, FR-11b/FR-20 tracked
 project: BIC Worship Presentation Automation
 project_key: NOKEY
 tracking_system: file-system
@@ -106,7 +106,10 @@ development_status:
   epic-13-retrospective: optional
 
   # --- Epic 14: Worship Web Input Boundary (post-b679ff7 vibe → BMAD) ---
-  epic-14: in-progress
+  # Closed 2026-07-29 by Correct Course: all six stories were already `done`, so
+  # `in-progress` contradicted this file's own definition ("done: All stories in
+  # epic completed"). Realizes FR-11 and FR-11b.
+  epic-14: done
   14-1-worship-web-input-boundary: done
   14-2-worship-web-input-ux-refinements: done
   14-3-worship-web-input-ui-tweaks: done
@@ -123,10 +126,13 @@ development_status:
   # --- Epic 16: Slide Artifact Model Refactoring ---
   epic-16: done
   16-1-artifact-registry-canvas-editor-foundation: done
-  16-2-build-slide-plan-artifact-hydration: done
-  16-3-unified-pptx-web-artifact-rendering: done
-  16-4-live-preview-semantic-artifact-badges: done
-  16-5-canvas-element-authoring: done
+  # Stories 16.2-16.5 shipped without story files, so no acceptance criteria were
+  # ever authored for them. The four keys are retired here rather than backfilled
+  # with AC written to match already-shipped code (AC that cannot fail is not a
+  # verification instrument). Delivery contract:
+  #   spec-16-2-artifact-pipeline-completion.md (this folder)
+  # Scope narrative stays in ../planning-artifacts/epics.md "Epic 16".
+  # Decision: ../planning-artifacts/sprint-change-proposal-2026-07-29.md
   epic-16-retrospective: done
 
 action_items:
@@ -151,22 +157,60 @@ action_items:
     owner: "kodesh87"
     status: open
   - epic: 16
-    action: "Reset welcome, verse-reading, special-song, family-youth, bible-verse-contemplation on the production DB (missing-only seeding keeps the old rows)"
+    action: "Reset welcome, verse-reading, special-song, family-youth, bible-verse-contemplation on the production DB. NOTE (corrected 2026-07-29): the 'missing-only seeding' premise is obsolete — src/lib/registry/seed.ts now self-heals at startup via reseedArtifactTemplateIfUntouched, and src/lib/db/index.ts backfills seed_hash once for pre-column rows. A rebuild+restart re-seeds any row still provably untouched; only rows reported 'kept (edited by an administrator)' or 'kept without a recorded seed hash' need a manual Reset. Read the [registry] seed lines in the startup log to see which. Manual path: /admin/artifacts editor Reset button, or POST /api/admin/artifacts/<id>/reset with {updatedAt}"
     owner: "kodesh87"
     status: open
   - epic: 16
     action: "Add a seed conformance test: every declared placeholder bound to exactly one element, every planner template id present"
     owner: "Developer"
-    status: open
+    status: done # 2026-07-29 tests/registry-seed-conformance.test.mjs (6 assertions). Covers the direction validate.ts does not: a declared-but-unbound placeholder, whose value is computed then never rendered — the failure pptx-content.test.mjs records for the verse-reading citation, special-song performer and welcome date. Also asserts no layout binds one placeholder twice, and every literal templateId in slide-plan.ts exists in the seed
   - epic: 16
     action: "Add a ceiling assertion for deck bytes / generation time"
     owner: "Developer"
-    status: open
+    status: done # 2026-07-29 tests/pptx-ceiling.test.mjs. Measured baseline: 53 slides, ~4.2s, 29.99 MB. Ceilings 120 slides / 30s / 45 MB — regression signals with headroom, not NFR-2 breaches. Actuals print on every run so drift is visible before the assertion trips. NOTE: 30 MB is dominated by full-bleed background images, not slide count; it is the file an operator downloads before a service (NFR-1)
   - epic: 16
     action: "Repair the two pre-existing stale checks in scripts/smoke-deck-fidelity.mjs left from the Epic 14 field renames"
     owner: "Developer"
-    status: open
+    status: not-reproducible # 2026-07-29 ran npm run build + node scripts/smoke-deck-fidelity.mjs: 30 checks, 30 PASS, 0 FAIL, exit 0. Includes the seven static source greps and the EditForm field check the Epic 14 renames would have broken. Either the checks were repaired before this run or the readiness-report finding was wrong. Nothing was changed — there was no failing check to repair. Re-open with the failing check name if it resurfaces
   - epic: 15
     action: "Consider moving the hardcoded song-title skip rules out of slide-plan.ts now that the Artifact Registry exists"
+    owner: "Developer"
+    status: open
+
+  # --- Added 2026-07-29 by Correct Course (sprint-change-proposal-2026-07-29.md) ---
+  - epic: 16
+    action: "Operator tooling: scripts/registry-doctor.mjs (npm run registry:doctor) reports what the seeder would do to every template on a given DB_PATH, and applies only the resets startup will not do itself. Reuses the app's own serializeTemplate/hashTemplatePayload/resetArtifactTemplate so it cannot drift from the behaviour it describes"
+    owner: "Developer"
+    status: done # 2026-07-29 user-requested tooling. Exists because the 'reset five template rows' item was written against insert-missing-only seeding and could not tell an admin-edited row (must not be reset blindly) from an untouched one (startup fixes it)
+  - epic: 14
+    action: "Assert that the create/edit form preserves operator-chosen Announcement List order (FR-11b). The date-collision override is already covered by tests/services-lib.test.mjs:161"
+    owner: "Developer"
+    status: done # 2026-07-29 tests/services-create.test.mjs — 'announcement sync preserves operator-chosen order, including a reorder'. Asserts the reorder case the prior coverage missed (its inputs were already in stored order, so a position-ignoring sync stayed green), plus distinct ascending sort_order so slide order cannot be arbitrary. Ties FR-11b to FR-6 'in list order'
+  - epic: null
+    action: "Route UX findings F4-1 (protagonists contradict PRD: Sari/Bimo/Elen are authoritative), F4-3 (UJ-3 has no flow), F4-4 (UJ-5 demoted to a branch), F4-5 (FR-16 blanking / NFR-5 unmapped-input channel / NFR-2 progress state have no UX owner), F4-6 (congregation-facing deck has no UX document) through bmad-ux Update"
+    owner: "kodesh87"
+    status: open
+  - epic: null
+    action: "Close or waive the three unrecorded Phase-1 go/no-go spikes (PRD §6): font proven on a clean machine, church fidelity sign-off on a sample slide set, 5-10 historical Rundown corpus. The last two are the church's decision, not the developer's"
+    owner: "kodesh87"
+    status: open
+  - epic: null
+    action: "Create Epic 17 via bmad-create-epics-and-stories for the readiness-report product defects: darken --muted-foreground to about #6b6b6b (contrast now MEASURED, not estimated — 4.35:1 on muted fails WCAG AA, 4.74:1 on background passes by 0.24; see DESIGN.md 2026-07-29), dark-mode decision (mount a provider or delete the dead .dark block), layout.tsx metadata still reading 'Create Next App', canvas-editor dirty-state guard, in-route authorization for the nine routes relying on src/proxy.ts alone"
+    owner: "kodesh87"
+    status: open
+  - epic: null
+    action: "Finish the PII remediation: file the GitHub Support purge request for pre-rewrite objects, confirm no clone/fork exists, then delete the scratchpad backup bundle that still holds the old history"
+    owner: "kodesh87"
+    status: open
+  - epic: null
+    action: "SECOND PII instance, found 2026-07-29 by widening the F4-2 sweep from _bmad-output/** to the whole tracked tree: ten real names across data/asset-map.json (slide-56 evidence — a family surname, three given names AND their prayer request, verbatim from the source deck), tests/fixtures/sample-rundown.txt (seven role-holders), docs/QUICKSTART.md, docs/picoclaw-webhook.md, scripts/smoke-deck-fidelity.mjs, tests/parser.test.mjs, tests/pptx-content.test.mjs. Working tree remediated: all replaced with invented names, prayer-request body redacted, ten fingerprints added to FORBIDDEN_NAME_HASHES. Verified: git grep -w finds none, guard 4/4, npm test 332 pass / 0 fail, smoke 30/30"
+    owner: "kodesh87"
+    status: done # working tree only
+  - epic: null
+    action: "RESIDUAL of the second PII instance, and it needs a decision: these files are already pushed to the public origin, so git history still holds the names exactly as F4-2 does. Editing the working tree does not change that. Decide whether this warrants a second history rewrite plus a GitHub Support purge, or whether it rides along with the F4-2 purge request above. Only the account owner can file it"
+    owner: "kodesh87"
+    status: open
+  - epic: null
+    action: "Re-infection vector: scripts/extract-pptx-assets.mjs build-map regenerates data/asset-map.json from the real deck, and its `evidence` field is the slide's own text runs — so re-running it reintroduces real member names and prayer requests. The guard now blocks the ten known names but cannot know the next family. Either re-sanitise slide 56 before committing a regenerated map, or stop committing `evidence` for payload-bearing slides. A note to that effect is in the file's own `note` field"
     owner: "Developer"
     status: open
