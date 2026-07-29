@@ -3,7 +3,7 @@
   "generatedBy": "scripts/extract-pptx-assets.mjs build-map",
   "sourceDeck": "260704 - BIC Worship Presentation.pptx",
   "sourceDeckSlides": 68,
-  "note": "Template -> source slide -> media part -> exported filename. Generated from the deck; `evidence` is the source slide's own text runs, which is how each row was confirmed. Rows with a null mediaPart are deliberately left on their solid backgroundColor; see `reason`. Files are copied byte-for-byte out of ppt/media — never rendered, resized or re-encoded. SANITISED 2026-07-29: `evidence` is the source deck's own text runs, so slide 56 carried a real family's name and prayer request into this public repository. That row now holds an invented family name and a redaction marker. Re-running `extract-pptx-assets.mjs build-map` against the real deck WILL reintroduce them — re-sanitise slide 56 before committing the regenerated file. tests/public-repo-guard.test.mjs blocks the specific names, but it cannot know the next one.",
+  "note": "Template -> source slide -> media part -> exported filename. Generated from the deck. Rows with a null mediaPart are deliberately left on their solid backgroundColor; see `reason`. Files are copied byte-for-byte out of ppt/media -- never rendered, resized or re-encoded. `evidence` records the slide's text runs, which is how each row was confirmed, but ONLY the runs the template itself declares as fixed copy when that template has placeholders. On a payload-bearing slide the runs ARE the week's data: this file once committed a family's surname, three given names and their prayer request from slide 56, and the sermon speaker's full name from slides 40 and 50. Withheld runs are counted rather than dropped silently, so a filtered row stays distinguishable from an unchecked one. The rule is enforced where the value is produced -- `evidenceFor` in scripts/extract-pptx-assets.mjs -- and asserted on this committed file by tests/asset-map-evidence.test.mjs, because a name-fingerprint guard only knows names someone already registered, never the next family. Regenerating this file with build-map is therefore safe.",
   "entries": [
     {
       "templateId": "welcome",
@@ -102,8 +102,7 @@
       "bytes": 789151,
       "coverFraction": 0.3961,
       "evidence": [
-        "Far and Near the Fields Are Teeming",
-        "SDAH #358"
+        "[2 run(s) withheld: payload-bearing slide, see the note in data/asset-map.json]"
       ]
     },
     {
@@ -121,11 +120,7 @@
       "bytes": 1885576,
       "coverFraction": 1,
       "evidence": [
-        "1/3",
-        "Far and near the fields are teeming",
-        "With the sheaves of ripened grain;",
-        "Far and near their gold is gleaming",
-        "O'er the sunny slope and plain."
+        "[5 run(s) withheld: payload-bearing slide, see the note in data/asset-map.json]"
       ]
     },
     {
@@ -143,8 +138,7 @@
       "bytes": 1361525,
       "coverFraction": 1,
       "evidence": [
-        "“One night the Lord said to Paul in a vision, ‘Do not be afraid, but speak and do not be silent; for I am with you, and no one will lay a ha",
-        "Acts 18:9, 10, NRSV"
+        "[2 run(s) withheld: payload-bearing slide, see the note in data/asset-map.json]"
       ]
     },
     {
@@ -282,8 +276,7 @@
       "bytes": 1715413,
       "coverFraction": 1,
       "evidence": [
-        "“..the true worshippers shall worship the Father in spirit and in truth..”",
-        "John 4 : 23"
+        "[2 run(s) withheld: payload-bearing slide, see the note in data/asset-map.json]"
       ]
     },
     {
@@ -360,8 +353,7 @@
       "bytes": 1580762,
       "coverFraction": 1,
       "evidence": [
-        "Sermon",
-        "TimotiusWicaksana"
+        "[2 run(s) withheld: payload-bearing slide, see the note in data/asset-map.json]"
       ]
     },
     {
@@ -381,7 +373,7 @@
       "evidence": [
         "Closing",
         "Prayer",
-        "TimotiusWicaksana"
+        "[1 run(s) withheld: payload-bearing slide, see the note in data/asset-map.json]"
       ]
     },
     {
@@ -493,9 +485,8 @@
       "reason": "Slide 56 has no chrome plate: its only pictures are the two weekly member photos (image29.png 10.2% cover, image30.jpg 10.4%) sitting on a flat #DCD7CE fill. Those photos are weekly content, not artwork.",
       "evidence": [
         "Family of the Week",
-        "ThePrasetyas(Arif, Mira, Nadia)’s Family",
         "Prayer Request:",
-        "[prayer-request body redacted 2026-07-29: it was a named family’s own request, and the mapping is already proven by the two labels above]"
+        "[2 run(s) withheld: payload-bearing slide, see the note in data/asset-map.json]"
       ]
     },
     {

@@ -15,9 +15,18 @@ which is why this repository starts fresh.
 - Exported or rendered slide images (`slides/`, `slides-all/`, `slides-new/`)
 - Source presentation decks (`*.pptx`, `*.potx`)
 - Local databases, `.env`, anything under `data/local/`
+- Text extracted from a source deck for a **payload-bearing** slide — family/youth,
+  sermon speaker, special song, verse reading, song lyrics. Those text runs are that
+  week's data, not template copy. `data/asset-map.json` once committed a family's
+  surname, three given names and their prayer request this way, and the sermon
+  speaker's full name twice more
 
 Example content uses a **synthetic congregation**. Keep it synthetic. If you
 need a realistic name, invent one — do not reach for a real member's.
+**Prefer not producing the value to blocking it afterwards.** A fingerprint list only
+knows names someone already registered — never the next family. Where a generator
+reads real material, filter at the generator: `evidenceFor` in
+`scripts/extract-pptx-assets.mjs`, asserted by `tests/asset-map-evidence.test.mjs`.
 Congregation branding used as a worked example in shipped seed data is allowed;
 live member identity and live payment details are not.
 

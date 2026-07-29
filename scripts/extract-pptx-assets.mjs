@@ -13,10 +13,14 @@
  *   node scripts/extract-pptx-assets.mjs build-map
  *     Regenerates `data/asset-map.json` from `TEMPLATE_SOURCES` below. The
  *     declaration names only template -> slide -> media part; the deck itself
- *     supplies the native size, cover fraction and the slide's own text runs,
- *     which are committed alongside as the evidence for that row. A declared
- *     media part that the slide does not actually reference is a hard error,
- *     so the positional drift that caused this defect cannot silently return.
+ *     supplies the native size, cover fraction and the slide's text runs, which
+ *     are committed alongside as the evidence for that row -- but only the runs a
+ *     payload-bearing template declares as fixed copy. See `evidenceFor`: the
+ *     week's data must never be committed, and a name-fingerprint guard cannot be
+ *     the thing that stops it.
+ *     A declared media part that the slide does not actually reference is a hard
+ *     error, so the positional drift that caused this defect cannot silently
+ *     return.
  *
  *   node scripts/extract-pptx-assets.mjs export
  *     Reads `data/asset-map.json` and copies each mapped media part out of the
@@ -436,11 +440,82 @@ async function report() {
 
 const MAX_EVIDENCE_RUNS = 6;
 const MAX_EVIDENCE_CHARS = 140;
+const WITHHELD = (n) =>
+  `[${n} run(s) withheld: payload-bearing slide, see the note in data/asset-map.json]`;
 
-function evidenceFor(slide) {
-  return slide.text
+/**
+ * Which text runs a slide may contribute as evidence.
+ *
+ * `evidence` exists to prove template -> slide mapping, and it used to record the
+ * slide's first text runs verbatim. On a payload-bearing slide those runs ARE the
+ * week's data: slide 56 committed a family's surname, three given names and their
+ * prayer request, and slides 40 and 50 committed the sermon speaker's full name.
+ * A name-fingerprint guard cannot prevent that — it only knows names someone
+ * already registered, never the next family. Not recording the value does.
+ *
+ * The rule reads the distinction out of the registry rather than a hand-kept list:
+ *
+ *   - a template that declares NO placeholders is chrome. Its runs are template
+ *     copy, and they stay — that is how the Part C plates were audited.
+ *   - a template that DOES declare placeholders mixes fixed labels with weekly
+ *     data. A run is kept only when it matches copy the template itself declares
+ *     in an element's `content`; everything else is, by definition, payload.
+ *
+ * Matching is whitespace-collapsed, case-insensitive and substring-wise, because
+ * one declared `content` of "Closing\nPrayer" arrives from the deck as the two
+ * separate runs "Closing" and "Prayer".
+ *
+ * Withheld runs are counted, not silently dropped: a row that says nothing at all
+ * is indistinguishable from a row nobody checked.
+ */
+let registryIndex = null;
+
+function templateContentIndex() {
+  if (registryIndex) return registryIndex;
+  const raw = JSON.parse(
+    fs.readFileSync(path.join(ROOT, 'data', 'default-registry.json'), 'utf8')
+  );
+  const templates = Array.isArray(raw) ? raw : raw.templates;
+  registryIndex = new Map();
+  for (const t of templates) {
+    const fixed = [];
+    for (const key of ['default', 'title', 'lyric']) {
+      const layout = t.layouts?.[key];
+      if (!layout) continue;
+      for (const el of layout.elements ?? []) {
+        if (typeof el.content === 'string' && el.content.trim()) {
+          fixed.push(normalizeRun(el.content));
+        }
+      }
+    }
+    registryIndex.set(t.id, {
+      payloadBearing: (t.placeholders ?? []).length > 0,
+      fixed,
+    });
+  }
+  return registryIndex;
+}
+
+function normalizeRun(value) {
+  return value.replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function evidenceFor(slide, templateId) {
+  const runs = slide.text
     .slice(0, MAX_EVIDENCE_RUNS)
     .map((line) => line.replace(/\s+/g, ' ').slice(0, MAX_EVIDENCE_CHARS));
+
+  const entry = templateContentIndex().get(templateId);
+  // An unknown template id is a mapping bug, not a licence to publish deck text.
+  if (!entry) return runs.length ? [WITHHELD(runs.length)] : [];
+  if (!entry.payloadBearing) return runs;
+
+  const kept = runs.filter((run) => {
+    const n = normalizeRun(run);
+    return n.length >= 2 && entry.fixed.some((f) => f.includes(n));
+  });
+  const withheld = runs.length - kept.length;
+  return withheld > 0 ? [...kept, WITHHELD(withheld)] : kept;
 }
 
 async function buildMap() {
@@ -467,7 +542,7 @@ async function buildMap() {
     };
 
     if (!src.mediaPart) {
-      return { ...base, reason: src.reason, evidence: slide ? evidenceFor(slide) : [] };
+      return { ...base, reason: src.reason, evidence: slide ? evidenceFor(slide, src.templateId) : [] };
     }
 
     const picture = slide.pictures.find((p) => p.mediaPart === src.mediaPart);
@@ -490,7 +565,7 @@ async function buildMap() {
       nativeSize: { width: picture.width, height: picture.height },
       bytes: picture.bytes,
       coverFraction: Number(picture.cover.toFixed(4)),
-      evidence: evidenceFor(slide),
+      evidence: evidenceFor(slide, src.templateId),
     };
   });
 
