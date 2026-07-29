@@ -199,9 +199,9 @@ action_items:
     owner: "kodesh87"
     status: open
   - epic: null
-    action: "Finish the PII remediation: file the GitHub Support purge request for pre-rewrite objects, confirm no clone/fork exists, then delete the scratchpad backup bundle that still holds the old history"
+    action: "SUPERSEDED 2026-07-29 — merged into the single purge item below. The history rewrite covered the F4-2 names and the second-instance names in one operation, and one Support ticket covering all eight pre-rewrite SHAs settles both. Two separate items would have implied two tickets"
     owner: "kodesh87"
-    status: open
+    status: done
   - epic: null
     action: "SECOND PII instance, found 2026-07-29 by widening the F4-2 sweep from _bmad-output/** to the whole tracked tree: ten real names across data/asset-map.json (slide-56 evidence — a family surname, three given names AND their prayer request, verbatim from the source deck), tests/fixtures/sample-rundown.txt (seven role-holders), docs/QUICKSTART.md, docs/picoclaw-webhook.md, scripts/smoke-deck-fidelity.mjs, tests/parser.test.mjs, tests/pptx-content.test.mjs. Working tree remediated: all replaced with invented names, prayer-request body redacted, twelve fingerprints added to FORBIDDEN_NAME_HASHES. The count grew from ten to twelve during verification: one given name turned out to belong to a real predecessor rather than to the invented brainstorming persona it resembled, and the sermon speaker's full name was found glued into a single token in asset-map.json. Three names are deliberately left unblocked, for the reason the guard already documents: one is a word in 182 hymns and in 'Amazing Grace', one is a figure in the Bible, and one predecessor's given name is also a book of the Bible — that person's surname is what identified them, and the surname is blocked. Verified: git grep -w finds none, guard 4/4, npm test 332 pass / 0 fail, smoke 30/30"
     owner: "kodesh87"
