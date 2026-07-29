@@ -3,7 +3,7 @@
   "generatedBy": "scripts/extract-pptx-assets.mjs build-map",
   "sourceDeck": "260704 - BIC Worship Presentation.pptx",
   "sourceDeckSlides": 68,
-  "note": "Template -> source slide -> media part -> exported filename. Generated from the deck; `evidence` is the source slide's own text runs, which is how each row was confirmed. Rows with a null mediaPart are deliberately left on their solid backgroundColor; see `reason`. Files are copied byte-for-byte out of ppt/media — never rendered, resized or re-encoded.",
+  "note": "Template -> source slide -> media part -> exported filename. Generated from the deck; `evidence` is the source slide's own text runs, which is how each row was confirmed. Rows with a null mediaPart are deliberately left on their solid backgroundColor; see `reason`. Files are copied byte-for-byte out of ppt/media — never rendered, resized or re-encoded. SANITISED 2026-07-29: `evidence` is the source deck's own text runs, so slide 56 carried a real family's name and prayer request into this public repository. That row now holds an invented family name and a redaction marker. Re-running `extract-pptx-assets.mjs build-map` against the real deck WILL reintroduce them — re-sanitise slide 56 before committing the regenerated file. tests/public-repo-guard.test.mjs blocks the specific names, but it cannot know the next one.",
   "entries": [
     {
       "templateId": "welcome",
@@ -495,9 +495,7 @@
         "Family of the Week",
         "ThePrasetyas(Arif, Mira, Nadia)’s Family",
         "Prayer Request:",
-        "[prayer-request line redacted]",
-        "[prayer-request line redacted]",
-        "[prayer-request line redacted]"
+        "[prayer-request body redacted 2026-07-29: it was a named family’s own request, and the mapping is already proven by the two labels above]"
       ]
     },
     {

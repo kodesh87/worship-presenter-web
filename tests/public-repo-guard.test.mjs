@@ -96,6 +96,39 @@ const FORBIDDEN_LITERAL_HASHES = new Set([
  * fixtures and scripture corpus legitimately contain it. Blocking it would fire on
  * real content and train someone to weaken this guard. The surname is what made
  * that person identifiable, and the surname is blocked.
+ *
+ * The ten after those were added later the same day, when the sweep was widened
+ * from the planning artifacts to the whole tracked tree. The 2026-07-29 audit had
+ * looked at `_bmad-output/**`; the names were also sitting in the *working*
+ * artifacts, where they are easier to mistake for test data:
+ *
+ *   - `data/asset-map.json` slide 56 — the worst of them. That file is generated
+ *     from the real source deck and its `evidence` field is documented as "the
+ *     source slide's own text runs", so it carried a family surname, three given
+ *     names AND their prayer request verbatim. `deferred-work.md` already referred
+ *     to the same slide as "TheExampleFamily(...)", so the reference had been
+ *     sanitised while the generated file it described had not.
+ *   - `tests/fixtures/sample-rundown.txt` — seven role-holders. The file reproduces
+ *     every quirk NFR-5 calls "the real semi-structured format", which is what a
+ *     rundown that was actually used looks like.
+ *   - `docs/QUICKSTART.md`, `docs/picoclaw-webhook.md` — the same cast, one named
+ *     as `Pdt.` (an ordained pastor, so a title that points at one person).
+ *   - `scripts/smoke-deck-fidelity.mjs`, `tests/parser.test.mjs`,
+ *     `tests/pptx-content.test.mjs` — the same names, some inside `assert.equal`.
+ *
+ * All are now invented names. Note what this list still cannot do: re-running
+ * `scripts/extract-pptx-assets.mjs build-map` against the real deck regenerates
+ * `asset-map.json` with the real text runs, and the guard catches that only because
+ * these particular names are now known. It will not catch the next family.
+ *
+ * Three words from this group are deliberately NOT listed, for the same reason as
+ * the Bible-book name above:
+ *   - one given name is a word in 182 hymns in `data/hymns.json` and in the title
+ *     "Amazing Grace";
+ *   - one is a figure in the Bible;
+ *   - one is a first name in an invented brainstorming cast under `_bmad-output/`,
+ *     alongside three other invented personas, and is not a congregation member.
+ * In each case the surname is what identified the person, and the surname is blocked.
  */
 const FORBIDDEN_NAME_HASHES = new Set([
   'c54262408caa0d45',
@@ -107,6 +140,16 @@ const FORBIDDEN_NAME_HASHES = new Set([
   '65c3f75641b22925',
   '931f22c9283e090b',
   '44554623ac571276',
+  '2da866399f105840',
+  '7c60939f1ca7243e',
+  'c3b454249c0b91a2',
+  '7814459b3f23f455',
+  '848484decf61671f',
+  'd129312e995b5317',
+  '6bc161ef5ce65309',
+  '0f20b5a458ac66a2',
+  'c0dfb0bc178c4b94',
+  'e87f468fb9123488',
 ]);
 
 function fingerprint(value) {
