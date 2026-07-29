@@ -80,7 +80,23 @@ const FORBIDDEN_LITERAL_HASHES = new Set([
   'a23caf25463f1cb4',
 ]);
 
-/** Same, for whole words. Hashed lowercased. */
+/**
+ * Same, for whole words. Hashed lowercased.
+ *
+ * The last three were added 2026-07-29, after an implementation-readiness audit
+ * found real people still named in the planning artifacts that the public-repo
+ * sanitisation pass (commit 1ced308) had missed: the volunteer who built the deck
+ * by hand, and two predecessors who had held the job before him — one of them by
+ * full name. They were named as actual role-holders in the brief, its memlog and
+ * addendum, the PRD, and the pressure-test findings. All are now replaced with
+ * invented names.
+ *
+ * A fourth word from that group is deliberately NOT listed: the given name of one
+ * predecessor is also a book of the Bible, and this is a worship application whose
+ * fixtures and scripture corpus legitimately contain it. Blocking it would fire on
+ * real content and train someone to weaken this guard. The surname is what made
+ * that person identifiable, and the surname is blocked.
+ */
 const FORBIDDEN_NAME_HASHES = new Set([
   'c54262408caa0d45',
   'a87de5b443469841',
@@ -88,6 +104,9 @@ const FORBIDDEN_NAME_HASHES = new Set([
   '12e9b279a363b095',
   '7da24c28cba89a30',
   '692a0b8721a3f704',
+  '65c3f75641b22925',
+  '931f22c9283e090b',
+  '44554623ac571276',
 ]);
 
 function fingerprint(value) {
