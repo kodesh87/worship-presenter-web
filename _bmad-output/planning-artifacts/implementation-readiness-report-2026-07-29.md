@@ -7,6 +7,11 @@ stepsCompleted:
   - step-02-prd-analysis
   - step-03-epic-coverage-validation
   - step-04-ux-alignment
+  - step-05-epic-quality-review
+  - step-06-final-assessment
+readinessStatus: 'NEEDS WORK'
+findingsTotal: 38
+assessor: 'bmad-check-implementation-readiness (Claude Opus 5)'
 documentsIncluded:
   prd:
     - _bmad-output/planning-artifacts/prds/prd-bic-pptx-workflow-2026-07-10/prd.md
@@ -365,3 +370,216 @@ That is defensible now that layout is data-driven, but it is currently a silence
 2. The UX spines' protagonists **contradict the PRD's**, and this assessment's own earlier gate wrongly cleared it — F4-1.
 3. Whether those PRD names are real people is **unresolved and is a public-repository question** — F4-2, needs the user.
 4. Architecture supports every UX requirement checked except a performance budget, which no artifact fixes.
+
+---
+
+## Step 5 — Epic Quality Review
+
+Validated against `create-epics-and-stories` standards. **Read:** `epics.md`, `sprint-status.yaml`, `pressure-test-findings.md` (202 lines), and story files sampled deliberately at both ends of the size range (0.3 KB → 14.4 KB): `1-2`, `5-2`, `7-4`, `8-1`, `11-1`, `12-1`, `14-4`, `16-1`.
+
+**Standard applied without discount, and one thing said up front in fairness:** `epics.md` is unusually honest about its own state — *"All epics done means **story keys**, not zero remaining FR Partials"* — and it maintains a real FR Coverage Map. The findings below are about structure, not candour. The candour is what made them findable.
+
+### 🔴 Critical Violations
+
+#### C5-1 — Most epics are technical or process buckets, not units of user value
+
+The standard's red flags are "Infrastructure Setup", "API Development", technical milestones. Applying it to all 16:
+
+| Epic | Title | Verdict |
+| --- | --- | --- |
+| 1 | System Foundation & Authentication | ❌ Infrastructure + borderline-auth |
+| 2 | Data Ingestion & Processing | ❌ Technical milestone, no user outcome |
+| 3 | Presentation Assembly & PPTX Export | ⚠️ Technical framing, but a deck is real user value |
+| 4 | Web Hub & Operator Interface | ✅ User value |
+| 5 | MVP Completion & Bug Fixes | ❌ A milestone, not an epic |
+| 6 | Phase 1 Gap Closure | ❌ Process bucket |
+| 7 | Phase 1 residuals | ❌ Process bucket |
+| 8–12 | one phase each | ❌ Delivery-schedule buckets, one story apiece |
+| 13 | Hub UX + LiveServer gap | ⚠️ Mixed UX and infrastructure |
+| 14 | Worship Web Input Boundary | ✅ User value ("boundary" is technical framing for a real operator surface) |
+| 15 | Parser & Rendering Refinements | ❌ Technical |
+| 16 | Slide Artifact Model **Refactoring** | ❌ Names itself a refactor — zero user value, **and no FR ancestry** (Step 3) |
+
+**Three of sixteen** epics are framed around what a user can do. The rest are named after code areas, delivery phases, or cleanup rounds.
+
+**Remediation:** do not retitle shipped history for cosmetics. Apply the standard to *new* epics from here, and let the FR Coverage Map carry traceability for the historical ones, which is what it already does well.
+
+#### C5-2 — Four epics forward-depend on later epics to satisfy their own FRs
+
+The rule is absolute: Epic N cannot require Epic N+1. Every violation below is stated in `epics.md` itself:
+
+| Epic | Its own note | Forward dependency |
+| --- | --- | --- |
+| 1 | *"Story 1.2 delivered shared Basic Auth; full FR-18 → Story 6.2"* | Epic 1 → **Epic 6** |
+| 3 | *"FR-4/6 fidelity → Story 6.3 / 6.4 / Epic 7"* | Epic 3 → **Epics 6, 7** |
+| 4 | *"FR-9/15/16/19 later shipped in Epics 8–12"* | Epic 4 → **Epics 8–12** |
+| 5 | *"5.4 was per-service images MVP; FR-3 persistent list → Story 6.1"* | Epic 5 → **Epic 6** |
+| 6 | *"Remaining Partial: FR-11 edit dual-path, FR-19 corpus ops"* | Epic 6 → **Epics 12, 14** |
+
+This is a systematic pattern, not four accidents: ship a thin slice, close the gap in a later epic. That is a defensible *delivery* strategy and it was documented rather than hidden — but it is the exact structure the standard forbids, and the cost is real: no epic in 1–5 can be trusted as "its FRs are done" without consulting a map maintained elsewhere.
+
+#### C5-3 — Five epic-sized stories: one story carrying an entire PRD phase
+
+| Story | Size | Carries | PRD scope |
+| --- | --- | --- | --- |
+| `8-1` | 0.6 KB | FR-9 + FR-15 | all of Phase 2 |
+| `9-1` | 0.6 KB | FR-12 + FR-13b | all of Phase 3 |
+| `10-1` | 0.6 KB | FR-10b | all of Phase 4 |
+| `11-1` | 0.6 KB | FR-16 | all of Phase 5 |
+| `12-1` | 0.7 KB | FR-19 | all of Phase 6 |
+
+This is not a theoretical concern — it produced measurable coverage loss, verified against the PRD:
+
+- **`11-1` has 3 ACs for an FR with 5 testable consequences.** Uncovered: (a) projector **blanking** — black at any time and restore, without moving deck position, losing the window, or disturbing a scripture overlay; operator view keeps showing current/next and *indicates* blanked; a projector reloaded while blanked comes up blank; (b) the operator view's **participant list**, which AC-1 omits.
+- **`8-1` has 3 ACs for two FRs.** Uncovered: FR-9's *"any incomplete Song Block (invalid SDAH Number) is visibly flagged"* — the one consequence that makes the preview a safety net rather than a convenience.
+
+**Blanking is the sharpest case.** Verified in code: it **is** implemented (`src/app/services/[id]/present/projector/ProjectorClient.tsx`, `PresenterOperator.tsx`, `src/lib/present-channel.ts`), delivered through `spec-transitions-and-blank-screen.md`. So a four-consequence FR behavior shipped with **no story AC** and **no UX specification** (Step 4, F4-5 — added to `EXPERIENCE.md` only today). It is the third instance in this repository of a capability delivered by SPEC with no story behind it.
+
+#### C5-4 — Story 5.2 has no acceptance criteria at all, and cites an FR that does not exist
+
+`stories/5-2-delete-service.md` contains a user story and a Tasks/Subtasks checklist. **There is no Acceptance Criteria section.** Its "so that" clause cites **FR-10a** — the PRD defines FR-10 and FR-10b; there is no FR-10a. Marked `done`.
+
+Deleting a service removes a member's photos, prayer-request text, and uploaded images (PRD FR-10). That this is the one story with no verifiable criteria is the least comfortable place for the gap to be.
+
+#### C5-5 — Four stories marked `done` with no story file
+
+Restated from Step 3 because it is a story-quality defect, not only a tracking one: `16-2` … `16-5` are `done` in `sprint-status.yaml`, and `epics.md` says Epic 16 was *"Delivered across Stories 16.1–16.5"*. Only `16-1` exists. There are therefore no acceptance criteria for four of the five stories in the epic that rebuilt how every slide is produced.
+
+### 🟠 Major Issues
+
+#### M5-1 — The five Phase-1 pre-requisite spikes are unrecorded, and they were written as go/no-go gates
+
+PRD §6 lists them as blocking before any generator work; `pressure-test-findings.md` closes with *"**Still requiring follow-through** (execution, not PRD text): run the §6 spikes … and gather the Rundown corpus **before** Phase-1 build begins."*
+
+| Spike | Recorded anywhere? |
+| --- | --- |
+| Hymnal Database acquired + structure/coverage/numbering validated | Implied by a shipped 695-hymn corpus, never recorded as a gate |
+| picoclaw confirmed customizable to spec | Implied by story 6.5, never recorded as a gate |
+| Font strategy proven on a **clean** machine (font not pre-installed) | **No record** |
+| **Church fidelity sign-off** on a sample rebuilt slide set | **No record** |
+| **5–10 historical Rundowns** gathered before locking parse rules | **No record** |
+
+The last three are the ones that cannot be inferred from code, and two require a human decision that no artifact captures. The pressure test rated fidelity sign-off (H5) as an *adoption* risk — the deck looking subtly "not our deck" on the worship screen — and that judgment belongs to the church, not to the repository.
+
+#### M5-2 — Stale technical guidance inside `done` stories propagates to future work
+
+`stories/1-2-basic-authentication-and-roles.md` (`done`) instructs a future implementer to:
+
+- create **`src/middleware.ts`** — deleted; the gate is `src/proxy.ts` under Next 16
+- target **Next.js App Router v14+** — the project runs 16.2.10
+- implement **a shared password / Basic Auth** — superseded by per-person accounts in story 6.2
+- follow an architecture "Deferred Decision" it quotes verbatim: *"complex RBAC is deferred"* — RBAC shipped, and that text no longer exists in the spine
+
+This matters mechanically: `bmad-dev-story` reads prior stories as *"Previous Story Intelligence"*, so a `done` story is not inert history — it is context a future agent will act on.
+
+#### M5-3 — Acceptance criteria are frequently non-user-observable, off-format, or unverifiable
+
+- `7-4-font-deploy-note.md` is **not a user story**: *"As a maintainer, I want a deploy note…"*, single AC *"Given `docs/deploy.md`, When read, Then Arial guidance is documented."* A documentation task promoted to a story.
+- `8-1` AC-1 — *"Given `buildSlidePlan`, When PPTX generates, Then it consumes that plan"* — a code-structure assertion, not a user-observable outcome.
+- `12-1` AC-1 depends on `.work/tp_bible_*.json`, a path deliberately outside the repository, so the AC **cannot be verified in CI** — this is the mechanism behind FR-19's standing "Partial".
+- `12-1` AC-4 — *"**Never** use KJV for deck theme/verse slides"* — a prohibition, not Given/When/Then. Testable as an assertion; off-format.
+- **Error paths are absent** across the small stories. None of `5-2`, `7-1`…`7-4`, `8-1`, `9-1`, `10-1`, `11-1` carries a failure-condition AC.
+
+#### M5-4 — Story 7.4 documents Arial, which sits in tension with NFR-7
+
+NFR-7 requires **freely-licensed**, headless-safe fonts, and the PRD's resolution log records the decision as *"embed fonts in the PPTX; else a standardized, **freely-licensed** font installed on the presentation machine."* Arial is neither freely licensed nor the Montserrat/look-alike pair the PRD names. The PRD's "standardized font installed on the presentation machine" clause arguably permits it in practice, but the artifact set now says two different things about the font contract. This needs an owner's decision, not an assessor's guess.
+
+#### M5-5 — Pressure-test watch-list items that were deferred and have since come true
+
+`pressure-test-findings.md` marked L1–L4 as "watch-list; not actioned this round." Two have since materialised:
+
+- **L4 — *"hand-rolled auth is a time sink and a security risk for a solo dev. Use a managed/library auth solution."*** Not actioned; auth is hand-rolled (scrypt, session signing, revocation, rate limiting). It works and is well tested — and `deferred-work.md` now records that **nine API routes carry no in-route authorization and rely on the proxy gate as their only enforcement layer**. That is precisely the surface L4 warned about.
+- **M1 — PII persistence, *"Accepted as-is."*** The same document observed that *"the repo holds real, unredacted member PII."* Fifteen days later this assessment found **three real congregation names still in the public repository and in its pushed git history** (F4-2). The risk was identified, accepted, and then realised.
+- **L1 — regeneration overwrites last-good with no versioning/undo.** Still unaddressed.
+
+### 🟡 Minor Concerns
+
+- **m5-1 — Epics 13–16 are retrospective.** Each is explicitly *"Retrospective BMAD"* for already-written commits. This inverts Epic → Story → Spec → implement, so acceptance criteria were written to match code rather than code written to satisfy criteria — which weakens AC as a verification instrument even where present. Honestly labelled, and the reason `AGENTS.md`'s gate was hardened.
+- **m5-2 — Story 1.1 is a retrospective stub (0.9 KB) where the standard wants a starter-template setup story.** The architecture names no starter, but `create-next-app` was plainly used — the untouched `metadata` export still reading *"Create Next App"* in production is the visible cost of that story never being written properly.
+- **m5-3 — Database/entity timing deviates from the standard by design.** The standard prefers each story creating the tables it needs; this project centralises DDL on the `getDb` startup path (now fixed as architecture AD-9). Justified for a single-file SQLite bootstrap; recorded so the deviation is deliberate rather than accidental.
+- **m5-4 — Story 6.6 cites `NFR-4`, an identifier the PRD never defines** (Step 3, F3-5).
+- **m5-5 — Epic 14 story granularity is the inverse problem to C5-3:** six stories where 14.3 and 14.6 are UI-tweak iterations driven by operator testing. Not a defect — but it shows story sizing in this repository is set by how the work arrived, not by a standard.
+
+### Best-practices compliance summary
+
+| Check | Result |
+| --- | --- |
+| Epic delivers user value | ❌ 3 of 16 |
+| Epic can function independently | ❌ 4 epics forward-depend on later epics |
+| Stories appropriately sized | ❌ 5 epic-sized stories; 1 story = 1 PRD phase |
+| No forward dependencies | ❌ systematic |
+| Database tables created when needed | ⚠️ deliberate deviation, architecture-justified |
+| Clear acceptance criteria | ❌ 1 story with none; error paths broadly absent |
+| Traceability to FRs maintained | ✅ **strongest area** — an explicit FR Coverage Map exists and is honest about Partials, though it is 10 days stale and omits FR-11b |
+
+---
+
+## Summary and Recommendations
+
+### Overall Readiness Status
+
+## ⚠️ NEEDS WORK
+
+Not *NOT READY*. The artifact set is substantially real: 22 FRs each carrying testable consequences, an explicit and honest FR Coverage Map, four SPEC packages, two architecture spines that now pass their gate, and UX spines that are now correctly shaped. A competent builder could work from this.
+
+But **READY** is not available, for two reasons that have nothing to do with document polish:
+
+1. **Two open action items could break a Sabbath service, and neither is a documentation task.** Epic 16 moved layout ownership into the Artifact Registry. The seeder inserts *missing* template IDs only, so the production database still holds the **old rows** for `welcome`, `verse-reading`, `special-song`, `family-youth`, and `bible-verse-contemplation`. The companion item — inspect a generated deck and the projector before the next service — is also unperformed. So **nobody has confirmed what the projector will actually show**, on a system whose own architecture states that a failure during a service cannot be retried.
+
+2. **The delivery tracker cannot be planned from.** Four stories are `done` with no story file and therefore no acceptance criteria. One Phase-1 requirement (FR-11b) is absent from the epics entirely. A whole shipped subsystem (Epic 16) has no requirement ancestry. The PRD's own phase gate — which governs whether Phases 2–6 should exist at all — was never recorded as passed, waived, or skipped, yet all five shipped.
+
+### Findings
+
+**38 findings across 5 categories.** Severity is impact on the next increment, not effort to fix.
+
+| Category | Findings | Critical |
+| --- | --- | --- |
+| Pre-existing defects carried in | 5 | 1 |
+| PRD analysis | 4 | 2 |
+| Epic coverage | 7 | 2 |
+| UX alignment | 7 | 2 |
+| Epic & story quality | 15 | 5 |
+
+Fixed during this assessment rather than merely reported: the misplaced epic-16 spine and its stale Stack table; six undocumented architecture invariants the code already enforced; both UX spines' shape, coverage and protagonists; `project-context.md` pointing every agent at a deleted `middleware.ts`; the missing architecture and UX rows in the `AGENTS.md` authority map; and the PII.
+
+### Critical Issues Requiring Immediate Action
+
+1. **Production template rows are stale and the projector is unverified** (F3-6). Highest consequence in the set. Operational, not documentation.
+2. **Real congregation PII was public** (F4-2). Working tree and git history are remediated and force-pushed; the guard now blocks all three names. **Residual:** GitHub may still serve the old objects by direct SHA until garbage collection — only a GitHub Support purge request settles that, and only the account owner can file it.
+3. **Four stories `done` with no acceptance criteria** (C5-5) — in the epic that rebuilt how every slide is produced.
+4. **FR-11b is untracked** (Step 3, Critical) — a Phase-1 requirement, the documented fallback for a Telegram outage, implemented in code and absent from the epics.
+5. **The phase gate was never closed** (Step 2). SM-3 made it measurable: 13 weeks, leading gate at week 4. All five contingent phases shipped with no record of the decision.
+6. **Three of five Phase-1 go/no-go spikes are unrecorded** (M5-1) — font-on-a-clean-machine, church fidelity sign-off, and the 5–10 Rundown corpus. Two are human judgments the repository cannot infer.
+7. **Story 5.2 has no acceptance criteria** (C5-4) and cites a non-existent FR-10a — on the operation that deletes members' photos and prayer requests.
+
+### Recommended Next Steps
+
+Ordered by consequence. Steps 1 and 2 are not BMad work and should not wait for it.
+
+1. **Before the next service:** reset the five template rows on the production database, then generate a deck and look at it on the projector. Close both Epic 16 action items. No artifact can substitute for looking.
+2. **Finish the PII remediation:** file the GitHub Support purge request; confirm whether any clone or fork exists; delete the pre-rewrite backup bundle from the scratchpad once satisfied — it still contains the old history with the real names.
+3. **Run `bmad-correct-course`.** This is the correct BMad instrument for reconciling a tracker that diverged from delivery, and it is what `AGENTS.md` rule 3 prescribes. Bring in: FR-11b into the inventory and coverage map; a decision on 16.2–16.5 (author the story files retrospectively, or retire the keys and let `spec-16-2-artifact-pipeline-completion.md` carry the contract explicitly); Epic 14's `in-progress`-with-all-stories-`done` contradiction; a refresh of the FR Coverage Map, which is dated 2026-07-19 and predates Epics 14–16; and an explicit record of the phase-gate decision.
+4. **Close or waive the three unrecorded spikes** (M5-1). Two are the church's call, not the developer's — particularly fidelity sign-off, which the pressure test rated an *adoption* risk rather than a technical one.
+5. **Number the PRD's NFRs** and set `status` away from `draft`. Until NFRs have stable ids, no story or test can cite one, and NFR coverage stays at 57% because there is nothing to trace.
+6. **Then the product defects, via stories** — not inline. In order: measure `muted-foreground` contrast with a real checker; decide dark mode (mount a provider or delete the dead `.dark` block — keeping both is the worst option); the one-line `metadata` fix; a dirty-state guard for the canvas editor; and in-route authorization for the nine routes that rely on the proxy gate alone.
+7. **Give Epic 16 requirement ancestry** — either an FR in the PRD or an explicit, recorded decision that the Artifact Registry is an architecture-level capability governed by SPEC rather than by the PRD. Right now it is governed by neither, in a repository whose epics state that *"PRD FR numbers are authoritative."*
+
+### What is genuinely strong
+
+Stated because an assessment that only lists faults misrepresents the thing it assessed:
+
+- **Requirement quality.** Every FR carries testable consequences. Vocabulary is anchored in a Glossary and used verbatim. Phase assignment is explicit per FR. This is better than most PRDs.
+- **The FR Coverage Map exists and does not lie.** It says *"All epics done means story keys, not zero remaining FR Partials"* and marks two FRs Partial rather than rounding up. That honesty is why this assessment could find anything at all.
+- **The pressure-test discipline.** An adversarial pre-mortem was run, each finding traced to a specific FR or slide, and every one carries a recorded maintainer decision. Two of its deferred watch-list items later came true exactly as described — which is the pressure test working, not failing.
+- **Code-level documentation.** `src/proxy.ts` explains *why* the `middleware` → `proxy` rename is load-bearing and why `no-store` is required behind a Cloudflare Tunnel. Six architecture invariants were recoverable from the code precisely because it was commented that well.
+
+### Final Note
+
+This assessment identified **38 issues across 5 categories**, of which 12 are critical or high. Several were repaired during the assessment itself, through the skill that owns each artifact rather than by ad-hoc edit; the rest are listed above with an owner and an order.
+
+The most important finding is not a document defect. Epic 16 changed who owns slide layout, the production database was never migrated to match, and no one has looked at the projector since. Everything else on this list can wait a week. That cannot.
+
+---
+
+**Assessed:** 2026-07-29 · `bmad-check-implementation-readiness` (Claude Opus 5)
+**Steps completed:** 1–6 · **Status:** NEEDS WORK
