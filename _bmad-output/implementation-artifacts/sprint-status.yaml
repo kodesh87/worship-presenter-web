@@ -135,6 +135,25 @@ development_status:
   # Decision: ../planning-artifacts/sprint-change-proposal-2026-07-29.md
   epic-16-retrospective: done
 
+  # --- Epic 17: An operator surface that is readable and honest ---
+  # Created 2026-07-29 from the readiness assessment's product defects, through
+  # Epic → Story rather than inline patching. Only 17.1 has a story file; the rest
+  # are `backlog` per this file's own vocabulary ("Story only exists in epic file").
+  epic-17: in-progress
+  17-1-reachable-dark-mode: ready-for-dev
+  17-2-muted-foreground-contrast: backlog
+  17-3-app-metadata: backlog
+  17-4-canvas-dirty-state-guard: backlog
+  epic-17-retrospective: optional
+
+  # --- Epic 18: Member data stays gated even when the perimeter moves ---
+  # Realizes FR-18 + NFR-6. Kept separate from Epic 17 deliberately: one epic is
+  # what an operator sees, this one is what a visitor must never see. Pressure-test
+  # watch-list item L4, accepted un-actioned, now coming due.
+  epic-18: backlog
+  18-1-in-route-authorization-nine-routes: backlog
+  epic-18-retrospective: optional
+
 action_items:
   - epic: 14
     action: "Harden BMAD gate in AGENTS.md (+ sync .agents/AGENTS.md, .cursorrules, CLAUDE.md): forbid large feature work without Epic→Story→Spec; call out Antigravity/Google AI Pro jump-to-code bias"
@@ -187,17 +206,17 @@ action_items:
     owner: "Developer"
     status: done # 2026-07-29 tests/services-create.test.mjs — 'announcement sync preserves operator-chosen order, including a reorder'. Asserts the reorder case the prior coverage missed (its inputs were already in stored order, so a position-ignoring sync stayed green), plus distinct ascending sort_order so slide order cannot be arbitrary. Ties FR-11b to FR-6 'in list order'
   - epic: null
-    action: "Route UX findings F4-1 (protagonists contradict PRD: Sari/Bimo/Elen are authoritative), F4-3 (UJ-3 has no flow), F4-4 (UJ-5 demoted to a branch), F4-5 (FR-16 blanking / NFR-5 unmapped-input channel / NFR-2 progress state have no UX owner), F4-6 (congregation-facing deck has no UX document) through bmad-ux Update"
+    action: "Route UX findings F4-1 (protagonists contradict PRD: Sari/Bimo/Elen are authoritative), F4-3 (UJ-3 has no flow), F4-4 (UJ-5 demoted to a branch), F4-5 (FR-16 blanking / NFR-5 unmapped-input channel / NFR-2 progress state have no UX owner), F4-6 (congregation-facing deck has no UX document) through bmad-ux Update. ADDED 2026-07-29: DESIGN.md open item 2 states the dark palette is unreachable dead code. Verified false — PresenterOperator.tsx:449 and SlideGridDialog.tsx:176 pin the class themselves, so the palette renders today in the two surfaces used during a service. Left for bmad-ux rather than corrected in place, since that skill owns the file; the correction is recorded in story 17-1 so the implementer is not misled meanwhile"
     owner: "kodesh87"
     status: open
   - epic: null
-    action: "Close or waive the three unrecorded Phase-1 go/no-go spikes (PRD §6): font proven on a clean machine, church fidelity sign-off on a sample slide set, 5-10 historical Rundown corpus. The last two are the church's decision, not the developer's"
+    action: "Close or waive the three unrecorded Phase-1 go/no-go spikes (PRD §6): font proven on a clean machine, church fidelity sign-off on a sample slide set, 5-10 historical Rundown corpus"
     owner: "kodesh87"
-    status: open
+    status: partially-done # 2026-07-29 owner decision: the two gates requiring the church are WAIVED and will not be sought. Recorded in PRD §6 with the risks carried rather than closed — fidelity is unvalidated by the people who will see it (an adoption risk no test can detect; the pre-launch projector inspection is the compensating control), and the parser stays fit to one sample, so the first unfamiliar rundown is where real variance gets measured. The font-on-a-clean-machine gate is technical and remains open with the maintainer
   - epic: null
-    action: "Create Epic 17 via bmad-create-epics-and-stories for the readiness-report product defects: darken --muted-foreground to about #6b6b6b (contrast now MEASURED, not estimated — 4.35:1 on muted fails WCAG AA, 4.74:1 on background passes by 0.24; see DESIGN.md 2026-07-29), dark-mode decision (mount a provider or delete the dead .dark block), layout.tsx metadata still reading 'Create Next App', canvas-editor dirty-state guard, in-route authorization for the nine routes relying on src/proxy.ts alone"
+    action: "Create the epic and stories for the readiness-report product defects"
     owner: "kodesh87"
-    status: open
+    status: done # 2026-07-29 owner asked for the dark-mode work to go through an epic/story. Delivered as TWO epics rather than one, because C5-1's remediation applies the user-value standard to new epics: Epic 17 is what an operator sees (dark mode, muted-foreground contrast, app metadata, canvas dirty-state guard), Epic 18 is what a visitor must never see (in-route authorization for the nine proxy-only routes; FR-18 + NFR-6). Story 17.1 has a full story file and is ready-for-dev; the rest are `backlog`. Epic 17 records its own requirement ancestry as a DECISION — operator-chrome visual identity is DESIGN.md-governed, not FR-governed — rather than leaving the silence FR-20 had to be added to fix
   - epic: null
     action: "SUPERSEDED 2026-07-29 — merged into the single purge item below. The history rewrite covered the F4-2 names and the second-instance names in one operation, and one Support ticket covering all eight pre-rewrite SHAs settles both. Two separate items would have implied two tickets"
     owner: "kodesh87"
@@ -211,9 +230,9 @@ action_items:
     owner: "kodesh87"
     status: done
   - epic: null
-    action: "REMAINING residual, and only the account owner can do it: GitHub still serves the pre-rewrite objects by direct SHA until it garbage-collects, so file the Support purge request (support.github.com — it is a web form, not an API call, and it must come from the account owner). Also confirm whether any clone or fork exists: a rewrite cannot reach those. The pre-rewrite objects are still recoverable locally too, on purpose — refs/original/refs/heads/main plus a verified 36 MB bundle in the session scratchpad. Do NOT run `git gc --prune=now` or delete the bundle until the purge is confirmed and you are satisfied; after that, delete both"
+    action: "Residual of the history rewrite: GitHub keeps the pre-rewrite objects and serves them by direct SHA until it garbage-collects on its own schedule"
     owner: "kodesh87"
-    status: open
+    status: waived # 2026-07-29 owner decision: no Support purge ticket will be filed; GitHub's own garbage collection is accepted as sufficient. What that accepts, stated plainly so it is a decision and not an oversight: the eight pre-rewrite commit SHAs were public while they were reachable, so anyone who noted one can still fetch that commit — including the family name and prayer request — until GC runs, and GitHub does not publish that timing. A clone or fork made before the rewrite is out of reach either way. The local rollback (refs/original plus the verified 36 MB bundle in the session scratchpad) can be dropped whenever you are satisfied: `git gc --prune=now` and delete the bundle
   - epic: null
     action: "Re-infection vector: scripts/extract-pptx-assets.mjs build-map regenerates data/asset-map.json from the real deck, and its `evidence` field is the slide's own text runs — so re-running it reintroduced real member names and prayer requests. Closed by filtering at the generator rather than by blocking afterwards"
     owner: "Developer"

@@ -407,6 +407,33 @@ These validate the load-bearing dependencies and assumptions before any generato
 - **Fidelity sign-off** — generate a sample rebuilt slide set (song title, lyric, sermon, family/youth) and get explicit sign-off from the church/Bimo that the look is acceptable (§4.2).
 - **Rundown corpus** — gather 5–10 historical Rundowns and decks to measure real format variance before locking parse rules, so the parser is not fit to a single sample (§4.1, §10).
 
+### Pre-requisite spike decision (recorded 2026-07-29)
+
+Three of the five gates above were never recorded as run: font proven on a clean
+machine, church fidelity sign-off on a sample rebuilt slide set, and the 5-10
+historical Rundown corpus.
+
+**Decision (owner, 2026-07-29): the two gates requiring the church are waived and
+will not be sought.** Fidelity sign-off and the Rundown corpus are dropped as
+blocking pre-requisites.
+
+The consequences are recorded rather than argued, because they are now carried
+risks rather than open questions:
+
+- **Fidelity is unvalidated by the people who will see it.** The pressure test
+  rated this an *adoption* risk, not a technical one: a deck can be entirely
+  correct and still read as "not our deck" on the worship screen. Nothing in this
+  repository can detect that. The compensating control is the pre-launch projector
+  inspection tracked in `sprint-status.yaml` — one person looking, instead of the
+  church signing off.
+- **The parser is fit to a single sample.** `tests/fixtures/sample-rundown.txt` is
+  one rundown. NFR-5 requires tolerating real format variance and failing visibly;
+  without a corpus, "real variance" is unmeasured, so the first unfamiliar rundown
+  is where it gets measured. NFR-5's unmapped-input surface is what limits the cost
+  of that, and it has no UX owner yet (readiness report F4-5).
+
+The font gate is technical and stays open; it belongs to the maintainer.
+
 ### Phase 1 — Generate, Edit & Download *(MVP — the target)*
 Rundown in via Telegram → correct offline deck out, editable, behind a login. No correction-via-Telegram workflow yet; fixes happen in the web form (a full re-send of the Rundown for the same date also updates the Service — FR-1).
 - Telegram intake → picoclaw → API: **FR-1**

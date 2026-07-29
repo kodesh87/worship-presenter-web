@@ -255,6 +255,45 @@ So that layouts can be extended without a code change.
 
 **Note:** seeded element IDs and any element marked `required` stay immutable — the save API rejects their removal or rename (400) and read-only base types (FullScreenImage, SongSet, Announcement) expose no add/delete affordances at all. Only elements authored in the editor may be deleted.
 
+### Epic 17: An operator surface that is readable and honest *(in-progress — Story 17.1)*
+
+Created 2026-07-29 from the implementation-readiness assessment's product defects, via the epic route rather than inline patching — the point of Correct Course that day was that inline is how the drift happened. Titled around what an operator gets, per the C5-1 remediation: the value standard applies to new epics from here.
+
+**Requirement ancestry — a recorded decision, not an omission.** These stories change the *operator chrome's* visual identity and self-presentation. Per the authority map in `AGENTS.md`, that is governed by `DESIGN.md`, not by a PRD FR. Unlike Epic 16 — which changed how every slide is produced and needed FR-20 — nothing here alters a Deck, a Slide Type, or any payload contract. **Constraint that keeps that true:** whatever an operator's theme, the projected output (`slide-surface`, PPTX, projector window) must be byte-identical. The congregation never sees operator chrome.
+
+### Story 17.1: Reachable Dark Mode *(ready-for-dev)*
+As an operator running a service in a dim sanctuary,
+I want the hub to follow a dark theme I can choose,
+So that a full-brightness white screen in my hands does not light up the room — and so the 33-token `.dark` palette already shipped to every visitor stops being dead code.
+
+### Story 17.2: `muted-foreground` Contrast *(backlog)*
+As an operator reading secondary text,
+I want the muted foreground token to meet WCAG AA,
+So that labels, hints and timings are legible. Measured 2026-07-29 against the running app: **4.35:1 on `muted`, which fails AA (4.5:1)**, and 4.74:1 on `background`, passing by 0.24. Darkening `--muted-foreground` to about `#6b6b6b` clears both surfaces; no other token moves.
+
+### Story 17.3: The App Says Its Own Name *(backlog)*
+As anyone with the hub open,
+I want the browser tab and bookmarks to name this application,
+So that it is not filed as *Create Next App*. `src/app/layout.tsx` still exports the create-next-app `metadata`. One-line change; the wording is product-owned.
+
+### Story 17.4: Unsaved Canvas Work Is Not Lost Silently *(backlog)*
+As an administrator editing an Artifact template,
+I want a dirty indicator and a navigation guard,
+So that leaving the canvas editor cannot discard layout work without warning. Today unsaved changes are invisible to the application (FR-20 surface).
+
+### Epic 18: Member data stays gated even when the perimeter moves *(backlog)*
+
+**FRs addressed:** FR-18 (per-person accounts and Roles), NFR-6 (access control — no endpoint exposes member PII).
+
+Nine API routes rely on `src/proxy.ts` as their only authorization layer, with no in-route `requireSession`. The gate's `config.matcher` regex *is* the authorization boundary, so anything unmatched is served with no session check — a single exclusion added without its matching assertion silently publishes member data. `tests/proxy-matcher.test.mjs` guards the regex; nothing guards a route that stops being matched. The pressure test raised this as watch-list item **L4** ("hand-rolled auth is a time sink and a security risk for a solo dev") and it was accepted un-actioned; `deferred-work.md` then recorded the nine routes. This epic is that item coming due.
+
+Separate from Epic 17 deliberately: one epic is what an operator sees, this one is what a visitor must never see. Bundling them would have produced exactly the mixed technical/UX epic C5-1 flags.
+
+### Story 18.1: In-route Authorization for the Nine Proxy-Only Routes *(backlog)*
+As a church member whose name and prayer request live in this system,
+I want every API route to check the session itself,
+So that no single regex edit can expose Service data. Privileged routes re-check role against the database (`requireAdminSession`), not the cookie.
+
 ---
 
 ## Epic 1: System Foundation & Authentication *(shipped)*
