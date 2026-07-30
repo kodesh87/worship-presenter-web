@@ -1,7 +1,7 @@
 ---
 name: Worship Presenter Web — Experience
 status: final
-updated: '2026-07-29'
+updated: '2026-07-30'
 sources:
   - ../../prds/prd-bic-pptx-workflow-2026-07-10/prd.md
   - ../../architecture/architecture-bic-pptx-workflow-2026-07-10/ARCHITECTURE-SPINE.md
@@ -12,7 +12,9 @@ design_reference: ./DESIGN.md
 
 # Experience — Worship Presenter Web
 
-> **Honesty note.** This documents behavior as shipped, ratified against `src/app/**` on 2026-07-29. It is not a redesign. Gaps are recorded under *Open Items*, never described as working. [`DESIGN.md`](./DESIGN.md) owns visual identity; this file owns how the product behaves. Both win over any mock on conflict.
+> **Honesty note.** This documents behavior as shipped, ratified against `src/app/**` on 2026-07-29 and re-verified state by state on 2026-07-30. It is not a redesign. Gaps are recorded under *Open Items*, never described as working. [`DESIGN.md`](./DESIGN.md) owns visual identity; this file owns how the product behaves. Both win over any mock on conflict.
+>
+> **Where a state is designed but not shipped, this file now says so inline** — marked **⚠ designed, not shipped**. The 2026-07-29 version described four such states in the present tense and deferred verification to the readiness assessment; that assessment ran without answering it, and one of the four turned out not to exist. A specification that reads like a description of working software is the failure mode this marker exists to prevent.
 >
 > **Glossary:** the operator-facing term is **run sheet** (two words). "Order of service" is the congregation's term and does not appear in the UI.
 
@@ -96,11 +98,11 @@ Per-surface states:
 | `/` | **Empty** — first run, no services yet. **Filtered-empty** — search matches nothing; the filter must remain visible and clearable. |
 | `/services/new` | **Validation error** — per-field rules in `form-fields.md`; the form retains every entered value and names the offending field. **In-flight submit** — the submit control disables so a double-submit cannot create two services. **Unresolved hymn** — a number the corpus does not know is surfaced at entry, not at generation. |
 | `/services/[id]` | **Stale write** — as in the cross-cutting table. **Delete confirmation** — destructive and irreversible, so it is a `dialog`, never an inline control. |
-| `/services/[id]/slideshow` | **Empty plan** — a service whose plan yields no slides says so rather than showing a blank surface. |
-| `/services/[id]/present` + `/projector` | **Lost sync** — the projector window is closed or crashed. `BroadcastChannel` is same-origin and local, and INIT AD-10 forbids a server fallback, so the presenter must surface it; silence is the dangerous default. **KJV corpus absent** — lookup is unavailable when the corpus was never imported (an ops step); the presenter says so instead of returning empty results. **Projector blanked** (FR-16) — the operator can black the projector at any time and restore it, without moving the deck position, losing the projector window, or disturbing a scripture overlay beneath. While blanked the operator view keeps showing current and next slide and **indicates** the blanked state. A projector opened or reloaded while blanked comes up blank. |
+| `/services/[id]/slideshow` | **Plan cannot be built** — a `buildSlidePlan` throw renders a `destructive`-bordered card naming the failure, not a blank screen. *An "empty plan" state is deliberately absent:* `slide-plan.ts:253` pushes the `welcome` leaf unconditionally at the head of every plan, so zero slides cannot occur. |
+| `/services/[id]/present` + `/projector` | **Projector blanked** (FR-16) — shipped, all four consequences: the operator blacks the projector at any time with the `B` key or the control and restores it, the deck position still advances underneath, the projector window is not lost, a scripture overlay beneath is undisturbed, the operator view keeps showing current and next slide and indicates the blanked state, and a projector opened or reloaded while blanked comes up blank. **Popup blocked** — when the browser refuses the projector window the presenter offers the same URL as a plain link rather than leaving a dead button. **KJV corpus absent** — lookup is unavailable when the corpus was never imported (an ops step); the presenter says so instead of returning empty results. **⚠ Lost sync — designed, not shipped.** *Owner: Story 17.5.* The projector window is closed or crashed. `BroadcastChannel` is same-origin and local and INIT AD-10 forbids a server fallback, so the presenter is the only thing that can report it; silence is the dangerous default. Today there is no detection at all — see Open Item 1. |
 | `/announcements` | **Empty** — no flyers yet. **Upload rejected** — an image failing the INIT AD-8 rules states which rule it failed, not a generic error. |
-| `/admin` | **Last admin** — demoting or deleting the only admin must be refused, not merely warned. |
-| `/admin/artifacts` | **Save rejected** — epic-16 AD-5 validates every registry write, so rejection is a designed outcome: the canvas keeps the operator's work and names what failed validation. **Reset confirmation** — reset discards persisted edits for one template. **Unsaved canvas** — *not modelled*; see Open Items. |
+| `/admin` | **Last admin** — shipped as a refusal, not a warning: `src/lib/auth/accounts.ts:158` refuses the role change, `:195` refuses the delete. |
+| `/admin/artifacts` | **Save rejected** — shipped. `epic-16 AD-5` validates every registry write, so rejection is a designed outcome: the canvas keeps the operator's work and the message names what failed (`ArtifactEditor.tsx:728`, `:760` for the concurrent-edit case, which states explicitly what was discarded and what to re-apply). **Reset confirmation** — reset discards persisted edits for one template. **⚠ Unsaved canvas — designed, not shipped.** *Owner: Story 17.4.* No dirty flag and no `beforeunload` guard exists anywhere in `src/`; the only unsaved-work messaging is the 409 conflict path, which fires on save, not on leaving. |
 
 ## Interaction Primitives
 
@@ -113,7 +115,8 @@ Per-surface states:
 
 Stated honestly: **no accessibility pass has been run.** What holds today does so by construction rather than by verification —
 
-- Primary-text contrast is high because the palette is near-black on near-white ([`DESIGN.md`](./DESIGN.md) → *Contrast on load-bearing combinations*). `muted-foreground` is the exception and is flagged there as borderline and unverified.
+- Primary-text contrast is high because the palette is near-black on near-white ([`DESIGN.md`](./DESIGN.md) → *Contrast on load-bearing combinations*). `muted-foreground` is the exception, and it is no longer merely suspected: measured at **4.35:1 on `muted`, which fails WCAG AA**, and 4.74:1 on `background`. Story 17.2 owns the fix.
+- The dark palette's contrast has **never** been measured, on any pair. It renders today in the presenter and slide-grid surfaces ([`DESIGN.md`](./DESIGN.md) → *Open Item 2*), which means the two surfaces used while a service is running are the two whose legibility nobody has checked. Story 17.1 carries the measurement.
 - shadcn primitives carry Base UI's focus management and ARIA wiring, unmodified, so the five installed components inherit a reasonable floor.
 
 Unverified and load-bearing: keyboard reachability of the Fabric canvas editor (a pointer-first surface with no known keyboard equivalent), focus order on the run sheet edit form, and screen-reader labelling throughout. Treated as an Open Item, not a claim.
@@ -139,6 +142,8 @@ Product-specific section — experience constraints no generic UX checklist woul
 - The operator watches two surfaces at once — presenter notes on the laptop, audience output on the projector. Requiring attention on a third surface breaks the model.
 - The projected surface is 16:9 and fixed. Template geometry is normalized percentages with stable IDs; coordinates may deliberately exceed the canvas to preserve source-deck clipping (epic-16 AD-5).
 - Registry edits are global and immediate. An administrator changing a template on Friday changes every service, including ones already reviewed. There is no per-service override, by design (epic-16 AD-4).
+
+**Nobody owns the question *"is this readable from the pews?"*** — stated here as a boundary rather than left as a silence. The ownership split for the projected deck is tabulated in [`DESIGN.md`](./DESIGN.md) → *Who owns the deck the congregation sees*: chrome tokens to that file, slide interiors to registry data, slide order to `buildSlidePlan`. Legibility at the back of the sanctuary falls in none of them, and no test in this repository can reach it — every slide assertion is regex over XML text presence, never geometry. The only control is the pre-launch projector inspection, carried as an owner action item in `sprint-status.yaml` after the PRD §6 fidelity sign-off was waived on 2026-07-29. This file does not invent a readability standard, because the registry's geometry came from a deck that has been projected in this room for years and invented numbers would displace that evidence.
 
 ## Key Flows
 
@@ -182,7 +187,7 @@ Elen has never built a deck. She is scheduled on the presentation computer today
 5. Between sections she blanks the projector to black while the podium changes over, then restores it. The deck position does not move, the projector window is not lost, and her own view keeps showing current and next slide with the blanked state clearly indicated (FR-16).
 6. After the service nothing needs saving. The service record is already immutable.
 
-**Branch 3a — the projector window dies.** Between hymns someone closes the projector window. The presenter surfaces lost sync immediately; a presenter that silently drives nothing is worse than one that reports a broken link. She reopens it and it re-attaches — coming up blank if it was blank when it died. If the hub itself has gone she falls back to the PPTX from step 1, which is the entire reason step 1 comes first.
+**Branch 3a — the projector window dies.** Between hymns someone closes the projector window. **⚠ The first beat of this branch is designed, not shipped** (*Story 17.5*): the presenter *should* surface lost sync immediately, because a presenter that silently drives nothing is worse than one that reports a broken link — but today it detects nothing, and Elen keeps advancing a deck no one can see until she happens to look at the second screen. The rest of the branch does work: she reopens the projector from the same control and it re-attaches on one `request-sync` round trip, coming up blank if it was blank when it died. If the hub itself has gone she falls back to the PPTX from step 1, which is the entire reason step 1 comes first.
 
 ### Flow 4 — a correction arrives by Telegram on Saturday morning *(UJ-3)*
 
@@ -222,9 +227,16 @@ Announcements persist between services, so this happens on its own schedule rath
 4. Months later the volunteer stops serving. Bimo deletes the account; any live session dies on its next request rather than lingering until the cookie expires.
 ## Open Items
 
-Behavioral items this file owns. Token and visual-identity gaps — dark mode, `metadata` boilerplate, `muted-foreground` contrast — live in [`DESIGN.md`](./DESIGN.md) → *Open Items* and are not restated here.
+Behavioral items this file owns. Token and visual-identity gaps — dark-mode choice, `metadata` boilerplate, `muted-foreground` contrast — live in [`DESIGN.md`](./DESIGN.md) → *Open Items* and are not restated here. **Each item names the story key that owns it,** or says why it has none.
 
-1. **Several per-surface states are specified above but unverified against the shipped UI** — lost sync, save rejected, last-admin refusal, and empty-plan in particular. They are the designed behavior distilled from the architecture invariants; whether the code implements each is a question for the implementation-readiness assessment, not this file.
-2. **No accessibility verification** — see *Accessibility Floor*. The canvas editor is the sharpest risk: pointer-first, with no known keyboard equivalent.
-3. **Unsaved canvas changes are silent** — no dirty indicator, no navigation guard. A consequence of epic-16 AD-3 (Fabric owns canvas state) that no UX decision has yet answered.
-4. **Session revocation has no mid-edit warning** — a demoted or logged-out operator loses in-progress work with no notice on their next request. The security behavior is correct; the experience around it is undesigned.
+1. **The projector can die and the presenter will not notice.** *Owner: Story 17.5.* **This replaces the prior item that deferred four states to the readiness assessment.** That assessment ran and never answered it, so the four were verified directly against `src/` on 2026-07-30. Three are shipped — FR-16 blanking with all four consequences, the last-admin refusal, registry save-rejection — and are now stated as facts with file references in *State Patterns*. A fourth does not exist:
+
+   > `BroadcastChannel` is fire-and-forget and gives the sender no delivery signal. `src/lib/present-channel.ts` defines no heartbeat and no acknowledgement message. `projectorRef.current.closed` is read **only inside `openProjector`** (`PresenterOperator.tsx:271-276`) — that is, only if the operator happens to click *Open projector* again. The one projector state that is surfaced, `projectorBlocked`, is the popup blocker, not a lost window.
+
+   The consequence is specific to this product: an operator can advance the deck for the remainder of a service with nothing on the second screen, and the surface whose entire job is to tell them what the congregation sees will show no sign of it. INIT AD-10 forbids a server fallback, so the presenter is the only thing that *can* report this.
+
+2. **No accessibility verification.** *No owner yet — needs a scoping decision before a story can be written.* See *Accessibility Floor*. The canvas editor is the sharpest risk: pointer-first, with no known keyboard equivalent. Writing a story first would fix a scope nobody has chosen; the decision is how far this internal tool goes, and it is the owner's.
+
+3. **Unsaved canvas changes are silent.** *Owner: Story 17.4.* No dirty indicator, no navigation guard — confirmed absent from `src/` on 2026-07-30. A consequence of `epic-16 AD-3` (Fabric owns canvas state) that no UX decision had answered until the story was written.
+
+4. **Session revocation has no mid-edit warning.** *No owner yet.* A demoted or logged-out operator loses in-progress work with no notice on their next request. The security behavior is correct and must not change; the experience around it is undesigned, and designing it properly means deciding what a mid-edit interruption owes the operator — which is adjacent to item 3 and may want one story, not two.

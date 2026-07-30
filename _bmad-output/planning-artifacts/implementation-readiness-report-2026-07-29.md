@@ -88,7 +88,7 @@ Two consequences follow, and they shape how later findings should be read:
 Recorded during the Step 1 remediation and carried into the assessment rather than treated as closed:
 
 1. `muted-foreground` contrast is approximately 4.4:1 on `muted` — below WCAG AA for normal text — on the token carrying all secondary text. Estimate, not tool-measured.
-2. Dark mode is unreachable: a complete `.dark` palette exists but no `ThemeProvider` is mounted anywhere.
+2. Dark mode is unreachable: a complete `.dark` palette exists but no `ThemeProvider` is mounted anywhere. — **⚠ CORRECTED 2026-07-30, this finding was wrong.** The absent provider is real; the conclusion drawn from it is not. `PresenterOperator.tsx:449` and `SlideGridDialog.tsx:176` each pin `className="dark …"` on their own wrapper, and `globals.css:5` — `@custom-variant dark (&:is(.dark *))` — matches any *descendant*, so the palette renders today in the two surfaces used while a service is running. No provider is required for that. The real defect is that dark mode cannot be **chosen**. Annotated rather than rewritten: this is a dated assessment, not a living contract. The corrected statement lives in `DESIGN.md` → *Open Item 2* and Story 17.1.
 3. `src/app/layout.tsx` still exports create-next-app metadata, so the production hub's browser tab reads *Create Next App*.
 4. Unsaved canvas changes in the Artifact Editor are invisible to the application — no dirty indicator, no navigation guard.
 5. Nine API routes rely on the `src/proxy.ts` gate as their only authorization layer, with no in-route `requireSession`.

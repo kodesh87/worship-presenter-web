@@ -264,7 +264,9 @@ Created 2026-07-29 from the implementation-readiness assessment's product defect
 ### Story 17.1: Reachable Dark Mode *(ready-for-dev)*
 As an operator running a service in a dim sanctuary,
 I want the hub to follow a dark theme I can choose,
-So that a full-brightness white screen in my hands does not light up the room — and so the 33-token `.dark` palette already shipped to every visitor stops being dead code.
+So that a full-brightness white screen in my hands does not light up the room.
+
+**Corrected 2026-07-30 (`bmad-ux` Update):** this story previously ended *"…stops being dead code"*, inheriting a claim from the readiness assessment. The 33-token `.dark` palette is **not** dead — `PresenterOperator.tsx:449` and `SlideGridDialog.tsx:176` pin the class on their own wrappers and `globals.css:5` matches any descendant, so it renders today in the two surfaces an operator uses during a service. What is missing is **choice**, and the story's real constraint is to add it *without* disturbing those two deliberate opt-outs.
 
 ### Story 17.2: `muted-foreground` Contrast *(backlog)*
 As an operator reading secondary text,
@@ -281,6 +283,17 @@ As an administrator editing an Artifact template,
 I want a dirty indicator and a navigation guard,
 So that leaving the canvas editor cannot discard layout work without warning. Today unsaved changes are invisible to the application (FR-20 surface).
 
+### Story 17.5: The Presenter Knows When the Projector Is Gone *(backlog)*
+As an operator presenting to a congregation,
+I want the presenter to tell me the moment the projector window stops answering,
+So that I cannot advance a deck for the rest of a service with nothing on the second screen.
+
+**Added 2026-07-30 by `bmad-ux` Update.** This is the one finding of that run that was not a documentation defect. `EXPERIENCE.md` had specified *Lost sync* as a cross-cutting state since 2026-07-19 and asserted in Flow 3 Branch 3a that the presenter surfaces it immediately; verified against `src/`, **no detection of any kind exists.** `BroadcastChannel` gives the sender no delivery signal, `src/lib/present-channel.ts` defines no heartbeat or acknowledgement, and `projectorRef.current.closed` is read only inside `openProjector` — only if the operator clicks the button again. The only surfaced projector state is `projectorBlocked`, which is the popup blocker.
+
+**Constraint:** INIT AD-10 forbids a server realtime channel, so this is solved locally or not at all — a `closed` poll on the retained window handle, or an acknowledgement message added to `present-channel.ts`. Extending `PresentMessage` is a wire change and the presenter must stay the single authority (see that file's header contract).
+
+**Placed in Epic 17 rather than its own epic** because it is precisely what this epic is named for: an operator surface that is *honest* about what the congregation is seeing.
+
 ### Epic 18: Member data stays gated even when the perimeter moves *(backlog)*
 
 **FRs addressed:** FR-18 (per-person accounts and Roles), NFR-6 (access control — no endpoint exposes member PII).
@@ -293,6 +306,31 @@ Separate from Epic 17 deliberately: one epic is what an operator sees, this one 
 As a church member whose name and prayer request live in this system,
 I want every API route to check the session itself,
 So that no single regex edit can expose Service data. Privileged routes re-check role against the database (`requireAdminSession`), not the cookie.
+
+### Epic 19: Liturgical rules live in data, not in the planner *(backlog)*
+
+Created 2026-07-30 at the owner's direction, to give a tracked home to an item that had been carried as a bare *"Consider"* in `sprint-status.yaml` since the 2026-07-29 Correct Course. A "Consider" with no story is how a decision stays unmade indefinitely.
+
+**Not opened as a Story 15.2.** Epic 15 (*Parser & Rendering Refinements*) is `done`, and reopening a closed epic for this is the exact contradiction Correct Course closed on Epic 14 the day before. This is also not a refinement: moving a rule from code to data is a new capability.
+
+> **This epic may be absorbed whole.** `spec-artifact-registry-authoring` CAP-1 states its success criterion as *"reordering two registry entries … **without editing TypeScript plan constants**"* — and the constant below is one of those. That SPEC is a canonical contract that no epic, story or sprint key currently references, and whether to adopt it is a pending owner decision. If it is adopted, this epic is a subset of it and should be folded in rather than delivered twice. Recorded here so the overlap is visible at the point of work, not discovered during it.
+
+### Story 19.1: Song-Title Suppression Becomes Registry Data *(backlog)*
+As an administrator adjusting the order of service,
+I want to control which songs are announced with a title slide,
+So that a liturgical decision does not require a code change and a deploy.
+
+A normal Song Block renders a title slide (`"O Worship the King · SDAH #83"`) followed by its lyric slides — FR-5. Three call sites in `src/lib/slide-plan.ts` suppress that title with `{ skipTitle: true }`:
+
+| Site | Song | Why the title is suppressed |
+| --- | --- | --- |
+| `slide-plan.ts:438` | Standing response either side of the intercessory prayer (the fixed `#671` / `#684` pair) | The congregation is already standing and sings straight in; announcing a number breaks the prayer |
+| `slide-plan.ts:460` | Around the Special Song | Same reason |
+| `slide-plan.ts:550` | Closing *We Have This Hope* (`weHaveThisHopeFixed`) | A fixed song needs no introduction |
+
+Each is a **liturgical** judgment about this congregation's order of service, currently expressed as a literal in the slide planner. The Artifact Registry now exists and is runtime-editable (FR-20), so the rule *can* be data.
+
+**Open question the story must answer before implementation, not during:** whether suppression is a property of the template, of the plan node, or of a service-level setting. Getting that wrong makes the rule harder to change than the literal it replaced. `buildSlidePlan` must remain the single slide-order source for PPTX, slideshow and presenter (INIT AD-7) — this story moves *where the rule is stored*, never who applies it.
 
 ---
 

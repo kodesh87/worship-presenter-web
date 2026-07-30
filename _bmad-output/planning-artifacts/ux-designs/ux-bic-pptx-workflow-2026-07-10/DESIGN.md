@@ -2,7 +2,7 @@
 name: Worship Presenter Web
 description: Operator hub for preparing and projecting a worship service. shadcn/ui (base-nova) on Next.js + Tailwind 4; this DESIGN.md ratifies the as-built visual identity, which is a near-zero brand-layer delta over shadcn defaults.
 status: final
-updated: '2026-07-29'
+updated: '2026-07-30'
 colors:
   # Ratified from src/app/globals.css. The palette is ACHROMATIC BY REALITY:
   # every token below is oklch(L 0 0) -- lightness only, chroma exactly zero.
@@ -17,7 +17,9 @@ colors:
   ring: 'oklch(0.708 0 0)'
   # The only chromatic token in the light theme:
   destructive: 'oklch(0.577 0.245 27.325)'
-  # Dark-theme values exist in globals.css but are UNREACHABLE as shipped -- see Open Items.
+  # Dark-theme values are REACHABLE but not CHOOSABLE: two components pin the
+  # `dark` class on their own wrapper, so the palette renders in the presenter
+  # and slide-grid surfaces today. Nothing lets an operator choose it -- Open Item 2.
   background-dark: 'oklch(0.145 0 0)'
   foreground-dark: 'oklch(0.985 0 0)'
   primary-dark: 'oklch(0.922 0 0)'
@@ -65,6 +67,20 @@ Two things are deliberately out of this file's scope:
 - **Projected slide appearance** is governed by the Artifact Registry (`spec-slide-artifact-model`, `spec-artifact-registry-authoring`), which is runtime-editable by an administrator. This DESIGN.md governs the *operator chrome* only. A congregation never sees the tokens in this file.
 - **Per-surface field and layout detail** lives in SPEC companions (`form-fields.md`, `edit-page-chrome.md`, `slide-kinds.md`), referenced rather than duplicated.
 
+### Who owns the deck the congregation sees
+
+Stated because it was previously a silence rather than a boundary. The ~68-slide deck is this product's primary visual output and the subject of FR-5 readability and NFR-3, and it has no design document. That is now a deliberate three-part split, not an omission:
+
+| Concern | Owner |
+| --- | --- |
+| Operator chrome — every token in this file | This file |
+| Slide geometry, fonts, colours, per-element layout | Artifact Registry rows (runtime data), validated by `epic-16 AD-5` |
+| Which slides exist and in what order | `buildSlidePlan` (INIT AD-7) + the `slide-kinds.md` companion |
+
+**What nobody owns: *is this readable from the pews?*** No artifact answers it and no test in this repository can — every slide assertion is regex over XML text presence, never geometry or legibility. The only control is a human one: the pre-launch projector inspection carried as an owner action item in `sprint-status.yaml`. That gate replaced the PRD §6 fidelity sign-off, which was waived on 2026-07-29.
+
+This file deliberately does **not** invent minimum type sizes or contrast floors for projected slides. Registry geometry was extracted from a real source deck that has been projected in this sanctuary for years; numbers invented here would displace evidence with taste. A readability standard is a product decision, and it needs someone who has stood at the back of the room.
+
 > **Honesty note.** No visual design exploration was ever run for this product. This file documents what shipped and why it is defensible — not a design brief. Where reality falls short, it is recorded under *Open Items* rather than described as if it worked.
 
 ## Colors
@@ -74,7 +90,7 @@ The operator surface is greyscale. Every token in `src/app/globals.css` is `oklc
 - **`destructive`** (`oklch(0.577 0.245 27.325)`, red) is the only chromatic token in the light theme. It carries delete and stale-write-conflict affordances. Because it is the *only* color on the surface, it needs no reinforcement to read as dangerous.
 - **`primary`** is near-black (`oklch(0.205 0 0)`) on near-white. High contrast is functional, not stylistic: the hub is read on a laptop in a poorly lit sanctuary.
 - `chart-1` … `chart-5` exist as shadcn leftovers and are unused — there are no charts in this product.
-- A stray `--sidebar-primary: oklch(0.488 0.243 264.376)` (violet) sits in the dark block. It is dead: there is no sidebar. Navigation lives in `Header.tsx`.
+- A stray `--sidebar-primary: oklch(0.488 0.243 264.376)` (violet) sits in the dark block. It is dead because **nothing consumes it** — there is no sidebar; navigation lives in `Header.tsx`. Note that this is *not* dead for lack of a dark theme: the dark block does render (Open Item 2). If a sidebar were ever added, this token would paint it violet on a surface that has no other hue.
 
 ### Contrast on load-bearing combinations
 
@@ -147,9 +163,17 @@ Every component below has a behavioral counterpart in `EXPERIENCE.md` → *Compo
 
 ## Open Items
 
-Items this file owns, most severe first. Behavioral gaps live in [`EXPERIENCE.md`](./EXPERIENCE.md) → *Open Items* and are not restated here.
+Items this file owns, most severe first. Behavioral gaps live in [`EXPERIENCE.md`](./EXPERIENCE.md) → *Open Items* and are not restated here. **Each item names the story key that owns it** — an open item with no key is how a finding becomes permanent.
 
-1. **`muted-foreground` fails WCAG AA on `muted` — measured, not estimated.** 4.35:1 where 4.5:1 is required, and 4.74:1 on `background` (passing by 0.24), on the token that carries all secondary text. Verified 2026-07-29 against the running application via canvas-resolved sRGB. Darkening `--muted-foreground` to about `#6b6b6b` clears both surfaces; no other token needs to move.
-2. **Dark mode is unreachable — confirmed against the running application.** `globals.css` defines a complete `.dark` block (33 tokens) behind `@custom-variant dark (&:is(.dark *))`, but **no `ThemeProvider` is mounted anywhere** — `next-themes` is imported only by `src/components/ui/sonner.tsx` for toast theming. Verified live on 2026-07-29: `<html>` carries only the Geist font variables plus `h-full antialiased`, there is no `dark` class, no `data-theme`, no next-themes script, and no `theme` key in `localStorage` — while three `.dark` CSS rules are parsed and shipped to every visitor. The palette is loaded and can never match. The prior version of this file claimed "Dark/light via existing theme tokens"; that was false. Mount a provider (a story, and a real one for a tool used in a dim sanctuary) or delete the dead block — keeping both is the worst option.
-3. **`metadata` is still create-next-app boilerplate — confirmed live.** `src/app/layout.tsx` exports `title: "Create Next App"`, `description: "Generated by create next app"`. Verified 2026-07-29: the running application's browser tab reads *Create Next App* and `meta[name=description]` reads *Generated by create next app*. One-line fix; wording is product-owned.
-4. **`chart-*` and `sidebar-*` tokens are dead.** Harmless, but they imply structure this product does not have.
+1. **`muted-foreground` fails WCAG AA on `muted` — measured, not estimated.** *Owner: Story 17.2.* 4.35:1 where 4.5:1 is required, and 4.74:1 on `background` (passing by 0.24), on the token that carries all secondary text. Verified 2026-07-29 against the running application via canvas-resolved sRGB. Darkening `--muted-foreground` to about `#6b6b6b` clears both surfaces; no other token needs to move.
+
+2. **Dark mode cannot be *chosen*.** *Owner: Story 17.1 (`ready-for-dev`).* **This item previously said the palette was unreachable dead code. That was wrong, and the correction is the point of this entry.** Verified against `src/` on 2026-07-30:
+
+   - `src/app/services/[id]/present/PresenterOperator.tsx:449` and `SlideGridDialog.tsx:176` each pin `className="dark …"` on their own wrapper.
+   - `src/app/globals.css:5` — `@custom-variant dark (&:is(.dark *))` matches any *descendant* of a `.dark` element.
+
+   So the 33-token palette renders **today**, in the two surfaces an operator uses while a service is actually running. No provider is involved. The earlier conclusion came from grepping for a mounted `ThemeProvider`, finding none, and inferring dead code from its absence — the inference did not survive reading the components. What is genuinely missing is **operator choice**: the rest of the hub is light-only, and the palette is reachable only where someone hardcoded it. Story 17.1 makes it selectable **without** disturbing those two deliberate opt-outs.
+
+3. **`metadata` is still create-next-app boilerplate.** *Owner: Story 17.3.* `src/app/layout.tsx:16-17` exports `title: "Create Next App"`, `description: "Generated by create next app"` — re-confirmed in the source on 2026-07-30, unchanged. The browser tab and every bookmark of the hub read *Create Next App*. One-line fix; wording is product-owned.
+
+4. **`chart-*` and `sidebar-*` tokens are dead.** *No owner, deliberately.* Harmless, and they imply structure this product does not have. Recorded so a future reader does not mistake them for a plan; not worth a story until someone touches the file anyway.

@@ -144,6 +144,10 @@ development_status:
   17-2-muted-foreground-contrast: backlog
   17-3-app-metadata: backlog
   17-4-canvas-dirty-state-guard: backlog
+  # 17.5 added 2026-07-30 by bmad-ux Update — the only finding of that run that was
+  # a code gap rather than a documentation defect. EXPERIENCE.md had specified
+  # "Lost sync" as a shipped state since 2026-07-19; no detection exists.
+  17-5-projector-liveness: backlog
   epic-17-retrospective: optional
 
   # --- Epic 18: Member data stays gated even when the perimeter moves ---
@@ -153,6 +157,18 @@ development_status:
   epic-18: backlog
   18-1-in-route-authorization-nine-routes: backlog
   epic-18-retrospective: optional
+
+  # --- Epic 19: Liturgical rules live in data, not in the planner ---
+  # Created 2026-07-30 at the owner's direction, to give the song-title-skip item a
+  # tracked home instead of the bare "Consider" it had carried since 2026-07-29.
+  # NOT opened as a Story 15.2: Epic 15 is `done`, and reopening a closed epic is the
+  # contradiction Correct Course closed on Epic 14 the day before.
+  # MAY BE ABSORBED: spec-artifact-registry-authoring CAP-1 targets exactly the
+  # TypeScript plan constants this epic moves. If that SPEC is adopted, fold this in
+  # rather than deliver it twice.
+  epic-19: backlog
+  19-1-song-title-suppression-as-data: backlog
+  epic-19-retrospective: optional
 
 action_items:
   - epic: 14
@@ -194,7 +210,7 @@ action_items:
   - epic: 15
     action: "Consider moving the hardcoded song-title skip rules out of slide-plan.ts now that the Artifact Registry exists"
     owner: "Developer"
-    status: open
+    status: done # 2026-07-30 at the owner's direction: converted from a "Consider" into Epic 19 / story 19-1-song-title-suppression-as-data, with the three slide-plan.ts call sites and their liturgical reasons tabulated in epics.md. The item is closed as an ACTION ITEM, not as work — a bare "Consider" owned by "Developer" is how a decision stays unmade, so it now lives where sprint planning can see it. NOT reopened as Story 15.2: Epic 15 is done
 
   # --- Added 2026-07-29 by Correct Course (sprint-change-proposal-2026-07-29.md) ---
   - epic: 16
@@ -208,7 +224,7 @@ action_items:
   - epic: null
     action: "Route UX findings F4-1 (protagonists contradict PRD: Sari/Bimo/Elen are authoritative), F4-3 (UJ-3 has no flow), F4-4 (UJ-5 demoted to a branch), F4-5 (FR-16 blanking / NFR-5 unmapped-input channel / NFR-2 progress state have no UX owner), F4-6 (congregation-facing deck has no UX document) through bmad-ux Update. ADDED 2026-07-29: DESIGN.md open item 2 states the dark palette is unreachable dead code. Verified false — PresenterOperator.tsx:449 and SlideGridDialog.tsx:176 pin the class themselves, so the palette renders today in the two surfaces used during a service. Left for bmad-ux rather than corrected in place, since that skill owns the file; the correction is recorded in story 17-1 so the implementer is not misled meanwhile"
     owner: "kodesh87"
-    status: open
+    status: done # 2026-07-30 bmad-ux Update ran. SCOPE WAS WRONG WHEN WRITTEN: the UX .memlog.md already recorded F4-1, F4-3, F4-4 and F4-5 as closed by the 2026-07-29 run (protagonists renamed to Sari/Bimo/Elen with UJ labels; flows expanded 5→7; FR-16 blanking + NFR-5 + NFR-2 added as states), and Correct Course itself closed F4-7 by adding EXPERIENCE.md to epics.md inputDocuments. This item re-listed work already done because it was written from the readiness report rather than from the memlog. Actually delivered 2026-07-30: dead-code claim corrected in DESIGN.md; F4-6 closed as a stated ownership boundary in both spines (no readability standard invented); all four per-surface states verified against src/ — three shipped, "empty plan" unreachable by construction, "lost sync" NOT shipped → new story 17-5; every Open Item in both spines now names its owning story key
   - epic: null
     action: "Close or waive the three unrecorded Phase-1 go/no-go spikes (PRD §6): font proven on a clean machine, church fidelity sign-off on a sample slide set, 5-10 historical Rundown corpus"
     owner: "kodesh87"
