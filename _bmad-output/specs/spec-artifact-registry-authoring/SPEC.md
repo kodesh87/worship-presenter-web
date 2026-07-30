@@ -7,6 +7,7 @@ companions:
   - ../spec-slide-artifact-model/SPEC.md
   - ../spec-slide-artifact-model/artifact-catalog.md
   - ../spec-slide-artifact-model/registry-contract.md
+  - ../../planning-artifacts/architecture/architecture-bic-pptx-workflow-2026-07-10/ARCHITECTURE-SPINE.md
   - ../../project-context.md
 sources: []
 ---
@@ -15,7 +16,7 @@ sources: []
 >
 > **Correct Course.** This contract supersedes Story 16.1 non-goals that forbade create/delete/reorder and treated the registry as an unordered template catalog only. Where adopted Epic 16 companions conflict with this SPEC (including the seven-base-type authoring model), **this SPEC wins**.
 >
-> **Delivery status — added 2026-07-30.** Adopted whole by owner decision and now tracked as **Epic 20** in `../../planning-artifacts/epics.md`, one story per capability (`20-1`…`20-8` in `sprint-status.yaml`), all `backlog`. Until that date this SPEC had a supersession claim over shipped code and **no epic, story or sprint key at all** — the claim above was therefore unenforceable and unscheduled, which is how it sat for weeks while `artifact_templates` still had no ordering column and the admin API no create/delete/reorder verb. **One adoption consequence is recorded in the epic, not here:** the `base_type` migration implied by *Constraints* (seven types to three kinds). The other — CAP-6 **reversing** architecture decision `AD-14`'s "global across services" clause — is no longer open: the spine now carries **AD-16 (Service-Bound Registry Snapshot)**, added the same day, which records that reversal directly. Story 20.8 is unblocked on that front; only where the snapshot lives physically remains its own design call (`ARCHITECTURE-SPINE.md`).
+> **Delivery status — added 2026-07-30.** Adopted whole by owner decision and now tracked as **Epic 20** in `../../planning-artifacts/epics.md`, one story per capability (`20-1`…`20-8` in `sprint-status.yaml`), all `backlog`. Until that date this SPEC had a supersession claim over shipped code and **no epic, story or sprint key at all** — the claim above was therefore unenforceable and unscheduled, which is how it sat for weeks while `artifact_templates` still had no ordering column and the admin API no create/delete/reorder verb. **One adoption consequence is recorded in the epic, not here:** the `base_type` migration implied by *Constraints* (seven types to three kinds). The other — CAP-6 **reversing** architecture decision `AD-14`'s "global across services" clause — is no longer open: the spine now carries **AD-16 (Service-Bound Registry Snapshot)**, added the same day, which records that reversal directly. Story 20.8 is unblocked **at spine altitude**; two items still stand there. Where the snapshot lives physically is its own design call (`ARCHITECTURE-SPINE.md`), and `EXPERIENCE.md` → *Venue & Projection Constraints* still states the global-and-immediate rule with Flow 5's climax turning on it — `epics.md:374` records that as what remains of Story 20.8's block.
 
 # Ordered Artifact Registry Authoring
 
@@ -65,7 +66,7 @@ sources: []
 - Placeholder Catalog extensions require code + tests.
 - Public-repository rules unchanged.
 - Explicit Save for registry/canvas mutations; no autosave.
-- SongSet entries expose **background configuration** (and label/order) but not freeform multi-element canvas authoring of every lyric page.
+- SongSet entries expose a **bounded configuration surface** (label, order, background) but not freeform multi-element canvas authoring of every lyric page. `AD-22` fixes the exact extent of that surface — two background images, one for the title layout and one for the lyric layout, plus font style and font size — and no surface may widen it.
 - The four predefined SongSet slots have **stable identities** so worship-service settings can bind hymnal numbers per slot even if display labels or order change.
 
 ## Non-goals
