@@ -19,14 +19,14 @@ sources:
   ]
 companions:
   [
-    '../architecture-epic-16/.memlog.md',
-    '../architecture-epic-16/CASE-STUDY.md',
+    '../archived/architecture-epic-16/.memlog.md',
+    '../archived/architecture-epic-16/CASE-STUDY.md',
   ]
 ---
 
 # Architecture Spine — BIC Worship Presentation Automation
 
-**One spine per project.** This is the project's only architecture spine. The Epic 16 child spine was folded in on 2026-07-30 — see *AD map* below for the renumbering, and `../architecture-epic-16/` for that run's memlog, case study, and review records.
+**One spine per project.** This is the project's only architecture spine. The Epic 16 child spine was folded in on 2026-07-30 — see *AD map* below for the renumbering, and `../archived/architecture-epic-16/` for that run's memlog, case study, and review records (that folder was moved under `archived/` on 2026-07-30 so nothing sits beside this file looking like a peer spine).
 
 ## Design Paradigm
 
@@ -55,7 +55,7 @@ The Epic 16 spine numbered its own decisions from 1, so folding it in required r
 
 `INIT AD-n` was the old citation form for AD-1..AD-10 of this file. Those numbers did not change; drop the prefix. The fold-in also removes a real hazard: `AD-6` and `AD-9` each used to mean two different decisions depending on which document you were reading.
 
-**Where AD-11..AD-19 were decided:** in `../architecture-epic-16/.memlog.md`, listed above as a companion of record. This file's own memlog holds the fold-in and everything decided since; that one holds the nine decisions themselves, with the reasoning and the alternatives declined. A resume that reads only this memlog will not find them.
+**Where AD-11..AD-19 were decided:** in `../archived/architecture-epic-16/.memlog.md`, listed above as a companion of record. This file's own memlog holds the fold-in and everything decided since; that one holds the nine decisions themselves, with the reasoning and the alternatives declined. A resume that reads only this memlog will not find them.
 
 ## Invariants & Rules
 

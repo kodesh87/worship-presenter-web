@@ -16,7 +16,11 @@ spine is an opt-in for structurally large epics. This project had opted in for E
 owner decided on 2026-07-30 to enforce the default instead. Every decision that lived here now
 lives in the project spine:
 
-**`../architecture-bic-pptx-workflow-2026-07-10/ARCHITECTURE-SPINE.md`**
+**`../../architecture-bic-pptx-workflow-2026-07-10/ARCHITECTURE-SPINE.md`**
+
+**This folder was moved under `architecture/archived/` on 2026-07-30**, so that nothing sits beside
+the project spine looking like a peer spine. Its own name is unchanged, so citations written before
+the move still name the folder they meant.
 
 Nothing was discarded. This folder remains the run record — `.memlog.md` (append-only, the
 authority on what was decided and why, and the decision-of-record for what are now `AD-11`..`AD-19`),
