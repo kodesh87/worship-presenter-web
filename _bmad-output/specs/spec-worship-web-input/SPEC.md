@@ -81,5 +81,4 @@ An operator who attends a worship planning meeting can open the web app on their
 - `parseRundown()` output and the structured-form-produced `ParsedRundown` are consumed identically by `buildSlidePlan` — no format variations exist beyond what `normalizeParsedRundown()` already handles.
 - Hymn searching/autocomplete in the form is performed client-side using a preloaded index of the 695 SDAH entries.
 - One-off flyer URLs added to the form are assumed to be already uploaded via the separate upload endpoints; the form does not handle file syncing.
-- Service Highlights and Order of Service cards on `/services/[id]` are removed. Unmapped Content remains unless later directed.
-- `EditForm` (or equivalent) may already exist in the codebase, but the operator-facing `/services/[id]` surface still reads as a show/run-sheet; the contract requires a create-parity form with working edit regardless of current implementation state.
+- The Unmapped Content card on `/services/[id]` remains unless later directed. (Service Highlights and Order of Service are *removed* — that is a decision, binding via `edit-page-chrome.md`, not an assumption.)

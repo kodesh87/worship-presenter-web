@@ -4,6 +4,8 @@
 
 The normative persisted shape, validation rules, API surface, and Story 16.1 editor boundary are defined in `registry-contract.md`. The data-shape sketch at the end of this file is historical context only when it differs from that contract.
 
+> **The 7-type taxonomy below is superseded by `../spec-artifact-registry-authoring/SPEC.md` (Epic 20),** which collapses it to three kinds — General, SongSet, Announcement — under Story `20-2`. TextPlaceholder, ImagePlaceholder, MixPlaceholder and FullScreenImage retire as distinct kinds; their jobs move onto General plus the central placeholder catalog. This file remains accurate for what currently ships.
+
 ## The Seven Base Types
 
 | #   | Base Type            | Canvas Editable? | Weekly Placeholders | Description                                                                                                                       |

@@ -10,6 +10,10 @@ sources: []
 ---
 
 > **Canonical contract.** This SPEC and the files in `companions:` are the complete, preservation-validated contract for what to build, test, and validate. Source documents listed in frontmatter are for traceability only.
+>
+> **Delivered — recorded 2026-07-30.** Epic 16 is `done` (retrospective 2026-07-26); Stories 16.1–16.5 shipped. Only 16.1 has a story file — `../../implementation-artifacts/spec-16-2-artifact-pipeline-completion.md` is the delivery contract for 16.2–16.5. The Story-16.1-scoped constraints and non-goals below are kept verbatim as the **delivered scope record**, not as live fences on future work.
+>
+> **Superseded in part by `../spec-artifact-registry-authoring/SPEC.md` (Epic 20).** That contract adopts this SPEC.md and `registry-contract.md` as companions and **wins on conflict**. Two reversals matter to anyone reading this file directly: the **seven base types** of CAP-2 and the `registry-contract.md` Base-Type Rules table collapse to **three kinds** (General, SongSet, Announcement), and the no-create / no-delete / no-reorder boundary becomes an explicit capability. The seven-type table is left standing here because rewriting it is Story `20-2`'s delivery, not this spec's to author.
 
 # Slide Artifact Model
 
@@ -67,7 +71,7 @@ The current slide plan conflates content purpose with hardcoded renderer branche
 - Canvas management is limited to existing seeded templates and elements. Required elements cannot be removed; Story 16.1 does not create or delete templates or elements.
 - SongSet, FullScreenImage, and Announcement layouts are registry-defined but read-only in the Story 16.1 canvas. SongSet declares separate title and lyric layout variants.
 - Registry image references must be bundled public assets, valid local upload references, or HTTP(S) references accepted by the existing image-safety policy.
-- The committed `data/default-registry.json` is a v0 extraction baseline. Story 16.1 must transform it into the validated contract while preserving geometry/content evidence from `data/raw-slides.json` and `slides-new/*.jpg`; every bundled runtime asset reference in the resulting seed must resolve to a committed file.
+- Every bundled asset reference in the committed `data/default-registry.json` must resolve to a committed runtime file. This is the one clause of the original seed-transformation constraint that still binds — a future seed edit can break it. Verified 2026-07-30: 22 of 22 distinct references resolve under `public/`.
 - SQLite schema changes follow the repository startup-DDL pattern; no ORM or migration framework is introduced.
 - `package.json` remains version authority. Implementation involving Next.js APIs must follow the installed Next.js documentation under `node_modules/next/dist/docs/`.
 
@@ -84,7 +88,7 @@ The current slide plan conflates content purpose with hardcoded renderer branche
 
 ## Success signal
 
-For Story 16.1, an administrator edits a seeded Welcome layout, saves it, reloads the editor, and observes the same persisted result; a stale, unauthorized, malformed, or unsafe mutation is rejected, and reset restores only Welcome from the shipped seed. Existing slide-plan behavior and tests remain unchanged. Epic 16 is complete when the same saved layout drives PPTX, web slideshow, presenter, and preview output without renderer-specific layout branches.
+Met. An administrator edits a seeded Welcome layout, saves it, reloads the editor, and observes the same persisted result; a stale, unauthorized, malformed, or unsafe mutation is rejected, and reset restores only Welcome from the shipped seed. One saved layout drives PPTX, web slideshow, presenter, and preview output without renderer-specific layout branches. What stays binding after delivery is the regression floor: existing slide-plan behavior and tests remain unchanged, and a new registry template built from existing element primitives still requires no renderer branch.
 
 ## Assumptions
 

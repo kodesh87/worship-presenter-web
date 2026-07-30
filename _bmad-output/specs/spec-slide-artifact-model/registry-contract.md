@@ -2,6 +2,8 @@
 
 This companion defines the normative data, persistence, API, validation, and Story 16.1 editor boundaries for `SPEC-slide-artifact-model`. The Artifact inventory remains in `artifact-catalog.md`.
 
+> **Superseded in part by `../spec-artifact-registry-authoring/SPEC.md` (Epic 20),** which adopts this file as a companion and wins on conflict. The **seven base types** below collapse to three kinds (General, SongSet, Announcement) under Story `20-2`, and the create/delete/reorder prohibitions become capabilities under Story `20-3`. The rules here are Epic 16's delivered contract and remain the description of what currently ships.
+
 ## Story Boundaries
 
 | Story | Included outcome |
@@ -69,19 +71,15 @@ Unknown fields are rejected at the management boundary. IDs, placeholder keys, l
 
 Positions are not clamped to `0..100`: the extracted source deck intentionally places some elements partly outside the slide and relies on clipping. The editor and future renderers must preserve those values while keeping the 16:9 viewport fixed.
 
-## Seed Baseline and Transformation
+## Seed Baseline
 
-The existing committed seed is extraction evidence, not a contract-compliant final seed:
+The v0-to-v1 seed transformation is **complete**. `data/default-registry.json` holds 28 templates at `schemaVersion: 1` carrying the six live base types, and passes the same validator used by the save API.
 
-- `data/default-registry.json` contains the current 25-template v0 extraction;
-- `data/raw-slides.json` contains extracted geometry and text;
-- `slides-new/*.jpg` supplies tracked visual references;
-- `scripts/build-registry.mjs` documents the current mapping and known manual cleanup;
-- the local source PPTX may be used to extract reusable background assets, but it is not a runtime, test, or cross-host dependency.
+The extraction inputs that governed that transformation — `data/raw-slides.json`, `slides-new/*.jpg`, `scripts/build-registry.mjs`, and the local source deck — **do not exist in this repository**. They belong to the frozen `bic-pptx-workflow` working tree, and `slides-new/` is on the never-commit list in `AGENTS.md`. Nothing in this contract may send an implementer to them.
 
-Story 16.1 transforms the v0 seed to this v1 contract. It must preserve source geometry and standing content unless the SPEC explicitly supersedes them, add missing catalog coverage and base types, combine the SongSet title/lyric layouts under the normative model, reclassify `BibleVerseContemplation`, and remove duplicate or invalid placeholder mappings.
+One clause of that transformation still binds, because a future seed edit can break it:
 
-Every bundled path in the final seed must resolve to a committed runtime asset. A synthetic path such as `/assets/welcome-bg.jpg` is invalid when the corresponding file is absent.
+**Every bundled path in the seed must resolve to a committed runtime asset.** A synthetic path such as `/assets/welcome-bg.jpg` is invalid when the corresponding file is absent. Verified 2026-07-30: 22 of 22 distinct references resolve under `public/`.
 
 ## Base-Type Rules
 
