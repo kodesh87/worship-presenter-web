@@ -91,7 +91,7 @@ Full-screen projection view meant for the church projector screen.
 - **Features:**
   - Listens to slide index sync actions via `BroadcastChannel`.
   - Renders slide imagery or scripture text overlay dynamically.
-  - Features CSS crossfade transition animations between slides.
+  - Animates between slides using the configured transition style (`settings.slide_transition`, resolved through `src/lib/transitions.ts` — AD-23), not a fixed crossfade.
 
 ---
 

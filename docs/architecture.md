@@ -58,7 +58,7 @@ The application is structured as a **Monolithic Layered Architecture** containin
 1. The AV operator loads `/services/[id]/present` (PresenterOperator).
 2. The projection screen loads `/services/[id]/present/projector` (ProjectorClient) on a second monitor.
 3. Slide changes triggered by the operator broadcast `{ type: 'sync', index }` messages through the browser-native `BroadcastChannel`.
-4. The projector client receives the message and updates its view with a smooth crossfade transition.
+4. The projector client receives the message and updates its view using the **configured** transition style — whatever `settings.slide_transition` currently holds, resolved through the single table in `src/lib/transitions.ts` (AD-23). It is not fixed to a crossfade; `fade` is only the default an operator gets when nothing has been configured, and the presenter may override the style for the live session.
 
 ---
 
