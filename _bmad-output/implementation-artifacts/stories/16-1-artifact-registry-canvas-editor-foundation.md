@@ -23,7 +23,7 @@ Deliver the persistence, validation, authorization, API, seed, and minimal editi
 1. `_bmad-output/specs/spec-slide-artifact-model/SPEC.md`
 2. `_bmad-output/specs/spec-slide-artifact-model/registry-contract.md`
 3. `_bmad-output/specs/spec-slide-artifact-model/artifact-catalog.md`
-4. `_bmad-output/planning-artifacts/architecture/architecture-epic-16/ARCHITECTURE-SPINE.md`
+4. `_bmad-output/planning-artifacts/architecture/architecture-bic-pptx-workflow-2026-07-10/ARCHITECTURE-SPINE.md` — this story was written against the Epic 16 child spine, folded into the one project spine on 2026-07-30; its `AD-1`..`AD-5` are now `AD-11`..`AD-15`
 5. `_bmad-output/project-context.md`
 6. `package.json`
 

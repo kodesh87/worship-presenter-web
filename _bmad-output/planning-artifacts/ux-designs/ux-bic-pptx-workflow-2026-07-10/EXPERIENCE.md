@@ -26,8 +26,8 @@ UI system: **shadcn/ui (base-nova) on Next.js App Router + Tailwind 4**. Server 
 
 Two constraints shape every decision below:
 
-- **The Sabbath path must not depend on the hub.** Offline PPTX download is the primary projection route (INIT AD-1). Web slideshow and presenter mode are shipped conveniences, not the guarantee.
-- **Every surface is behind one gate.** `src/proxy.ts` authenticates and authorizes every route except `/login`, the login/logout APIs, `/api/webhook`, and static assets (INIT AD-5). There is no anonymous surface.
+- **The Sabbath path must not depend on the hub.** Offline PPTX download is the primary projection route (AD-1). Web slideshow and presenter mode are shipped conveniences, not the guarantee.
+- **Every surface is behind one gate.** `src/proxy.ts` authenticates and authorizes every route except `/login`, the login/logout APIs, `/api/webhook`, and static assets (AD-5). There is no anonymous surface.
 
 ## Information Architecture
 
@@ -35,13 +35,13 @@ Ten surfaces, enumerated from `src/app/**/page.tsx`. Route → purpose → who o
 
 | Surface | Route | Role | Detailed contract |
 | --- | --- | --- | --- |
-| Login | `/login` | Session entry; `next` target sanitized via `safeNextPath` | INIT AD-5 |
+| Login | `/login` | Session entry; `next` target sanitized via `safeNextPath` | AD-5 |
 | Worship Hub | `/` | Service card list + client-side search (date / speaker / title) | PRD FR-8 |
 | Create service | `/services/new` | Worship web input form — the manual alternative to agent intake | `spec-worship-web-input` (`form-fields.md`) |
 | Run sheet | `/services/[id]` | Service order, timings, edit / delete, PPTX download | `spec-worship-web-input` (`edit-page-chrome.md`) |
 | Web slideshow | `/services/[id]/slideshow` | Full-screen review player | PRD FR-9 / FR-15 |
 | Presenter | `/services/[id]/present` | Operator control view with notes + KJV lookup | PRD FR-16 / FR-19 |
-| Projector | `/services/[id]/present/projector` | Audience output, driven by the presenter | INIT AD-10 |
+| Projector | `/services/[id]/present/projector` | Audience output, driven by the presenter | AD-10 |
 | Announcements | `/announcements` | Persistent flyer list; hub-local upload | PRD FR-3 |
 | Settings (admin) | `/admin` | Per-person Admin/Operator accounts | PRD FR-18 |
 | Artifact Registry (admin) | `/admin/artifacts` | Canvas editor for global slide templates | `spec-artifact-registry-authoring` (`slide-kinds.md`) |
@@ -57,7 +57,7 @@ Microcopy is plain and operational. The operator is a volunteer, not a software 
 Two binding rules:
 
 - **Never project a placeholder.** Any string that reaches a slide is worship-facing. `midweek-prayer` currently carries a literal `[placeholder]` where a day and time belong (recorded in `deferred-work.md`); it will be projected verbatim until someone supplies real values.
-- **Errors state the recovery, not the cause.** A stale-write conflict (INIT AD-6) tells the operator their copy is out of date and to reload — it does not surface HTTP 409.
+- **Errors state the recovery, not the cause.** A stale-write conflict (AD-6) tells the operator their copy is out of date and to reload — it does not surface HTTP 409.
 
 ## Component Patterns
 
@@ -68,14 +68,14 @@ Behavioral contracts only; visual specs live in [`DESIGN.md`](./DESIGN.md) → *
 | `Header` | Present on every gated page. Shows the signed-in username; profile dropdown carries change-password and logout. |
 | Service card list | Loads once, filters client-side. `GET /api/services?q=` remains for agents/automation — the UI does not use it for keystroke search. |
 | `HymnNumberAutocomplete` | Number-first lookup against the hymnal corpus; resolves to a title the operator confirms before it enters the run sheet. |
-| `ImageUploadField` / `ImageFieldPreview` | Accepts an upload or a remote URL; both resolve through the shared safety helpers (INIT AD-8). A rejected reference must say *why* it was rejected. |
-| `SlideView` / `SlidePreviewList` | Render the hydrated plan from `buildSlidePlan` (INIT AD-7). Never re-derive order. Selecting a preview moves the presenter, not the projector directly. |
-| `artifacts/ArtifactSlide` | Renders one Artifact template from registry data. Purely presentational: no lookups, no interaction, no state. Identical output on web and in the PPTX path, because both consume the same hydrated AST (epic-16 AD-2). |
-| `slide-surface` | Fixed 16:9 region. Content may be clipped at its edges deliberately, preserving source-deck geometry (epic-16 AD-5); clipping is never treated as an error to correct. |
-| `admin/ArtifactEditor` | Fabric.js owns canvas state; React reads it only on explicit **Save** (epic-16 AD-3). Consequence for the operator: **unsaved canvas changes are invisible to the app** — navigating away loses them silently. |
+| `ImageUploadField` / `ImageFieldPreview` | Accepts an upload or a remote URL; both resolve through the shared safety helpers (AD-8). A rejected reference must say *why* it was rejected. |
+| `SlideView` / `SlidePreviewList` | Render the hydrated plan from `buildSlidePlan` (AD-7). Never re-derive order. Selecting a preview moves the presenter, not the projector directly. |
+| `artifacts/ArtifactSlide` | Renders one Artifact template from registry data. Purely presentational: no lookups, no interaction, no state. Identical output on web and in the PPTX path, because both consume the same hydrated AST (AD-12). |
+| `slide-surface` | Fixed 16:9 region. Content may be clipped at its edges deliberately, preserving source-deck geometry (AD-15); clipping is never treated as an error to correct. |
+| `admin/ArtifactEditor` | Fabric.js owns canvas state; React reads it only on explicit **Save** (AD-13). Consequence for the operator: **unsaved canvas changes are invisible to the app** — navigating away loses them silently. |
 | `dialog` / `popover` | Confirmations (delete) and lookups (hymn search). Never carry primary workflow; anything essential stays on the page. |
 | `sonner` toasts | Transient confirmations only. Never the sole channel for an error that blocks work. |
-| `LogoutButton` | Revokes the session server-side, not just client cookie state (INIT AD-5). |
+| `LogoutButton` | Revokes the session server-side, not just client cookie state (AD-5). |
 
 ## State Patterns
 
@@ -85,8 +85,8 @@ Cross-cutting states:
 | --- | --- |
 | Unauthenticated | Redirect to `/login` with a sanitized `next`; API calls get `401 {error}`. |
 | Insufficient role | `403` — for pages a bare Forbidden, for APIs `{error: 'Forbidden'}`. Not a redirect: an operator hitting `/admin` should learn it exists and is not theirs, not bounce. |
-| Session revoked mid-session | Logout, password change, demotion, or account deletion invalidate immediately (INIT AD-5). The next request lands on `/login` **without warning**, which is correct for security and unhelpful mid-edit. See Open Items. |
-| Stale write | `409`; the operator is told their copy is outdated and must reload (INIT AD-6). Their edit is not silently discarded. |
+| Session revoked mid-session | Logout, password change, demotion, or account deletion invalidate immediately (AD-5). The next request lands on `/login` **without warning**, which is correct for security and unhelpful mid-edit. See Open Items. |
+| Stale write | `409`; the operator is told their copy is outdated and must reload (AD-6). Their edit is not silently discarded. |
 | Cold load | No skeleton states. Surfaces are Server-Component-rendered and arrive complete; this is a deliberate consequence of the rendering model, not an omission. |
 | Deck generation in progress | Generating or regenerating a ~68-slide service is budgeted in **minutes, not seconds** (NFR-2, SM-5). The operator sees that work is running and is prevented from firing a second generation over the first. A multi-minute operation with no progress state reads as a hang. |
 | Unmapped input | Any rundown line the parser could not confidently map, and any image whose role could not be resolved or that is missing, is listed for the reviewer to resolve or dismiss — **not** only failed hymn numbers (NFR-5). Nothing is silently dropped, and nothing reaches a slide as a broken placeholder. This is a general channel: it is the safety net that compensates for the deck being reviewed rather than proof-read slide by slide. |
@@ -100,9 +100,9 @@ Per-surface states:
 | `/services/[id]` | **Stale write** — as in the cross-cutting table. **Delete confirmation** — destructive and irreversible, so it is a `dialog`, never an inline control. |
 | `/services/[id]/slideshow` | **Plan cannot be built** — a `buildSlidePlan` throw renders a `destructive`-bordered card naming the failure, not a blank screen. *An "empty plan" state is deliberately absent:* `slide-plan.ts:253` pushes the `welcome` leaf unconditionally at the head of every plan, so zero slides cannot occur. |
 | `/services/[id]/present` | Four states — see the presenter table below. |
-| `/announcements` | **Empty** — no flyers yet. **Upload rejected** — an image failing the INIT AD-8 rules states which rule it failed, not a generic error. |
+| `/announcements` | **Empty** — no flyers yet. **Upload rejected** — an image failing the AD-8 rules states which rule it failed, not a generic error. |
 | `/admin` | **Last admin** — shipped as a refusal, not a warning: `src/lib/auth/accounts.ts:158` refuses the role change, `:195` refuses the delete. |
-| `/admin/artifacts` | **Save rejected** — shipped. `epic-16 AD-5` validates every registry write, so rejection is a designed outcome: the canvas keeps the operator's work and the message names what failed (`ArtifactEditor.tsx:728`, `:760` for the concurrent-edit case, which states explicitly what was discarded and what to re-apply). **Reset confirmation** — reset discards persisted edits for one template. **⚠ Unsaved canvas — designed, not shipped.** *Owner: Story 17.4.* No dirty flag and no `beforeunload` guard exists anywhere in `src/`; the only unsaved-work messaging is the 409 conflict path, which fires on save, not on leaving. |
+| `/admin/artifacts` | **Save rejected** — shipped. `AD-15` validates every registry write, so rejection is a designed outcome: the canvas keeps the operator's work and the message names what failed (`ArtifactEditor.tsx:728`, `:760` for the concurrent-edit case, which states explicitly what was discarded and what to re-apply). **Reset confirmation** — reset discards persisted edits for one template. **⚠ Unsaved canvas — designed, not shipped.** *Owner: Story 17.4.* No dirty flag and no `beforeunload` guard exists anywhere in `src/`; the only unsaved-work messaging is the 409 conflict path, which fires on save, not on leaving. |
 
 Presenter states, broken out because this is the surface an operator watches while a service runs:
 
@@ -111,11 +111,11 @@ Presenter states, broken out because this is the surface an operator watches whi
 | **Projector blanked** (FR-16) | Shipped, all four consequences. The operator blacks the projector at any time with `B` or the control and restores it; the deck still advances underneath; the projector window is not lost; a scripture overlay beneath is undisturbed; the operator view keeps showing current and next slide and indicates the blanked state; a projector opened or reloaded while blanked comes up blank. |
 | **Popup blocked** | The browser refused the projector window. The presenter offers the same URL as a plain link rather than leaving a dead button. |
 | **KJV corpus absent** | Lookup is unavailable when the corpus was never imported (an ops step). The presenter says so instead of returning empty results. |
-| **⚠ Lost sync** — designed, not shipped | *Owner: Story 17.5.* The projector window is closed or crashed. INIT AD-10 forbids a server fallback, so the presenter is the only thing that can report it, and today it detects nothing — see Open Item 1. |
+| **⚠ Lost sync** — designed, not shipped | *Owner: Story 17.5.* The projector window is closed or crashed. AD-10 forbids a server fallback, so the presenter is the only thing that can report it, and today it detects nothing — see Open Item 1. |
 
 ## Interaction Primitives
 
-- **Presenter → projector** is one-way over a single `BroadcastChannel` (INIT AD-10). Both windows are same-origin on one machine; there is no server round-trip and therefore no dependency on hub connectivity mid-service.
+- **Presenter → projector** is one-way over a single `BroadcastChannel` (AD-10). Both windows are same-origin on one machine; there is no server round-trip and therefore no dependency on hub connectivity mid-service.
 - **Full-screen surfaces** (slideshow, projector) fill the viewport; chrome is absent by design.
 - **PPTX download** is the terminal action of Friday preparation and the first action of Sabbath. It is a file, not a link.
 - **Search** is client-side filtering over an already-loaded list, not a server query per keystroke.
@@ -149,8 +149,8 @@ Product-specific section — experience constraints no generic UX checklist woul
 
 - A failure during a service cannot be retried later. Every constraint below follows from that, as does the offline primacy stated in *Foundation*.
 - The operator watches two surfaces at once — presenter notes on the laptop, audience output on the projector. Requiring attention on a third surface breaks the model.
-- The projected surface is 16:9 and fixed. Template geometry is normalized percentages with stable IDs; coordinates may deliberately exceed the canvas to preserve source-deck clipping (epic-16 AD-5).
-- Registry edits are global and immediate. An administrator changing a template on Friday changes every service, including ones already reviewed. There is no per-service override, by design (epic-16 AD-4). **Scheduled to reverse:** Epic 20 CAP-6 clones the registry per service and refreshes it only on Sync, which supersedes AD-4; this bullet and Flow 5's climax change with that amendment.
+- The projected surface is 16:9 and fixed. Template geometry is normalized percentages with stable IDs; coordinates may deliberately exceed the canvas to preserve source-deck clipping (AD-15).
+- Registry edits are global and immediate. An administrator changing a template on Friday changes every service, including ones already reviewed. There is no per-service override, by design (AD-14). **Scheduled to reverse:** Epic 20 CAP-6 clones the registry per service and refreshes it only on Sync, which supersedes AD-4; this bullet and Flow 5's climax change with that amendment.
 - **Nobody owns the question *"is this readable from the pews?"*** The ownership split for the projected deck, and the fact that this gap is deliberate rather than accidental, are stated once in [`DESIGN.md`](./DESIGN.md) → *Who owns the deck the congregation sees*.
 
 ## Key Flows
@@ -170,7 +170,7 @@ Bimo is on the multimedia team and used to rebuild the deck by hand every week. 
 7. **Climax:** downloads the PPTX. From this moment the service is safe — the venue needs no network, no hub, and no laptop but the one holding the file.
 8. Closes the laptop.
 
-**Branch 1a — someone edited while he was reading.** His save at step 5 is refused: the run sheet changed after he loaded it (INIT AD-6). He is told his copy is out of date and to reload — his typed values are not discarded silently. He reloads, re-applies the speaker change, and continues. Without this refusal, the other person's edit would have vanished with no trace.
+**Branch 1a — someone edited while he was reading.** His save at step 5 is refused: the run sheet changed after he loaded it (AD-6). He is told his copy is out of date and to reload — his typed values are not discarded silently. He reloads, re-applies the speaker change, and continues. Without this refusal, the other person's edit would have vanished with no trace.
 
 **Branch 1b — the rundown had lines nobody could map.** Step 3 shows more than a failed hymn: two rundown lines could not be confidently parsed, and one image's role could not be resolved. Both are listed for him to resolve or dismiss (NFR-5). Nothing is silently dropped, and nothing reaches a slide as a broken placeholder.
 
@@ -224,7 +224,7 @@ Announcements persist between services, so this happens on its own schedule rath
 
 1. Opens **Announcements** from the header. On a first run the list is empty and says so.
 2. Adds this month's flyer — either uploading a file to the hub or pasting a remote URL.
-3. **Climax:** a pasted URL is rejected. The message names the rule it broke — the host is not on the allowlist — rather than saying "invalid image". He uploads the file instead, which resolves to a hub-local reference (INIT AD-8) and therefore still works when the venue is offline.
+3. **Climax:** a pasted URL is rejected. The message names the rule it broke — the host is not on the allowlist — rather than saying "invalid image". He uploads the file instead, which resolves to a hub-local reference (AD-8) and therefore still works when the venue is offline.
 4. The flyer appears in the next generated deck without him touching a service.
 
 ### Flow 7 — Bimo onboards a new projector volunteer
@@ -238,12 +238,12 @@ Announcements persist between services, so this happens on its own schedule rath
 
 Behavioral items this file owns. Token and visual-identity gaps — dark-mode choice, `metadata` boilerplate, `muted-foreground` contrast — live in [`DESIGN.md`](./DESIGN.md) → *Open Items* and are not restated here. **Each item names the story key that owns it**, or says why it has none.
 
-1. **The projector can die and the presenter will not notice.** *Owner: Story 17.5 — `epics.md` carries the file-level evidence; there is no story file yet.* An operator can advance the deck for the remainder of a service with nothing on the second screen, and the surface whose entire job is to report what the congregation sees will show no sign of it. INIT AD-10 forbids a server fallback, so the presenter is the only thing that *can* report this.
+1. **The projector can die and the presenter will not notice.** *Owner: Story 17.5 — `epics.md` carries the file-level evidence; there is no story file yet.* An operator can advance the deck for the remainder of a service with nothing on the second screen, and the surface whose entire job is to report what the congregation sees will show no sign of it. AD-10 forbids a server fallback, so the presenter is the only thing that *can* report this.
 
    **This replaces the prior item that deferred four states to the readiness assessment.** That assessment ran and never answered the question, so all four were verified against `src/` on 2026-07-30: three are shipped and are now stated as facts with file references in *State Patterns*, and the fourth — lost sync — does not exist.
 
 2. **No accessibility verification.** *No owner yet — needs a scoping decision before a story can be written.* See *Accessibility Floor*. The canvas editor is the sharpest risk: pointer-first, with no known keyboard equivalent. Writing a story first would fix a scope nobody has chosen; the decision is how far this internal tool goes, and it is the owner's.
 
-3. **Unsaved canvas changes are silent.** *Owner: Story 17.4.* No dirty indicator, no navigation guard — confirmed absent from `src/` on 2026-07-30. A consequence of `epic-16 AD-3` (Fabric owns canvas state) that no UX decision had answered until the story was written.
+3. **Unsaved canvas changes are silent.** *Owner: Story 17.4.* No dirty indicator, no navigation guard — confirmed absent from `src/` on 2026-07-30. A consequence of `AD-13` (Fabric owns canvas state) that no UX decision had answered until the story was written.
 
 4. **Session revocation has no mid-edit warning.** *No owner yet.* A demoted or logged-out operator loses in-progress work with no notice on their next request. The security behavior is correct and must not change; the experience around it is undesigned, and designing it properly means deciding what a mid-edit interruption owes the operator — which is adjacent to item 3 and may want one story, not two.

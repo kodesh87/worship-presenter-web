@@ -76,8 +76,8 @@ The ~68-slide deck is this product's primary visual output, the subject of FR-5 
 | Concern | Owner |
 | --- | --- |
 | Operator chrome — every token in this file | This file |
-| Slide geometry, fonts, colours, per-element layout | Artifact Registry rows (runtime data), validated by `epic-16 AD-5` |
-| Which slides exist and in what order | `buildSlidePlan` (INIT AD-7) + the `slide-kinds.md` companion |
+| Slide geometry, fonts, colours, per-element layout | Artifact Registry rows (runtime data), validated by `AD-15` |
+| Which slides exist and in what order | `buildSlidePlan` (AD-7) + the `slide-kinds.md` companion |
 
 **What nobody owns: *is this readable from the pews?*** No artifact answers it, and no test in this repository can — every slide assertion is regex over XML text presence, never geometry. The only control is the pre-launch projector inspection carried as an owner action item in `sprint-status.yaml`, which replaced the PRD §6 fidelity sign-off waived on 2026-07-29.
 

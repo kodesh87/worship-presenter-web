@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spine Validation — post-consolidation, 2026-07-30</title>
+<style>
+  :root{
+    --bg:#fbfaf8; --fg:#1a1a19; --muted:#5f5c57; --rule:#e2ded7; --card:#fff;
+    --crit:#a8200d; --high:#b4530a; --med:#8a6d1f; --low:#4a5f76; --pass:#2c6b43;
+    --critbg:#fdf0ee; --highbg:#fdf4ec; --medbg:#fbf8ec; --lowbg:#f0f3f7; --passbg:#eef5f0;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#16161a; --fg:#e9e7e3; --muted:#a19c94; --rule:#33323a; --card:#1e1e24;
+      --crit:#ff8b76; --high:#ffb072; --med:#ded08a; --low:#a8c2dd; --pass:#8fd6a8;
+      --critbg:#2a1a19; --highbg:#2a2018; --medbg:#26241a; --lowbg:#1b2129; --passbg:#19241d;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#16161a; --fg:#e9e7e3; --muted:#a19c94; --rule:#33323a; --card:#1e1e24;
+    --crit:#ff8b76; --high:#ffb072; --med:#ded08a; --low:#a8c2dd; --pass:#8fd6a8;
+    --critbg:#2a1a19; --highbg:#2a2018; --medbg:#26241a; --lowbg:#1b2129; --passbg:#19241d;
+  }
+  :root[data-theme="light"]{
+    --bg:#fbfaf8; --fg:#1a1a19; --muted:#5f5c57; --rule:#e2ded7; --card:#fff;
+    --crit:#a8200d; --high:#b4530a; --med:#8a6d1f; --low:#4a5f76; --pass:#2c6b43;
+    --critbg:#fdf0ee; --highbg:#fdf4ec; --medbg:#fbf8ec; --lowbg:#f0f3f7; --passbg:#eef5f0;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+    font:16px/1.62 ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:60rem;margin:0 auto;padding:2.5rem 1.25rem 5rem}
+  header{border-bottom:1px solid var(--rule);padding-bottom:1.5rem;margin-bottom:2rem}
+  .kicker{font:600 .72rem/1 var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  h1{font-size:1.9rem;line-height:1.2;margin:.5rem 0 .35rem;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:.95rem;margin:0}
+  h2{font-size:1.2rem;margin:2.6rem 0 .9rem;letter-spacing:-.01em}
+  h2:first-of-type{margin-top:2rem}
+  p{margin:.7rem 0}
+  code{font-family:var(--mono);font-size:.88em;background:color-mix(in srgb,var(--fg) 7%,transparent);
+    padding:.1em .34em;border-radius:3px}
+  .verdict{background:var(--card);border:1px solid var(--rule);border-left:4px solid var(--crit);
+    border-radius:6px;padding:1.1rem 1.25rem;margin:1.5rem 0}
+  .verdict strong{color:var(--crit)}
+  .tally{display:flex;flex-wrap:wrap;gap:.5rem;margin:1.25rem 0 0}
+  .pill{font:600 .78rem/1 var(--mono);padding:.42rem .7rem;border-radius:999px;border:1px solid currentColor}
+  .p-crit{color:var(--crit);background:var(--critbg)}
+  .p-high{color:var(--high);background:var(--highbg)}
+  .p-med{color:var(--med);background:var(--medbg)}
+  .p-low{color:var(--low);background:var(--lowbg)}
+  .p-pass{color:var(--pass);background:var(--passbg)}
+  .f{background:var(--card);border:1px solid var(--rule);border-radius:6px;
+    padding:1.05rem 1.2rem;margin:.9rem 0}
+  .f.crit{border-left:4px solid var(--crit)}
+  .f.high{border-left:4px solid var(--high)}
+  .f.med{border-left:4px solid var(--med)}
+  .f.low{border-left:4px solid var(--low)}
+  .f h3{margin:0 0 .5rem;font-size:1rem;display:flex;gap:.6rem;align-items:baseline;flex-wrap:wrap}
+  .tag{font:700 .68rem/1 var(--mono);letter-spacing:.08em;padding:.3rem .48rem;border-radius:3px;
+    text-transform:uppercase;flex:none}
+  .t-crit{color:var(--crit);background:var(--critbg)}
+  .t-high{color:var(--high);background:var(--highbg)}
+  .t-med{color:var(--med);background:var(--medbg)}
+  .t-low{color:var(--low);background:var(--lowbg)}
+  .f p{margin:.55rem 0}
+  .f p:last-child{margin-bottom:0}
+  .fix{border-top:1px dashed var(--rule);margin-top:.85rem;padding-top:.7rem;font-size:.94rem}
+  .fix b{color:var(--pass)}
+  ul{margin:.6rem 0;padding-left:1.3rem}
+  li{margin:.35rem 0}
+  .scroll{overflow-x:auto;margin:1rem 0}
+  table{border-collapse:collapse;width:100%;font-size:.93rem;min-width:34rem}
+  th,td{text-align:left;padding:.55rem .7rem;border-bottom:1px solid var(--rule);vertical-align:top}
+  th{font:600 .74rem/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+  .pass-list li{margin:.5rem 0}
+  footer{margin-top:3rem;padding-top:1.25rem;border-top:1px solid var(--rule);
+    color:var(--muted);font-size:.88rem}
+  img,svg{max-width:100%}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="kicker">bmad-architecture · Validate intent · Reviewer Gate</div>
+  <h1>Is the consolidated spine BMad-conformant?</h1>
+  <p class="sub">Target: <code>architecture-bic-pptx-workflow-2026-07-10/ARCHITECTURE-SPINE.md</code> — the single project spine, after the Epic&nbsp;16 child spine was folded in and Epic&nbsp;20 landed as AD-16..AD-19. 2026-07-30.</p>
+  <div class="tally">
+    <span class="pill p-crit">1 critical</span>
+    <span class="pill p-high">3 high</span>
+    <span class="pill p-med">4 medium</span>
+    <span class="pill p-low">5 low</span>
+    <span class="pill p-pass">lint 0 findings</span>
+  </div>
+</header>
+
+<div class="verdict">
+  <p><strong>Structurally sound and BMad-shaped in the large — but not conformant in four ways, one of them the kind a consistency contract cannot have.</strong></p>
+  <p>The consolidation itself is right, and it made the project <em>more</em> BMad-default than before. What is off-pattern is what the spine now carries: a self-contradiction left in place on purpose, a template-mandated section missing, rationale where the template says decisions only, and a memlog that no longer holds the decisions its own spine states.</p>
+</div>
+
+<h2>What passes — stated so it is not re-litigated</h2>
+<ul class="pass-list">
+  <li><b><code>lint_spine.py</code>: 0 findings.</b> AD ids ascending, none duplicated or reused, every block carries Binds / Prevents / Rule, every Stack row pinned, no placeholders, no dangling cross-references.</li>
+  <li><b>One spine per project is the BMad default</b>, and the live folder now matches the configured <code>run_folder_pattern</code> exactly. The earlier deviation — an epic folder hand-created while the pattern was never overridden — is resolved <em>by</em> the merge rather than papered over.</li>
+  <li><b><code>## Inherited Invariants</code> correctly cut.</b> The template includes it only when a parent is inherited; with one spine there is no parent, and the section is gone rather than left empty.</li>
+  <li><b>Citation resolvability survived the renumber.</b> AD map in two places, former identity inline on every renumbered heading, 36 prefixed + 16 bare citations repaired in the same change set.</li>
+  <li><b>Both diagrams are valid, non-empty mermaid</b>, and the dependency graph functions as a rule via its no-access edges — which the template asks for explicitly.</li>
+  <li><b>Brownfield ratification is strong.</b> Every mechanism the Epic 20 decisions name was read from source this session, not recalled.</li>
+</ul>
+
+<h2>Critical</h2>
+
+<div class="f crit">
+  <h3><span class="tag t-crit">C1</span> The spine contradicts itself, and the contradiction is parked rather than resolved</h3>
+  <p>In <code>## Consistency Conventions</code>, the <em>State</em> row strikes through “services are immutable once presented” and flags it; <code>## Open items</code> item&nbsp;1 says the replacement wording is not written. <code>AD-16</code> states the opposite in force.</p>
+  <p>A spine’s single job is to be the one consistency contract. A contract holding a struck-through clause plus a note about what it ought to say is not a contract — two readers can honestly reach opposite conclusions, which is the failure mode the artifact exists to prevent. This was defensible while two spines existed: the child carried a correction, the parent held the stale text, and the conflict was visibly <em>cross-document</em>. Folding them into one file removed that alibi.</p>
+  <p>BMad also has no state for this. The skill’s triage is explicit — blockers get resolved one at a time, everything else is deferred <em>with a revisit condition in the memlog</em>. There is no third bucket where a known-false statement stays in the spine.</p>
+  <div class="fix"><b>Fix:</b> write the corrected <em>State</em> row. The owner supplied the substance on 2026-07-30 — freeze at creation, supporting data entry rather than the generated deck, Sync permitted on any service. This is a transcription, not a decision.</div>
+</div>
+
+<h2>High</h2>
+
+<div class="f high">
+  <h3><span class="tag t-high">H1</span> <code>Capability → Architecture Map</code> is missing, and it is template-mandated here</h3>
+  <p>The template marks that section “Present when a spec drove this run” and calls it “the consistency auditor’s checklist.” Two specs drove this run and both sit in <code>sources:</code> — <code>spec-slide-artifact-model</code> and <code>spec-artifact-registry-authoring</code>, the latter carrying CAP-1..CAP-8 as the entire reason AD-16..AD-19 exist. The section is absent.</p>
+  <p>Not a formatting nit: that map is the mechanism that catches an uncovered capability, and it would have caught H2 without needing a reviewer at all.</p>
+  <div class="fix"><b>Fix:</b> add it — one row per CAP-1..CAP-8 plus the Epic 16 areas, each naming where it lives and which AD governs it.</div>
+</div>
+
+<div class="f high">
+  <h3><span class="tag t-high">H2</span> CAP-1 has no invariant: nothing fixes that deck order stops living in code</h3>
+  <p>CAP-1’s success clause is “…without editing TypeScript plan constants.” The spine never says that. <code>AD-7</code> makes <code>buildSlidePlan</code> the only order <em>source</em>; <code>AD-16</code> makes the snapshot the sequence <em>input</em>. Together they imply the registry supplies order — but neither forbids a liturgical rule continuing to live as a literal in the planner, which is exactly what <code>{ skipTitle: true }</code> does at three sites in <code>src/lib/slide-plan.ts</code> today, and exactly what Story 20.1 (absorbing 19.1) must remove.</p>
+  <p>Two units can comply fully and diverge: one moves suppression into registry data, the other adds a fourth <code>skipTitle</code> literal for a new liturgical case. Both obey every AD.</p>
+  <div class="fix"><b>Fix:</b> an AD fixing that per-slide sequence and liturgical flags are registry data, with the planner applying rather than storing them — which is also what makes Story 20.1’s AC checkable.</div>
+</div>
+
+<div class="f high">
+  <h3><span class="tag t-high">H3</span> Rationale sits in the spine where the template says the memlog</h3>
+  <p>The template guide is unambiguous: “Decisions, not rationale (rationale lives in the memlog). Carry shape in diagrams; prose only where it must.” Default output is a terse build substrate. Four blocks violate it — and they are the four newest.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Block</th><th>Off-pattern content</th></tr></thead>
+    <tbody>
+      <tr><td><code>AD-16</code></td><td>“What the snapshot is for — and what it is not”: ~200 words of purpose plus three consequence bullets</td></tr>
+      <tr><td><code>AD-17</code></td><td>“Operational consequence this rule must carry”</td></tr>
+      <tr><td><code>AD-18</code></td><td>“Pre-first-deploy waiver” narrative</td></tr>
+      <tr><td><code>AD-19</code></td><td>Four extra bullets, including catalog-key spelling advice and two SPEC reconciliations addressed to a different skill’s pass</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Some of it is load-bearing and belongs <em>somewhere</em>: AD-17’s private-override trap is a real constraint, and AD-16’s “not obliged to keep old snapshots renderable” genuinely binds a migration. But the reasoning, the declined alternatives, and notes addressed to a future <code>bmad-spec</code> run are memlog and hand-off material. As written these ADs read as meeting minutes, and terseness is what keeps a small agent from drifting.</p>
+  <div class="fix"><b>Fix:</b> compress each to Binds / Prevents / Rule plus at most one binding clause; reasoning to the memlog (much is already there), cross-skill notes to <code>sprint-status.yaml</code>.</div>
+</div>
+
+<h2>Medium</h2>
+
+<div class="f med">
+  <h3><span class="tag t-med">M1</span> The spine is no longer distilled from its own memlog</h3>
+  <p>BMad’s Update flow resumes from <code>.memlog.md</code>, “the authority on what was decided”, and Finalize step&nbsp;1 distills the spine <em>from</em> it. AD-11..AD-19 were instead transcribed from the rendered Epic 16 spine. This memlog holds the fold-in decisions but not the nine decisions the spine states, whose record lives only in <code>../architecture-epic-16/.memlog.md</code> — which the live spine’s <code>companions:</code> does not reference (it lists <code>CASE-STUDY.md</code> alone).</p>
+  <p>Consequence: a future resume reads this memlog, finds no record of AD-11..AD-19, and either re-derives or drops them.</p>
+  <div class="fix"><b>Fix:</b> list <code>../architecture-epic-16/.memlog.md</code> as a companion of record and say in the spine that AD-11..AD-19 were decided there. Cheaper than back-filling entries, and it does not fake a history.</div>
+</div>
+
+<div class="f med">
+  <h3><span class="tag t-med">M2</span> Story-level detail in an initiative-altitude spine</h3>
+  <p><code>altitude: initiative</code> keeps <em>features</em> coherent, and the skill says even an epic spine “does not expand per-story detail.” AD-16..AD-19 name Stories 20.1, 20.2, 20.5, 20.7 and 20.8, and one bullet is addressed to “the <code>bmad-spec</code> pass” — two altitudes below this document.</p>
+  <p>This was the foreseen cost of the merge, left unmitigated. Not fatal on its own; combined with H3 it is why the spine has grown from a contract into a briefing.</p>
+  <div class="fix"><b>Fix:</b> keep story pointers only where they identify who owes an unresolved piece; drop the rest.</div>
+</div>
+
+<div class="f med">
+  <h3><span class="tag t-med">M3</span> The tombstone invents frontmatter and occupies a scanned filename</h3>
+  <p><code>../architecture-epic-16/ARCHITECTURE-SPINE.md</code> declares <code>type: architecture-spine-tombstone</code>, <code>status: superseded</code> and <code>superseded_by:</code>. None exist in BMad — the template’s <code>type</code> is <code>architecture-spine</code> and <code>status</code> is <code>draft · final</code>. Worse, it keeps the name <code>ARCHITECTURE-SPINE.md</code> inside <code>spine_output_path</code>, and the skill’s activation step&nbsp;4 scans that path for a prior run to resume. A future run may offer to resume a tombstone.</p>
+  <div class="fix"><b>Fix:</b> rename outside the scanned name (e.g. <code>SUPERSEDED.md</code>) with <code>status: final</code> and the supersession stated in the body, or move the folder under <code>superseded/</code>.</div>
+</div>
+
+<div class="f med">
+  <h3><span class="tag t-med">M4</span> <code>Open items</code> is a section BMad does not have</h3>
+  <p>Related to C1 but distinct. The template’s vocabulary for undecided things is <code>Deferred</code>, each item carrying <em>the reason it can wait</em>; the skill’s triage routes the remainder to the memlog with a revisit condition. A bespoke <code>Open items</code> section creates a third bucket no downstream skill or reviewer knows to read.</p>
+  <div class="fix"><b>Fix:</b> resolve item&nbsp;1 (C1); move item&nbsp;2 to <code>Deferred</code> with its revisit condition, or resolve it too — it is a one-line clarification to AD-9’s own Rule.</div>
+</div>
+
+<h2>Low</h2>
+
+<div class="f low">
+  <h3><span class="tag t-low">L1–L5</span> Five smaller items</h3>
+  <ul>
+    <li><b>L1 — no operational-envelope diagram.</b> The template names deployment &amp; environments and provider topology as Structural Seed candidates the initiative altitude owns. AD-4 carries it in prose and <code>Deferred</code> names observability, so it is not <em>silent</em> — but there is no topology view. Pre-existing, not introduced by the consolidation.</li>
+    <li><b>L2 — <code>binds</code> lists FR and epic ranges, not the driving spec’s capability ids.</b> The template asks for capability/unit ids from the driving spec; CAP-1..CAP-8 are absent. Ties to H1.</li>
+    <li><b>L3 — <code>child_spines: []</code></b> is not a template field and is now empty — a vestige of the two-spine world.</li>
+    <li><b>L4 — Stack table not re-verified this run.</b> It reads “synced … on 2026-07-29” while the spine says <code>updated: '2026-07-30'</code>. The configured version lens asks exactly this. No version is load-bearing for AD-16..AD-19, so risk is low.</li>
+    <li><b>L5 — <code>AD-19</code> carries two Rules</b> and says so itself: “the same species of hole, not the same hole.” Two divergences, two rules, one id — probably two ADs. Splitting costs a renumber, which is why this is LOW; appending a new id for the catalog half is the cheap route if it is ever split.</li>
+  </ul>
+</div>
+
+<h2>Adversarial two-units lens — new pairs found post-merge</h2>
+<ul>
+  <li><b>Pair A (= H2).</b> One unit moves <code>skipTitle</code> into registry data per CAP-1; another adds a fourth literal in <code>slide-plan.ts</code> for a new liturgical case. Both obey every AD in the file.</li>
+  <li><b>Pair B.</b> Two readers of the <em>State</em> convention: one treats a presented service as frozen and builds Sync to refuse it, the other reads AD-16 and builds Sync unrestricted. That is C1 with a builder attached — the contradiction is not academic.</li>
+  <li><b>Attempted and clean.</b> The AD-6/AD-16 and AD-9/AD-19 double-meanings that existed while two spines coexisted are genuinely gone; one number, one decision. The clone and Sync write paths still have exactly one owner each and both validate under AD-15.</li>
+</ul>
+
+<h2>Version / reality-check lens</h2>
+<p>The consolidation names no new technology, so this reduces to whether claims about the codebase hold. They do — see <em>What passes</em>. One process gap: <b>Finalize step 2 (Reconcile inputs) never ran</b> for either driving SPEC, and step 3’s semantic gate never ran against the <em>merged</em> file — only <code>lint_spine.py</code> did. H1 and H2 are what that omission cost, and this validation is the belated substitute.</p>
+
+<footer>
+  Reviewer Gate run sequentially rather than as parallel subagents, per this session’s constraint. Markdown twin: <code>validation-2026-07-30-post-consolidation.md</code>. Under the Validate intent the spine was <b>not modified</b>.
+</footer>
+
+</div>
+</body>
+</html>

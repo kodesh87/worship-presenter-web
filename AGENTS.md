@@ -97,7 +97,7 @@ Google AI Pro / Antigravity (and similar “jump-to-code” agents) tend to skip
 4. **While coding an approved story/spec:** keep `parsed` contracts, form fields, APIs, and slide behavior aligned with the SPEC/companions and story AC. If you must change behavior, update the artifact in the same change set — never leave docs lying. This explicitly includes the architecture and UX spines:
    - Add, rename, or remove a **route or surface** → update the IA table in `EXPERIENCE.md` in the same change set.
    - Override a **design token** or add a UI component with a visual delta → update `DESIGN.md`.
-   - Change a **structural invariant** (auth gate, storage target, slide-order source, sync channel, schema path) → amend the architecture spine via `bmad-architecture` Update. Never renumber an existing `AD-n`; add the next one.
+   - Change a **structural invariant** (auth gate, storage target, slide-order source, sync channel, schema path) → amend the architecture spine via `bmad-architecture` Update. Never renumber an existing `AD-n`; add the next one. (One recorded exception, not a precedent: the 2026-07-30 fold-in of the Epic 16 child spine, waived by the owner, with an AD map published in the spine and every live citation repaired in the same change set.)
 
    These four artifact families drifted precisely because nothing named them here.
 
@@ -110,7 +110,7 @@ Google AI Pro / Antigravity (and similar “jump-to-code” agents) tend to skip
 | Sprint tracking | `_bmad-output/implementation-artifacts/sprint-status.yaml` |
 | Product requirements | `_bmad-output/planning-artifacts/prds/**` |
 | Epics | `_bmad-output/planning-artifacts/epics.md` |
-| Structural invariants | `_bmad-output/planning-artifacts/architecture/**/ARCHITECTURE-SPINE.md` — an epic spine inherits its parent read-only and cites parent decisions as `INIT AD-n` |
+| Structural invariants | `_bmad-output/planning-artifacts/architecture/architecture-bic-pptx-workflow-2026-07-10/ARCHITECTURE-SPINE.md` — **one spine per project** (the BMad default). Decisions are `AD-n` in that one file and the `INIT AD-n` citation form is retired. The Epic 16 child spine was folded in on 2026-07-30; its folder keeps only the run record |
 | Visual identity (tokens, components) | `_bmad-output/planning-artifacts/ux-designs/**/DESIGN.md` |
 | Experience, IA, surfaces, flows | `_bmad-output/planning-artifacts/ux-designs/**/EXPERIENCE.md` |
 | Runtime rules for this repo | `_bmad-output/project-context.md` |

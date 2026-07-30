@@ -1,6 +1,6 @@
 ---
 stepsCompleted: [step-01-validate-prerequisites, step-02-design-epics, step-03-create-stories, step-04-post-merge-realign, step-05-audit-hygiene-2026-07-19, step-06-correct-course-2026-07-29]
-inputDocuments: ['_bmad-output/planning-artifacts/prds/prd-bic-pptx-workflow-2026-07-10/prd.md', '_bmad-output/planning-artifacts/architecture/architecture-bic-pptx-workflow-2026-07-10/ARCHITECTURE-SPINE.md', '_bmad-output/planning-artifacts/architecture/architecture-epic-16/ARCHITECTURE-SPINE.md', '_bmad-output/planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/DESIGN.md', '_bmad-output/planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/EXPERIENCE.md']
+inputDocuments: ['_bmad-output/planning-artifacts/prds/prd-bic-pptx-workflow-2026-07-10/prd.md', '_bmad-output/planning-artifacts/architecture/architecture-bic-pptx-workflow-2026-07-10/ARCHITECTURE-SPINE.md', '_bmad-output/planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/DESIGN.md', '_bmad-output/planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/EXPERIENCE.md']
 last_realigned: '2026-07-29'
 note: 'Realigned by Correct Course 2026-07-29 (sprint-change-proposal-2026-07-29.md): FR-11b and FR-20 added to the inventory and coverage map; NFRs given the stable ids PRD §10 now carries; coverage map refreshed past Epics 14-16 (FR-11 Partial → Done); Epic 14 closed; Epic 16 story-file reality stated. Remaining product Partial: FR-19 (KJV corpus still not under data/, import:kjv remains an ops step). See ../implementation-artifacts/deferred-work.md.'
 ---
@@ -303,7 +303,7 @@ So that I cannot advance a deck for the rest of a service with nothing on the se
 - `projectorRef.current.closed` is read only inside `openProjector` (`PresenterOperator.tsx:271-276`) — only if the operator clicks the button again;
 - the only surfaced projector state is `projectorBlocked`, which is the popup blocker.
 
-**Constraint:** INIT AD-10 forbids a server realtime channel, so this is solved locally or not at all — a `closed` poll on the retained window handle, or an acknowledgement added to `present-channel.ts`. Extending `PresentMessage` is a wire change, and the presenter must stay the single authority (see that file's header contract).
+**Constraint:** AD-10 forbids a server realtime channel, so this is solved locally or not at all — a `closed` poll on the retained window handle, or an acknowledgement added to `present-channel.ts`. Extending `PresentMessage` is a wire change, and the presenter must stay the single authority (see that file's header contract).
 
 ### Epic 18: Member data stays gated even when the perimeter moves *(backlog)*
 
@@ -318,11 +318,11 @@ As a church member whose name and prayer request live in this system,
 I want every API route to check the session itself,
 So that no single regex edit can expose Service data. Privileged routes re-check role against the database (`requireAdminSession`), not the cookie.
 
-### Epic 19: Liturgical rules live in data, not in the planner *(backlog)*
+### Epic 19: Liturgical rules live in data, not in the planner *(retired 2026-07-30)*
 
 Created 2026-07-30 at the owner's direction, to give a tracked home to an item carried as a bare *"Consider"* in `sprint-status.yaml` since 2026-07-29. Not opened as a Story 15.2 because Epic 15 is `done`, and moving a rule from code to data is a new capability rather than a refinement.
 
-> **Likely absorbed by Epic 20.** `spec-artifact-registry-authoring` CAP-1 forbids exactly the TypeScript plan constants this epic moves. That SPEC was adopted on 2026-07-30, so fold this into Story 20.1 or retire this epic — do not deliver both.
+> **RETIRED 2026-07-30 by owner decision — do not implement.** Its goal is met by `AD-20`, but not by its method. This epic assumed the `skipTitle` suppression flag moves from code into data. The owner's decision is that the three suppressed songs — `#671`, `#684`, *We Have This Hope* — become **General** registry entries, edited by hand. A General generates no title slide, so **`skipTitle` is removed rather than migrated**: there is nothing left to suppress and no flag to store anywhere. The liturgical decision stops requiring a deploy, which is what this epic wanted; the work happens inside Story 20.1's seed, not as a data migration. The line-number table below is kept because that seed still needs it.
 
 #### Story 19.1: Song-Title Suppression Becomes Registry Data *(backlog)*
 As an administrator adjusting the order of service,
@@ -333,13 +333,17 @@ A normal Song Block renders a title slide (`"O Worship the King · SDAH #83"`) f
 
 | Site | Song | Why the title is suppressed |
 | --- | --- | --- |
-| `slide-plan.ts:438` | Standing response either side of the intercessory prayer (the fixed `#671` / `#684` pair) | The congregation is already standing and sings straight in; announcing a number breaks the prayer |
-| `slide-plan.ts:460` | Around the Special Song | Same reason |
-| `slide-plan.ts:550` | Closing *We Have This Hope* (`weHaveThisHopeFixed`) | A fixed song needs no introduction |
+| `slide-plan.ts:438` | Group `intercessory-671` — the fixed hymn `#671` standing response **before** the intercessory prayer | The congregation is already standing and sings straight in; announcing a number breaks the prayer |
+| `slide-plan.ts:460` | Group `intercessory-684` — the fixed hymn `#684` standing response **after** it | Same reason |
+| `slide-plan.ts:550` | Group `hope` — closing *We Have This Hope* (`weHaveThisHopeFixed`) | A fixed song needs no introduction |
+
+**Corrected 2026-07-30 against the source.** This table previously named `slide-plan.ts:460` as *"Around the Special Song"*. It is not: it is `intercessory-684`, the second half of the fixed pair. **No `skipTitle` site touches the Special Song at all.** The error mattered because this table is the only record of these sites, and Story 20.1 was told to rely on it.
+
+**What the source also shows, and what makes this more than a flag move:** none of the three songs is one of the four predefined SongSet slots (Bible Talk open/close, Divine Service open/close). All three are *fixed liturgical songs the planner injects itself* — `#671`, `#684`, and `We Have This Hope`. So the constants CAP-1 objects to are not only the suppression flags but the choice of song. See `AD-20` for how far that moves into data.
 
 Each is a **liturgical** judgment about this congregation's order of service, expressed as a literal in the slide planner.
 
-**Open question the story must answer before implementation, not during:** whether suppression is a property of the template, of the plan node, or of a service-level setting. Getting that wrong makes the rule harder to change than the literal it replaced. `buildSlidePlan` remains the single slide-order source (INIT AD-7) — this story moves *where the rule is stored*, never who applies it.
+**Open question the story must answer before implementation, not during:** whether suppression is a property of the template, of the plan node, or of a service-level setting. Getting that wrong makes the rule harder to change than the literal it replaced. `buildSlidePlan` remains the single slide-order source (AD-7) — this story moves *where the rule is stored*, never who applies it.
 
 ### Epic 20: The registry becomes where the deck is authored *(backlog)*
 
@@ -359,20 +363,20 @@ Two consequences are breaking, and both are the SPEC's explicit instruction rath
 | --- | --- |
 | `general`, `text-placeholder`, `image-placeholder`, `mix-placeholder` | **General** — a placeholder stops being a *kind* and becomes an element inserted from the Placeholder Catalog (CAP-4) |
 | `fullscreen-image` | **Announcement** (CAP-7: upload means fullscreen, no extra elements) |
-| `song-set` | **SongSet** (CAP-8) |
+| `song-set` | **SongSet** (CAP-8) — and per `AD-19` this is the one kind that **expands**, into four immutable slot identities (`songset-bt-open`, `songset-bt-close`, `songset-ds-open`, `songset-ds-close`) because the slot identity is what the hymnal binding hangs on. Whether they sit in the `base_type` column or a discriminator beside it is this story's schema call |
 | `announcement` | **Announcement** |
 
 `READ_ONLY_BASE_TYPES` / `EDITABLE_BASE_TYPES` in `src/lib/registry/types.ts` collapse with them: *General* becomes the only canvas-authorable kind, and SongSet/Announcement expose label, order and background but never a freeform canvas. This is a migration of the `base_type` column and its validator rules, not an additive change — and it is cheap **only while no production system exists**, since after deployment the same change needs a backfill over live `artifact_templates` rows plus every service snapshot.
 
-**2. `epic-16 AD-4` is reversed.** That decision states registry edits are **global and immediate**, with no per-service override *by design*. CAP-6 requires the opposite: creating a service **clones** the ordered registry into a service-bound snapshot, live edits do **not** reach an existing service, and **Sync Artifact** refreshes it. This is an architecture invariant reversal, so before Story 20.8 is implemented:
+**2. `AD-14` is reversed.** That decision states registry edits are **global and immediate**, with no per-service override *by design*. CAP-6 requires the opposite: creating a service **clones** the ordered registry into a service-bound snapshot, live edits do **not** reach an existing service, and **Sync Artifact** refreshes it. This is an architecture invariant reversal, so before Story 20.8 is implemented:
 
-- the epic-16 architecture spine needs a new `AD-n` superseding `AD-4` — **never renumber**, per `AGENTS.md`;
-- `EXPERIENCE.md` → *Venue & Projection Constraints* states the global-and-immediate rule, and Flow 5's climax turns on it. Both change in the same change set.
+- ~~the architecture spine needs a new `AD-n` superseding it~~ — **done 2026-07-30** via `bmad-architecture` Update. `AD-16` supersedes the *"global across services"* clause of `AD-14` and nothing else in it; the admin-only authorization clause stands. Three further decisions landed in the same pass because the Reviewer Gate found them, and stories below are bound by them: `AD-17` (the seed is a bootstrap, so a delete or reorder is no longer undone by a restart), `AD-18` (vocabulary changes travel as explicit one-time migrations; the seven-to-three collapse ships as a total replacement under an owner waiver that **expires at first deploy**), and `AD-19` (a key referenced across a boundary is a stable server-owned identity — which settles Story 20.7's central question and Story 20.5's enforcement boundary at spine altitude rather than per-story). **Numbering note:** the same day, the owner folded the Epic 16 child spine into the one project spine, so these carry their post-merge numbers — `epic-16 AD-1..AD-9` are now `AD-11..AD-19`, per the AD map in the spine.
+- `EXPERIENCE.md` → *Venue & Projection Constraints* states the global-and-immediate rule, and Flow 5's climax turns on it. **Still outstanding** — this is what remains of Story 20.8's block.
 
 Stories below are one per capability in dependency order. Acceptance criteria live in the story files; each SPEC capability's `success:` clause is the starting point.
 
 #### Story 20.1: One Ordered Registry *(backlog)* — CAP-1
-As an administrator, I want the registry to define which slides exist **and in what order**, so that deck structure is data. Adds ordering to `artifact_templates` (no such column exists today) and makes the ordered snapshot the sequence source `buildSlidePlan` consumes. **Absorbs Story 19.1** — the `skipTitle` literals are exactly the "TypeScript plan constants" CAP-1 forbids. `buildSlidePlan` remains the single order source for PPTX, slideshow and presenter (INIT AD-7); what changes is where its sequence comes from, never that there is one.
+As an administrator, I want the registry to define which slides exist **and in what order**, so that deck structure is data. Adds ordering to `artifact_templates` (no such column exists today) and makes the ordered snapshot the sequence source `buildSlidePlan` consumes. **Replaces Epic 19 rather than absorbing it** — `AD-20` fixes that the planner holds no rule of its own, and the three `skipTitle` songs become hand-edited **General** entries, so the flag is deleted rather than moved. `buildSlidePlan` remains the single order source for PPTX, slideshow and presenter (AD-7); what changes is where its sequence comes from, never that there is one. What this story owes the seed is named in the spine's *Deferred*: one General row per lyric page, and those lyrics stop passing the FR-5 splitter and stop tracking `data/hymns.json`.
 
 #### Story 20.2: Three Slide Kinds *(backlog)* — CAP-5 + *Constraints*
 As an administrator, I want every entry to be General, SongSet or Announcement with an editable label shown as `[kind] label`, so that the list reads as a deck. The breaking migration described above. Renaming a General's label updates Presenter badges for services that clone or sync afterward — which is only meaningful once 20.8 exists, so until then the story's own AC must say what "afterward" means.
@@ -381,7 +385,7 @@ As an administrator, I want every entry to be General, SongSet or Announcement w
 As an administrator, I want to add, delete, rename and reorder entries, including inserting SongSet and Announcement entries. Today the admin API has only list, read, update and reset — no create, delete or reorder verb. Explicit Save; no autosave (SPEC *Constraints*). Every new verb is an authorization surface: `/api/admin` is admin-gated in `src/proxy.ts`, and per Epic 18 the route must re-check with `requireAdminSession` rather than trusting the cookie.
 
 #### Story 20.4: Full Canvas Authoring for General Slides *(backlog)* — CAP-3
-As an administrator, I want background, inserted images and text areas, drag and resize, and font colour/size/style on **General** slides only. Story 16.5 shipped element add/delete against the old base types; this story is scoped to what the three-kind model changes and to the style properties CAP-3 names. Validation still rejects any property the registry vocabulary does not admit (`epic-16 AD-5`) — a rejected Save keeps the operator's work and names the property.
+As an administrator, I want background, inserted images and text areas, drag and resize, and font colour/size/style on **General** slides only. Story 16.5 shipped element add/delete against the old base types; this story is scoped to what the three-kind model changes and to the style properties CAP-3 names. Validation still rejects any property the registry vocabulary does not admit (`AD-15`) — a rejected Save keeps the operator's work and names the property.
 
 #### Story 20.5: The Placeholder Catalog *(backlog)* — CAP-4
 As an administrator, I want to insert predefined placeholders onto General slides and style them locally, with weekly worship fields filling the bindings. The same catalog key may appear on several Generals with different styling. **The UI must not be able to invent a catalog key** — extending the catalog is a code-plus-tests change (SPEC *Constraints*), which is also what keeps a placeholder from becoming a channel for arbitrary congregation text.
@@ -390,8 +394,8 @@ As an administrator, I want to insert predefined placeholders onto General slide
 As an administrator, I want a single Announcement entry that expands to one full-bleed slide per image from the Announcements list. No canvas editor for it, ever (SPEC *Non-goals*). Image membership keeps coming from the Announcements menu, not from inside the registry.
 
 #### Story 20.7: SongSet Slots *(backlog)* — CAP-8
-As an administrator, I want four predefined SongSet slots — Bible Talk open/close, Divine Service open/close — with configurable backgrounds, reorderable, each receiving its hymn number from worship-service settings. **The four slots need stable identities** so a service's hymn-number binding survives a label change or a reorder (SPEC *Constraints*); that identity is the story's central design decision. No freeform canvas for lyric pages.
+As an administrator, I want four predefined SongSet slots — Bible Talk open/close, Divine Service open/close — with configurable backgrounds, reorderable, each receiving its hymn number from worship-service settings. No freeform canvas for lyric pages. **The identity question is settled at spine altitude, not here:** `AD-19` makes the slot's own immutable identity the binding key, carried by the type vocabulary, so identity is immutable by construction. What this story owes is the two requirements that make it unambiguous — `base_type` not administrator-editable for a slot-carrying type, at most one row per slot type — and the inert-binding behaviour when a slot row is deleted.
 
 #### Story 20.8: Service Clones the Registry, and Sync Artifact *(backlog)* — CAP-6
-As an operator, I want a service to hold its own snapshot of the registry, and a **Sync Artifact** action to refresh it. Live registry edits must not reach an existing service until Sync. **Blocked on the architecture amendment above** — this is the story that reverses `epic-16 AD-4`, and it must not be implemented before that decision is recorded and `EXPERIENCE.md` reconciled. It is last for a reason: every story above defines what gets cloned.
+As an operator, I want a service to hold its own snapshot of the registry, and a **Sync Artifact** action to refresh it. Live registry edits must not reach an existing service until Sync. **Still blocked, but on one item rather than two** — `AD-16` was recorded on 2026-07-30, so what remains is the `EXPERIENCE.md` reconciliation above. Two `AD-16` clauses the story must implement rather than re-decide: Sync carries the service's `updated_at` precondition (`AD-6`, which the spine had been silent on — a different decision, not a typo), and Sync is permitted on **any** service including one already presented — because the freeze event is service **creation**, and what a service holds against the registry is its supporting data entry, not a reproducible deck. Announcement membership is deliberately **not** frozen, and a later structural change need not keep an old snapshot renderable. It is last for a reason: every story above defines what gets cloned.
 
