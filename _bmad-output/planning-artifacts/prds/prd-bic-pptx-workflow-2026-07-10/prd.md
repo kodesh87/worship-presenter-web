@@ -1,8 +1,8 @@
 ---
 title: BIC Worship Presentation Automation
-status: active
+status: final
 created: 2026-07-10
-updated: 2026-07-29
+updated: 2026-07-30
 ---
 
 # PRD: BIC Worship Presentation Automation
@@ -12,7 +12,9 @@ updated: 2026-07-29
 
 This PRD is for the solo developer/maintainer (kodesh87) who will build and run all three layers of this system, and for any downstream workflow (architecture, epics, stories) that needs a stable specification. It builds on — and does not duplicate — the existing **Product Brief** (`brief.md`), its **Addendum** (operational detail: workflows, actors, sample input), and the **source PPTX structural digest** (`source-pptx-structure.md`, the anatomy of the current 68-slide deck). Those live in `_bmad-output/planning-artifacts/briefs/brief-bic-pptx-workflow-2026-07-10/` and remain authoritative for the *why*; this PRD is authoritative for *what must be true*. This PRD's own **`addendum.md`** (same folder as this file) holds the user-authored annotated 68-slide operational map — the authoritative deck blueprint feeding UX and architecture.
 
-Structure: vocabulary is anchored in the **Glossary** (§3) and used verbatim throughout. Features (§4) are grouped, each with nested globally-numbered Functional Requirements (FR-N) carrying testable consequences. Scope is sequenced into **Delivery Phases** (§6): **Phase 1 is the MVP and the only committed phase**; Phases 2–6 are specified increments built only if Phase 1 proves valuable. Cross-cutting non-functional requirements, constraints, and dependencies have their own sections (§9–§11). Inferred decisions are tagged inline `[ASSUMPTION: ...]` and indexed in §12. Implementation mechanism (transport shapes, PPTX-generation library, API contracts) is intentionally excluded — it belongs in the architecture document and the addendum.
+Three conventions bind the rest of the document. Vocabulary is anchored in the **Glossary** (§3, extended in §13) and used verbatim — a synonym is a discipline violation. Inferred decisions carry `[ASSUMPTION: ...]` inline and are indexed in §12. Implementation mechanism — transport shapes, the PPTX library, API contracts — is deliberately excluded and belongs to the architecture spine and `addendum.md`.
+
+**Delivery status lives in §6 and nowhere else.** This paragraph used to assert that Phase 1 was the only committed phase; Phases 2–6 shipped anyway and FR-21 was committed on 2026-07-30, so a second place to look was a second place to be wrong.
 
 ## 1. Vision
 
@@ -20,7 +22,7 @@ BIC (Bandung International Community, a Seventh-day Adventist church) presents a
 
 This product turns that weekly rebuild into a **generated artifact**. The events department sends the week's rundown to a Telegram chat, exactly as they already coordinate. An agent (picoclaw) reads it and hands the structured inputs to the app's API; the app validates hymn numbers against the SDA Hymnal database, resolves the lyrics, and assembles the presentation from BIC's fixed template skeleton and the week's variable content. Each dated **Service** appears in a password-protected web hub for Friday review, quick edit-and-regenerate when something is wrong or changes late, and an offline PPTX download that keeps the Sabbath independent of venue internet.
 
-The bet is deliberately modest — and deliberately narrow. Phase 1 ships the smallest thing that is immediately usable: rundown in, correct offline deck out, editable, behind a login. Everything else (web slideshow, Telegram corrections, retention cleanup, presenter mode, scripture display) is specified but contingent: built only after Phase 1 has proven its value in real weekly use. If it sticks, it saves a skilled volunteer ~52 hours a year, widens the pool of people who can run a service from one person to the whole rotation, and becomes the first wedge in a broader aim: automating the church's mechanical work so its people can spend their energy on reaching others.
+The bet is deliberately modest — and deliberately narrow. Phase 1 ships the smallest thing that is immediately usable: rundown in, correct offline deck out, editable, behind a login. Everything else (Web Slideshow, Telegram corrections, retention cleanup, Presenter Mode, Scripture Display) is specified but contingent: built only after Phase 1 has proven its value in real weekly use. If it sticks, it saves a skilled volunteer ~52 hours a year, widens the pool of people who can run a service from one person to the whole rotation, and becomes the first wedge in a broader aim: automating the church's mechanical work so its people can spend their energy on reaching others.
 
 ## 2. Target User
 
@@ -58,34 +60,31 @@ The bet is deliberately modest — and deliberately narrow. Phase 1 ships the sm
 
 ## 3. Glossary
 
-*Downstream workflows and readers use these terms exactly. FRs, UJs, and SMs use Glossary terms verbatim; introducing a synonym is a discipline violation. When §4 introduces a new domain noun, it is added here in the same pass.*
+*Downstream workflows and readers use these terms exactly. FRs, UJs, and SMs use Glossary terms verbatim; introducing a synonym is a discipline violation. When §4 introduces a new domain noun, it is defined in the same pass.*
+
+*This section holds the nouns §4 uses throughout. **Nouns scoped to one feature or one phase live in §13** — the Artifact Registry vocabulary, Web Slideshow and Presenter Mode, the Verse Database, Announcement Asset, and Retention Policy. Each noun is defined in exactly one of the two places; nothing is repeated between them.*
 
 - **Service** — One dated weekly worship event, and the unit the system manages. Each Service owns one Weekly Data Payload, one generated Deck, one Run-Sheet, and its uploaded images. Listed by date in the Web Hub.
 - **Rundown** — The semi-structured plain text the Events Department sends to Telegram describing one Service's full order of service (sections, timings, roles by name, songs by number, announcement instructions). The raw input picoclaw parses.
 - **Order of Service** — The full ordered sequence of program steps for a Service (every role, name, song with number, and timing). Rendered to operators as the Run-Sheet; a subset of it drives the Deck.
 - **Weekly Data Payload** — The structured variable content for one Service after interpretation: date/week identifier; the four main Hymns (SDAH Number, validated and resolved by the app); Verse Reading reference + text; sermon speaker + sermon graphic / flyer; closing-prayer person (derived from the sermon speaker); Special Song presence/performer (or none); family/youth-of-the-week family photo + family prayer request text + youth photo + youth prayer request text; announcement instructions against the Announcement List (recurring vs one-off); and the full participant/role/timing data for the Run-Sheet. Distinct from the fixed Template Skeleton.
 - **Template Skeleton** — The fixed portion of BIC's deck, identical week to week: welcome frames, agenda/Sequence slides, dividers, intercessory-prayer liturgy and response songs, standing closing response and reflection, offering/bank info, midweek-meeting slide, fellowship etiquette, closing/contact frames.
-- **Deck Blueprint** — The authoritative mapping of every slide position in BIC's deck to fixed-vs-payload status and its Slide Type (§4.2; full annotated map in this PRD's `addendum.md`).
-- **Slide Type** — A templated slide category the generator can emit: welcome, agenda/Sequence, divider, song-title, lyric, scripture, sermon, offering, family/youth, announcement-image, closing.
-- **Song Block** — One song rendered as 1 song-title slide + K lyric slides. Each verse starts a new slide and each Reff starts a new slide; text too long for one slide splits across additional slides for readability. K = f(verse count, Reff availability, readability splits). Some songs have no Reff.
+- **Deck Blueprint** — The mapping of every slide position in BIC's established deck to fixed-vs-payload status and its Slide Type (§4.2; full annotated map in this PRD's `addendum.md`). It is authoritative for **what the deck was and what the Registry ships as its starting point** — and it is what FR-4 and FR-6 are tested against. It is not a standing prohibition on change: once FR-21 lands, an Admin may deliberately author a structure that departs from it, and that departure is a decision the product permits rather than a defect. What the Blueprint stops being is a *silent* authority; a divergence is chosen, not drifted into.
+- **Slide Type** — A templated slide category the generator can emit: welcome, agenda/Sequence, divider, song-title, lyric, scripture, sermon, offering, family/youth, announcement-image, closing. This is a **semantic** vocabulary — what a slide *is* in the service — and it is what the Deck Blueprint is written in. It is **not** the same axis as Slide Kind below, and the two are not synonyms: a Slide Type says what a slide means to the congregation, a Slide Kind says what an Admin is allowed to author on it.
+- **Song Block** — One song rendered as 1 song-title slide + K lyric slides. Each verse starts a new slide and each Reff starts a new slide; text too long for one slide splits across additional slides for readability. K = f(verse count, Reff availability, readability splits). Some songs have no Reff. **"Reff" is BIC's own label for the refrain, as printed on the deck** — the two words name the same structure, and *Reff* is used wherever the deck's own label is meant.
 - **Hymn** — A song identified by its SDAH Number, whose lyrics come from the Hymnal Database.
 - **SDAH Number** — SDA Hymnal number (e.g., `SDAH #159` or bare `#671`), the key used to validate and resolve a Hymn.
 - **Hymnal Database** — The SDA Hymnal lyrics data source (title + structured verses/refrain, keyed by SDAH Number), provided by the developer. An input dependency, not built in this project.
-- **Verse Database** — A developer-provided **KJV-only** scripture data source powering the Scripture Display feature (§4.9). Independent of the Hymnal Database and never used for Deck slides.
 - **Announcement List** — The persistent, ordered list of Announcement Assets the app maintains across weeks: recurring items stay until replaced or removed; one-off items are added for a single Service. Managed via the API (picoclaw) and the Web Hub.
-- **Announcement Asset** — A pre-rendered poster/flyer **image** (video is out of scope), uploaded finished (Telegram/picoclaw **or** Web Hub local upload) and inserted into the Deck as-is on its own slide. Occasional, not weekly: many weeks have none beyond recurring items.
 - **Deck** — The generated slide presentation for a Service, exported as an offline-capable PPTX file.
-- **Web Slideshow** *(Phase 2)* — The in-browser full-screen rendering of a Service's Deck; single screen, no presenter view until Phase 5.
-- **Presenter Mode** *(Phase 5)* — Dual-screen presentation: a clean full-screen output (projector, OBS-captured) plus an operator view (current slide, next slide, Run-Sheet, participant list). Provided natively by PowerPoint and replicated by the Web Slideshow in Phase 5.
 - **Run-Sheet** — The web view of the full Order of Service for a Service, for operators to follow during the service.
 - **Web Hub** — The password-protected web application: dated Service list (with search), shared Header (Announcements / Settings), review, edit, regenerate, download, delete, slideshow, and presenter.
 - **picoclaw** — The agent (openclaw-type) that reads the Rundown from Telegram, uploads images, and calls the app's API to create or update a Service. It does **not** resolve lyrics itself.
 - **Role** — An access level in the Web Hub. v1 defines two: **Admin** and **Operator**.
-- **Admin** — The Role that manages accounts, Roles, and (Phase 4) retention configuration; full access.
+- **Admin** — The Role that manages accounts, Roles, (Phase 4) retention configuration, the slide transition, and the Artifact Registry; full access. Like **Operator**, the Role name doubles as the noun for the person holding it — *"an Admin can…"*. The long form *Administrator* is deliberately not used anywhere else in this document; it was collapsed into **Admin** on 2026-07-30 because two words for one actor is the synonym this section's own rule forbids.
 - **Events Department** — The contributor group that sends each week's Rundown and images via Telegram. Members needing app access receive **Operator** accounts in v1 (no separate Role yet). Not the Multimedia Team.
 - **Multimedia Team / Operators** — The end-user group (Operator Role) that reviews Services on Friday and presents them on Sabbath (two per rotation: one on the presentation computer, one on sound). Not software developers.
 - **Reviewer** — An Operator performing the Friday review of a Service.
-- **Retention Policy** *(Phase 4)* — An Admin-configured rule (default 2 months) that automatically deletes **only generated Decks (PPTX)** past the retention window. Services, participant text, posters, and all other data persist and are manual-delete only.
 
 ## 4. Features
 
@@ -139,7 +138,7 @@ The app maintains an ordered, persistent Announcement List across weeks; picocla
 
 **Description:** The generator assembles a Service's Deck from the fixed Template Skeleton plus the Weekly Data Payload, emitting the templated Slide Types in BIC's established order (realizes UJ-1, UJ-4). It rebuilds on a clean master template with real layouts rather than cloning last week's file. Only names already printed in the current deck go on slides; the full roster lives on the Run-Sheet (§4.7).
 
-**Deck Blueprint (fixed vs payload).** The full annotated 68-slide map — including *when* each slide is shown during the service — is in this PRD's `addendum.md`; downstream workflows treat it as authoritative. Summary:
+**Deck Blueprint (fixed vs payload).** The full annotated 68-slide map — including *when* each slide is shown during the service — is in this PRD's `addendum.md`; downstream workflows treat it as authoritative for what this deck is and for what FR-4 and FR-6 are tested against. **FR-21 changes its standing, not its content:** once the Registry owns structure, the Blueprint is what the Registry ships as its starting point and the record of the deck it came from — an Admin may then depart from it deliberately (see the Glossary entry). Summary:
 
 - **Part A — Bible Talk:** welcome, agenda, prayer-partners divider, opening-song divider *(fixed)* · **Song Block 1** *(payload)* · **Verse Reading** *(payload: reference + text)* · opening-prayer, bible-talk, closing-song dividers *(fixed)* · **Song Block 2** *(payload)* · closing-prayer divider, break + offering *(fixed)*.
 - **Part B — Divine Service:** agenda *(fixed)* · **theme verse** *(fixed template slide: John 4:23)* · opening-song divider *(fixed)* · **Song Block 3** *(payload)* · intercessory-prayer dividers + standing response songs *(fixed — standing pair)* · Special Song divider *(conditional: only when the payload has a Special Song)* · **sermon speaker name** and **sermon graphic / flyer** *(payload)* · closing-song divider *(fixed)* · **Song Block 4** *(payload)* · **closing prayer** *(fixed, derived from sermon speaker's name)* · closing response "We Have This Hope", reflection *(fixed)*.
@@ -178,7 +177,7 @@ The generator can render the Verse Reading, sermon speaker name, family/youth-of
 - Each Announcement List item produces one announcement slide, image only, no added text, in list order.
 
 #### FR-7: Apply one selectable, elegant slide transition
-The generator applies one configured transition across the text/graphic slides of the Deck. An administrator chooses it from a small set of restrained styles — none, cut, fade, dissolve or push — and the choice applies uniformly to the whole Deck. Fade is the default. Realizes UJ-4.
+The generator applies one configured transition across the text/graphic slides of the Deck. An Admin chooses it from a small set of restrained styles — none, cut, fade, dissolve or push — and the choice applies uniformly to the whole Deck. Fade is the default. Realizes UJ-4.
 
 **Consequences (testable):**
 - Text/graphic slides carry the configured transition; a single transition style is used throughout (no mixed or elaborate transitions within one Deck).
@@ -187,7 +186,7 @@ The generator applies one configured transition across the text/graphic slides o
 - With nothing configured, the Deck carries the fade it has always carried.
 
 **Feature-specific NFRs:**
-- Fonts are **freely-licensed** and headless-safe (Montserrat is already open-licensed; the commercial Cooper BT Light song-title face is replaced with a freely-licensed look-alike). The generator **embeds** its fonts in the PPTX when headless embedding is feasible; otherwise it uses a **standardized** font that is documented and installed on the presentation machine(s) (§11). The visual result closely resembles the current deck but need not be pixel-perfect. (Decision — see §11. Church sign-off on a sample rebuilt slide set is a Phase-1 pre-requisite, §6.)
+- Fonts follow **NFR-7**, which is the one statement of that requirement. What this feature adds and NFR-7 does not: the visual result **closely resembles the current deck but need not be pixel-perfect**. The church sign-off that would have validated that resemblance was waived by the owner on 2026-07-29, so "closely resembles" is now judged by one person at the pre-launch projector inspection rather than agreed with the congregation (§6).
 
 ### 4.3 Web Hub & Service Library
 
@@ -359,27 +358,59 @@ An Operator in Presenter Mode can search the Verse Database by reference and pus
 - Dismissing the passage returns the projector to the current Deck slide; the Deck and Weekly Data Payload are unmodified.
 - Requires Presenter Mode (available from Phase 5); Scripture Display itself ships in Phase 6.
 
-### 4.10 Artifact Registry & Template Authoring *(delivered 2026-07-26; retrospectively specified 2026-07-29)*
+### 4.10 Artifact Registry & Template Authoring *(FR-20 delivered 2026-07-26, specified 2026-07-29; FR-21 committed 2026-07-30)*
 
-**Description:** Slide layout is owned by a registry of Artifact templates rather than by code. An Administrator edits a template's positioned elements in a constrained canvas editor, and the change applies to every downstream surface — PPTX and Web Slideshow alike — without a deploy. This section was written **after** the capability shipped, by Correct Course 2026-07-29 (`../../sprint-change-proposal-2026-07-29.md`): the subsystem had no requirement in this document while `epics.md` declared *"PRD FR numbers are authoritative."* Structural invariants were already recorded in the architecture spine (then the Epic 16 child spine, folded into `architecture/architecture-bic-pptx-workflow-2026-07-10/ARCHITECTURE-SPINE.md` on 2026-07-30 as `AD-11`..`AD-15`); the contract is in `../../../specs/spec-slide-artifact-model/` and `../../../implementation-artifacts/spec-16-2-artifact-pipeline-completion.md`.
+**Description:** Slide layout — and, with FR-21, slide **order** — is owned by the Artifact Registry rather than by code. An Admin edits an Artifact Template's positioned elements in a constrained canvas editor, and the change applies to both renderers, PPTX and Web Slideshow alike, without a deploy.
+
+**The two halves sit at opposite ends of their code, and that gap is the difference in their risk.** FR-20 **shipped before it was specified** — written retrospectively by Correct Course 2026-07-29 (`../../sprint-change-proposal-2026-07-29.md`), because the subsystem had no requirement here while `epics.md` declared *"PRD FR numbers are authoritative."* FR-21 is the reverse: **specified before any of its code exists.** Architecture: `AD-11`..`AD-15` govern FR-20 and are adopted, `AD-16`..`AD-22` govern FR-21 and are all `[TARGET]`. Contracts: `../../../specs/spec-slide-artifact-model/` and `../../../specs/spec-artifact-registry-authoring/`.
 
 **Functional Requirements:**
 
 #### FR-20: Author slide layouts at runtime through an Artifact Registry
-An Administrator can change how any Slide Type is laid out — element position, size, and content binding — through a registry-backed canvas editor, and the change takes effect on the next generated Deck and on the Web Slideshow without a code change. Realizes a maintainability need (§9: one maintainer, few moving parts), not a user journey.
+*Stated as it now stands. What FR-21 changed is recorded once, after the consequences — Stories 16.1–16.5 cite the original wording and need the trail.*
+
+An Admin can change how any Slide Type is laid out — element position, size, and content binding — through a registry-backed canvas editor, and the change takes effect on the next generated Deck and on the Web Slideshow without a code change. Realizes a maintainability need (§9: one maintainer, few moving parts), not a user journey.
 
 **Consequences (testable):**
-- Layouts live in a SQLite-backed registry seeded from validated JSON; editing a template changes both PPTX and Web Slideshow output with no code deploy.
+- Layouts live in a SQLite-backed registry seeded from validated JSON; editing an Artifact Template changes both PPTX and Web Slideshow output with no code deploy.
 - `buildSlidePlan` emits `ArtifactInstance[]` with placeholders resolved from the Weekly Data Payload; PPTX and Web Slideshow render from the same positioned elements — no per-surface layout branch.
-- An Administrator can edit an existing template on a constrained canvas, and can add or delete text boxes and shapes they authored themselves.
-- Seeded element ids and any element marked `required` are immutable: the save API rejects their removal or rename with 400, and read-only base types (`FullScreenImage`, `SongSet`, `Announcement`) expose no add/delete affordance at all.
-- A template can be restored to its seeded definition.
+- An Admin can edit an existing template on a constrained canvas, and can add or delete text boxes and shapes they authored themselves.
+- Seeded element ids and any element marked `required` are immutable: the save API rejects their removal or rename with 400. An entry whose kind does not permit free composition exposes no element add/delete affordance.
+- An entry that came from the shipped defaults can be restored to that definition. One an Admin created has nothing to restore and offers no restore at all, so two entries side by side in one list will offer different actions — and the authoring surface has to be honest about why.
 - **Boundary — this is not per-church configurability** (§5 non-goal). The registry is one global template set for BIC's single established deck, editable by an Admin. It changes *who owns layout*, not how many workflows the product supports.
 - **FR-4, FR-5 and FR-6 obligations are unchanged.** NFR-3 readability remains the binding constraint on lyric slides; moving layout into data does not relax it. A registry edit that produces an unreadable lyric slide violates NFR-3 exactly as a code change would.
 
-**Feature-specific NFRs:**
-- Because layout is now data, the seeded registry is a correctness surface: every declared placeholder must bind to exactly one element and every planner template id must be present. A conformance test for this is tracked as an open action item in `sprint-status.yaml`.
-- Seeding inserts **missing** template ids only. An existing deployment therefore keeps its old rows when a seeded template changes — the migration is an operational step, not an automatic one.
+**What FR-21 changed in FR-20** — recorded once, because five inline caveats made the requirement unreadable while Stories 16.1–16.5 still need the trail:
+
+| FR-20 originally promised | As FR-21 makes it |
+| --- | --- |
+| An edit changes every Service | An edit reaches the **live** Registry; a Service created earlier keeps its Snapshot until Sync Artifact |
+| Free canvas composition on any editable template | Free canvas belongs to the **General** kind alone |
+| `FullScreenImage`, `SongSet`, `Announcement` are the read-only categories | `FullScreenImage` ceases to exist — it becomes an **Announcement** entry; a **SongSet** entry gains a bounded configuration surface (backgrounds, font style and size), which is not element authoring |
+| Any template can be restored to its seed | Only entries that came from the shipped defaults have one to restore |
+| *(feature NFR)* Seeding inserts missing template ids; a changed default is migrated by hand | **NFR-9** — authored structure is what survives; the old statement described behavior FR-21 removes |
+
+**Feature-specific NFRs** now carry ids in §10: **NFR-8** (the Registry is a correctness surface) and **NFR-9** (authored structure is durable).
+
+#### FR-21: Author the Deck's ordered structure in the Artifact Registry
+An Admin can define **which slides the Deck contains and in what order** by editing the Artifact Registry, and a Service holds its own copy of that structure from the moment it is created. Extends FR-20 from *how a slide is laid out* to *which slides exist and in what sequence*. Realizes the same maintainability need as FR-20 (§9) plus a reviewer-protection need that FR-20 did not have: a Service already reviewed must not change underneath its Reviewer.
+
+**Consequences (testable):**
+- The ordered Registry is the source of which slides exist and in what order. A liturgical change — which songs are announced with a title slide, which fixed responses appear, where a divider sits — is a Registry edit, not a code change and not a deploy.
+- An Admin can add, delete, rename and reorder entries. Changes take effect on an explicit Save; there is no autosave. **A deleted entry stays deleted** — no restart, redeploy, or default-content update brings it back.
+- Every entry is exactly one of three **Slide Kinds**, and the kind fixes what may be authored on it: **General** — compose freely (background, inserted images, text and text areas, drag and resize, font colour, size and style); **SongSet** — a bounded configuration surface only (a background for the title layout, a background for the lyric layout, font style and size), never a free canvas; **Announcement** — nothing to author, its content is the Announcement List.
+- Every entry is presented as `[kind] label`, and no surface widens the authority its kind allows.
+- Placeholders come from the **Placeholder Catalog** and the authoring UI cannot invent one; adding a catalog entry is a development change. The same catalog entry may appear on several General slides with different styling, and each is filled from the Service's Weekly Data Payload.
+- **The Registry holds structure, never the week's content.** Weekly values reach a slide only through the Weekly Data Payload (FR-1, FR-11) and announcement images only through the Announcement List (FR-3). Typing a family's name or a prayer request directly onto a canvas is outside what this capability is for, and the constraint is deliberate: content entered as layout would sit in the Registry for every future week instead of in the Service that owns it.
+- The four **SongSet Slots** — Bible Talk opening/closing, Divine Service opening/closing — each receive one SDAH Number from the Service's own data. A Slot's identity is fixed by the system and is not editable; reordering entries changes the presented sequence without rebinding any hymn. A fifth slot is a development change, not an Admin's. **A hymn in the week's data that no Slot claims is surfaced to the Reviewer, never silently dropped and never fatal** (NFR-5).
+- One **Announcement** entry expands to one full-bleed slide per image in the Announcement List, in list order. Which images those are stays FR-3's business, not the Registry's, so this week's flyers can still change after the structure is fixed.
+- **Creating a Service fixes its structure.** The Service takes a Service Registry Snapshot and renders from it; a later Registry edit does not reach it. An Admin brings it up to date with **Sync Artifact**, which replaces the structure and leaves every value the operator entered untouched. An Operator can see that their Service is behind and ask for a sync; performing one is an Admin action. *(What the Operator sees is a UX decision this document does not make — `EXPERIENCE.md` owns it and records that "deliberately nothing" is one of the permitted answers. The requirement here is the constraint on that decision: whatever it chooses, an Operator must never be offered a control they will be refused.)*
+- **A Service that predates this capability keeps working.** It has no Snapshot, so it renders from its stored data plus the current live Registry until someone Syncs it once, which is what gives it one. This is a one-way path *into* the model, not a second mode inside it: every Service created afterwards has a Snapshot from the start.
+- A Service is not required to reproduce an older Deck after a structural change. What is preserved is the Service's entered data — the durable record §5 already names — not the ability to re-render last month's layout.
+- **Boundary — this is authoring-time ordering, not live presentation control.** §5's non-goal stands unchanged: the Deck is still linear and advanced normally, with no re-ordering or slide-jumping during a service, and no layout editing from the presentation surface while a service is running.
+- **Boundary — still not per-church configurability** (§5). Ordering and creating entries widens what an Admin owns; it does not widen how many church workflows the product serves.
+- **FR-4, FR-5, FR-6 and NFR-3 continue to bind.** The shipped starting Registry produces the Deck the Blueprint describes (NFR-8), and a Registry edit that makes a lyric slide unreadable fails NFR-3 exactly as a code change would.
+- **The three fixed liturgical songs are authored entirely by hand, and their readability is the Admin's own judgement** *(decided by the owner, 2026-07-30)*. The two intercessory standing responses and the closing *"We Have This Hope"* become General entries whose lyric text, page count, and line breaks are all set manually. They do **not** pass FR-5's verse/Reff splitting, and the authoring surface carries **no** automated readability check — deliberately, on both counts. NFR-3 is met by the Admin reading the pages they just authored, on the surface that will project them. Two consequences are accepted rather than mitigated: a later correction to the hymnal corpus does not reach these three songs, and a future edit to one of these pages has the same human check and nothing else standing behind it.
 
 ## 5. Non-Goals (Explicit)
 
@@ -396,43 +427,17 @@ An Administrator can change how any Slide Type is laid out — element position,
 
 ## 6. Delivery Phases
 
-*Scope is sequenced for immediate usable value. **Phase 1 is the MVP and the only committed phase** — the smallest slice that replaces the weekly manual rebuild end to end and is worth using on its own. **Phases 2–6 are nice-to-have**: specified now, built in order only if Phase 1 proves genuinely useful in weekly service. All FRs are specified in §4; this section assigns them to phases.*
+*Scope was sequenced for immediate usable value: Phase 1 is the MVP that replaces the weekly manual rebuild end to end, and Phases 2–6 were specified as increments contingent on it proving useful. **All six have since shipped, and FR-21 was committed outside the plan** — the decisions that changed this are in the decision record at the end of this section. All FRs are specified in §4; this section assigns them to phases.*
 
 ### Phase 1 pre-requisites (go/no-go spikes, before build)
 
-These validate the load-bearing dependencies and assumptions before any generator work; each is a go/no-go gate:
-- **Hymnal Database** — acquire it and validate structure (title + clean verse/refrain blocks), coverage, and numbering; FR-5 readability splitting depends on it (§11).
-- **picoclaw** — confirm the openclaw-type agent can be customized to the intake/readback/image-binding spec (FR-1, §11).
-- **Font strategy** — prove the chosen freely-licensed font either embeds cleanly headless or renders on a clean machine with the standardized font installed (FR-14, §11).
-- **Fidelity sign-off** — generate a sample rebuilt slide set (song title, lyric, sermon, family/youth) and get explicit sign-off from the church/Bimo that the look is acceptable (§4.2).
-- **Rundown corpus** — gather 5–10 historical Rundowns and decks to measure real format variance before locking parse rules, so the parser is not fit to a single sample (§4.1, §10).
+Five go/no-go gates on the load-bearing dependencies, each with its state:
 
-### Pre-requisite spike decision (recorded 2026-07-29)
-
-Three of the five gates above were never recorded as run: font proven on a clean
-machine, church fidelity sign-off on a sample rebuilt slide set, and the 5-10
-historical Rundown corpus.
-
-**Decision (owner, 2026-07-29): the two gates requiring the church are waived and
-will not be sought.** Fidelity sign-off and the Rundown corpus are dropped as
-blocking pre-requisites.
-
-The consequences are recorded rather than argued, because they are now carried
-risks rather than open questions:
-
-- **Fidelity is unvalidated by the people who will see it.** The pressure test
-  rated this an *adoption* risk, not a technical one: a deck can be entirely
-  correct and still read as "not our deck" on the worship screen. Nothing in this
-  repository can detect that. The compensating control is the pre-launch projector
-  inspection tracked in `sprint-status.yaml` — one person looking, instead of the
-  church signing off.
-- **The parser is fit to a single sample.** `tests/fixtures/sample-rundown.txt` is
-  one rundown. NFR-5 requires tolerating real format variance and failing visibly;
-  without a corpus, "real variance" is unmeasured, so the first unfamiliar rundown
-  is where it gets measured. NFR-5's unmapped-input surface is what limits the cost
-  of that, and it has no UX owner yet (readiness report F4-5).
-
-The font gate is technical and stays open; it belongs to the maintainer.
+- **Hymnal Database** — acquire it and validate structure (title + clean verse/refrain blocks), coverage, and numbering; FR-5 readability splitting depends on it (§11). **Run.**
+- **picoclaw** — confirm the openclaw-type agent can be customized to the intake/readback/image-binding spec (FR-1, §11). **Run.**
+- **Font strategy** — prove the chosen freely-licensed font either embeds cleanly headless or renders on a clean machine with the standardized font installed (FR-14, NFR-7). **Still open, and the only one** — technical, and the maintainer's.
+- **Fidelity sign-off** — generate a sample rebuilt slide set and get explicit sign-off from the church that the look is acceptable (§4.2). **Waived** 2026-07-29.
+- **Rundown corpus** — gather 5–10 historical Rundowns to measure real format variance before locking parse rules (§4.1, NFR-5). **Waived** 2026-07-29.
 
 ### Phase 1 — Generate, Edit & Download *(MVP — the target)*
 Rundown in via Telegram → correct offline deck out, editable, behind a login. No correction-via-Telegram workflow yet; fixes happen in the web form (a full re-send of the Rundown for the same date also updates the Service — FR-1).
@@ -468,26 +473,6 @@ Rundown in via Telegram → correct offline deck out, editable, behind a login. 
 ### Phase 6 — Scripture Display *(nice-to-have)*
 - On-demand KJV scripture lookup/display inside Presenter Mode: **FR-19**
 
-### Phase-gate decision (recorded 2026-07-29)
-
-This section makes Phases 2–6 contingent — *"built in order only if Phase 1 proves genuinely useful in weekly service"* — and **SM-3** (§7) makes that contingency measurable: at least a full quarter of consecutive weekly use, with a leading continue/stop gate at ~week 4. Phases 2–6 were nonetheless all built and shipped (Epics 8–12) without that gate being evaluated, and no artifact recorded whether it had been passed, waived, or skipped. The gap was found by the 2026-07-29 implementation-readiness assessment.
-
-**Decision (owner, 2026-07-29): the SM-3 build-order gate is waived retroactively for Phases 2–6.** Rationale as given by the owner: shipping with the full feature set is preferred to holding specified, working capability behind a 13-week observation window on a solo-maintainer project where the need was already evident in weekly use.
-
-**What this waiver does not cover:**
-
-- **SM-3 remains a live product metric.** Sustained weekly use is still the measure of whether this system works. The waiver removes it as a *gate on build order*, not as a signal.
-- **The counter-metrics still bind.** SM-C1 (don't trade fidelity for speed), SM-C2 (don't over-delete), SM-C3 (don't re-centralize on one person) apply to all shipped phases.
-- **The five Phase-1 pre-requisite spikes above are a separate matter and are not waived here.** Three remain unrecorded: font proven on a clean machine, church fidelity sign-off on a sample rebuilt slide set, and the 5–10 historical Rundown corpus. Two of those are the church's judgment, not the developer's.
-- **Future capability records its own decision, at the time it is taken.** Any new phase or major capability writes its go/no-go here when decided, rather than being reconstructed afterwards. That is the practice this entry exists to establish.
-
-### Delivered outside the original phase plan
-
-Capability that shipped without a phase assignment in this section, recorded here for traceability:
-
-- **FR-20 — Artifact Registry & template authoring** (§4.10), delivered 2026-07-26 as Epic 16 and retrospectively specified 2026-07-29. It is not a phase because it is not a user-facing increment; it changes who owns slide layout.
-- **Epic 13** (LiveServer Docker/tunnel deploy, shared header/profile/dashboard search, hub-local announcement uploads) and **Epic 15** (lyric formatting as continuous text, chorus after every verse, song-title skips in prayer flow). Epic 13's planning drift was reconciled by Correct Course 2026-07-19. Epic 15 is best read as an FR-5 refinement, with one caveat worth stating: FR-5 says a Reff *"repeats after each verse"* and Epic 15 implemented chorus injection after every verse — consistent, but the behavior was decided in a SPEC rather than here.
-
 ### Explicitly out of the phased plan (deferred to the vision)
 - Multiple churches / configurable per-church workflows.
 - Contemporary or non-hymnal songs.
@@ -496,6 +481,31 @@ Capability that shipped without a phase assignment in this section, recorded her
 - Printing participant roles the deck doesn't already show. `[NOTE FOR PM]` Revisit if the church later wants more roles on slides.
 - Multiple or elaborate slide transitions.
 - Live presentation control / re-ordering.
+
+### Decision record
+
+*Four entries govern what this section says above. They sit here rather than interleaved with the phases, because a reader asking "what are the phases?" should not read 800 words of rationale to find 400 words of scope. `.memlog.md` is the canonical audit trail; what follows is only the part that still binds.*
+
+**The two church-dependent spikes are waived** *(owner, 2026-07-29)*. Fidelity sign-off and the Rundown corpus are dropped and will not be sought. Two carried risks follow, recorded rather than argued:
+
+- **Fidelity is unvalidated by the people who will see it.** A deck can be entirely correct and still read as "not our deck" on the worship screen; nothing in this repository can detect that. The compensating control is one person at the pre-launch projector inspection instead of the church signing off.
+- **The parser is fit to a single sample** (`tests/fixtures/sample-rundown.txt`). NFR-5's "real variance" is therefore unmeasured, and the first unfamiliar rundown is where it gets measured. NFR-5's unmapped-input surface is what limits the cost of that.
+
+**The SM-3 build-order gate is waived retroactively for Phases 2–6** *(owner, 2026-07-29)*. Those phases were contingent on Phase 1 proving useful, and **SM-3** made that measurable — a full quarter of weekly use, with a continue/stop gate at ~week 4. All five shipped as Epics 8–12 without the gate being evaluated, and no artifact recorded whether it had been passed, waived or skipped. Rationale as given: shipping the full feature set beats holding working capability behind a 13-week window on a solo-maintainer project where the need was already evident. **Not covered:**
+
+- SM-3 remains a live product metric — the waiver removes it as a gate on build order, not as a signal.
+- The counter-metrics SM-C1/C2/C3 still bind on every shipped phase.
+- The pre-requisite spikes above are a separate matter this waiver does not reach.
+
+**FR-21 / Epic 20 is committed** *(owner, 2026-07-30)*. `specs/spec-artifact-registry-authoring/SPEC.md` was adopted whole as the reference for development and eight story keys already sit in `sprint-status.yaml`, so recording it as *specified but contingent* would have put this document at odds with the tracker — the direction that caused the 2026-07-29 Correct Course. Not a numbered phase, for the same reason FR-20 is not: it changes who owns the Deck's structure rather than giving an operator a new weekly increment. **Not covered:**
+
+- The font gate stays open. Committing FR-21 does not close a Phase-1 pre-requisite.
+- Who checks a hand-authored lyric page was settled *separately* the same day (§8), and is recorded as its own decision because it is one.
+- FR-21's vocabulary change is a cheap total replacement **only until first deploy** (§9 records that no production data exists as of 2026-07-30). After that, the same change must migrate live data.
+
+**This is the practice, not just the record.** Any future phase or major capability writes its go/no-go here **when the decision is taken**, never reconstructed afterwards. The first two entries above had to be reconstructed a day late by a readiness assessment; the third was written on the day. That difference is why this heading exists.
+
+**Delivered outside the plan**, recorded for traceability: **FR-20** (§4.10), shipped 2026-07-26 as Epic 16 and specified retrospectively; **Epic 13** (LiveServer Docker/tunnel deploy, shared header/profile/dashboard search, hub-local announcement uploads), whose planning drift was reconciled by Correct Course 2026-07-19; and **Epic 15** (lyric formatting as continuous text, chorus after every verse, song-title skips in prayer flow), best read as an FR-5 refinement — with the caveat that FR-5 says a Reff *"repeats after each verse"* and Epic 15 implemented exactly that, but the behavior was decided in a SPEC rather than here.
 
 ## 7. Success Metrics
 
@@ -511,6 +521,7 @@ Capability that shipped without a phase assignment in this section, recorded her
 - **SM-5: Late changes become routine.** A last-minute song swap is edited, regenerated, and re-downloaded in ≤ 5 minutes. Validates FR-11, FR-13 *(Phase 1)*; FR-12 extends it to Telegram *(Phase 3)*.
 - **SM-6: The Sabbath runs offline without incident.** The presentation plays reliably regardless of venue internet. Validates FR-14 *(Phase 1)*; FR-15/FR-16 in later phases.
 - **SM-7: Storage stays bounded.** *(Phase 4)* Retention auto-cleanup keeps stored generated-PPTX volume within budget over a sustained run. Validates FR-10b.
+- **SM-8: Layout and structure change without a deploy.** An Admin can change a slide's appearance — and, once FR-21 lands, which slides the Deck contains and in what order — and the change reaches the next Sabbath's Deck with no code change, no release, and no developer involved. Validates FR-20 *(shipped)* and FR-21. Added 2026-07-30: both requirements claim to move ownership of the Deck away from code, and until now nothing in this section measured whether that actually happened. The counter-metric is SM-C1 — a structure an Admin can change is also one they can break, and the fidelity bar does not move because authoring got easier.
 
 **Counter-metrics (do not optimize)**
 - **SM-C1: Don't trade fidelity for speed.** Faster generation must not come at the cost of visible slide errors (wrong/garbled lyrics, cramped unreadable lyric slides, missing announcements, broken layout). Counterbalances SM-1/SM-5 — a fast deck that's wrong is worse than a slower correct one.
@@ -527,6 +538,7 @@ The revision rounds resolved every substantive question from the maintainer's di
 - **Theme verse** = fixed template slide showing John 4:23 (Slide 26); **Verse Reading** = sender-supplied text, KJV Verse Database is never used for Deck slides (FR-1/FR-6).
 - **Phase-1 review surface** = Run-Sheet + editable data + downloaded PPTX; slide-level visual preview is a Phase-2 addition, not an MVP gate (FR-9).
 - **Roles** = Admin + Operator only; Events Department members are provisioned as Operators (FR-18).
+- **Readability of the three hand-authored liturgical lyric pages** *(decided 2026-07-30)* = the Admin's own eye, at authoring time. Those three songs are input manually and completely — text, page count, line breaks — and neither FR-5's splitter nor any automated check applies to them. Raised as a blocker when FR-21 was written, because NFR-3 kept binding while its mechanism did not; resolved the same day by choosing the manual path deliberately rather than by omission (FR-21, NFR-3).
 
 **Deferred by choice (revisit when real usage informs them — not needed for Phase 1):**
 1. **Finer Events-Department permissions** — a possible third Role once weekly usage shows what it should cover (FR-18).
@@ -543,30 +555,61 @@ The revision rounds resolved every substantive question from the maintainer's di
 
 ## 10. Cross-Cutting NFRs
 
-*Stable ids **NFR-1 … NFR-7** were added 2026-07-29 by Correct Course. Until then these were unnumbered prose, so no story or test could cite one and NFR coverage could not be traced the way FR coverage can — story 6.6 cited an `NFR-4` that resolved to nothing. **No wording changed**: the ids follow the order the bullets already had. NFR-7 was lifted here from §4.2/§11, where the font requirement lived split across two sections, so all seven are citable from one place.*
+*Ids were retrofitted — **NFR-1…NFR-7** on 2026-07-29, **NFR-8…NFR-9** on 2026-07-30 — both times because unnumbered prose cannot be cited by a story or a test, and story 6.6 once cited an `NFR-4` that resolved to nothing. Wording was preserved in every case except **NFR-9**, which is a rewrite: the statement it replaced described seeding behavior FR-21 removes. `.memlog.md` holds the full record.*
+
 
 - **NFR-1 — Offline reliability (load-bearing).** A downloaded PPTX must present a full Service — all slides, images, fonts — with zero network access. This is the guarantee that protects the Sabbath. The Phase-2 Web Slideshow is best-effort offline after its initial online load, scoped to one Service (FR-15).
 - **NFR-2 — Generation performance.** Assembling/regenerating a full ~68-slide Service must fit within the ≤ 5-minute late-change window (SM-5), including PPTX export.
-- **NFR-3 — Readability.** Lyric slides must never be over-full; splitting rules (FR-5) exist so the congregation can read every slide from the pews. *(Binding on FR-20 registry edits too — moving layout into data does not relax this.)*
+- **NFR-3 — Readability.** Lyric slides must never be over-full; splitting rules (FR-5) exist so the congregation can read every slide from the pews. *(Binding on FR-20 and FR-21 registry edits too — moving layout, and then structure, into data does not relax this. For the three liturgical pages FR-21 authors by hand, the splitter does not apply and the Admin's own eye is the named mechanism — decided 2026-07-30, §8.)*
 - **NFR-4 — Headless-safe rendering.** Deck generation runs without a human-driven PowerPoint; fonts and backgrounds must render correctly headless (no reliance on a commercial font or on interactive PowerPoint). Backgrounds may arrive via multiple mechanisms (solid fill, full-bleed image) and all supported paths must render.
 - **NFR-5 — Robust parsing.** picoclaw's Rundown parsing must tolerate the real semi-structured format (honorifics, first-name-only names, markers `》`/`[ ]`, `"-"` empties, `"The Speaker"` references, variable song counts) and **fail visibly, not silently**. Beyond the invalid-hymn flag (FR-2), picoclaw/the API surface **every line or input they could not confidently map**, and every image whose role could not be resolved or that is missing, to the Reviewer — a general "unmapped input" channel, not a hymn-only one. This matters more given Phase 1 has no in-browser slide preview: the visible-flag surface, the sender readback (FR-1), and the downloaded-PPTX spot-check are the safety net.
 - **NFR-6 — Access control.** All Service data and actions require authentication and are gated by Role (FR-18); no public endpoints expose member PII or Services.
 - **NFR-7 — Font licensing and availability.** Fonts are freely-licensed and headless-safe. The generator **embeds** its fonts in the PPTX when headless embedding is feasible; otherwise a **standardized** font is documented and installed on the presentation machine(s). Verified on a *clean* machine — one where the font is not already installed. (Stated in full at §4.2 and §11; consolidated here so it carries an id.)
+- **NFR-8 — The Registry is a correctness surface.** Because layout and structure are data (FR-20, FR-21), a Registry that is internally wrong produces a broken Deck with no code change to blame for it. Two properties must hold, and they are testable without generating a Deck: **every declared placeholder binds to exactly one element**, at any authored state; and **the shipped starting Registry produces every slide the Deck Blueprint names** (§4.2). The second is a property of what the product ships, not a prohibition on the Admin — FR-21 lets them depart from the Blueprint on purpose, and NFR-8 must not be read to forbid the capability FR-21 grants.
+- **NFR-9 — Authored structure is durable.** What an Admin authors — order, kinds, labels, layouts, and the values a bounded surface lets them configure — survives a restart, a redeploy, and any later change to the product's shipped defaults. Authored structure is the Service's own data, not shipped data kept in sync with it: a delete stays deleted, a rename stays renamed, and shipped content returns only when an Admin explicitly asks for it. *(Replaces the pre-2026-07-30 statement that seeding inserts missing template ids only and that a changed default is migrated by hand — behavior FR-21 removes.)*
 
 ## 11. Dependencies
 
-- **Hymnal Database (input, not built here).** The SDA Hymnal lyrics data source, keyed by SDAH Number, provided by the developer. FR-2 depends on it. Its shape (title + structured verses/refrain) drives Song Block rendering.
-- **Verse Database (input, not built here).** The **KJV-only** scripture data source for Scripture Display (§4.9). FR-19 depends on it. Independent of the Hymnal Database; never used for Deck slides.
-- **picoclaw agent.** The openclaw-type agent that parses the Rundown and calls the API; a customized skill is required. Layer 1 of the three-layer system.
+*Defined in §3 and §13; listed here for what each one's absence costs.*
+
+- **Hymnal Database.** FR-2 depends on it, and its shape — title plus structured verses/refrain — is what makes FR-5's Song Block splitting possible at all. Flat lyric text would degrade FR-5 rather than break it.
+- **Verse Database.** FR-19 depends on it. Its absence is survivable: the Presenter says the corpus was never imported rather than returning empty results.
+- **picoclaw agent.** Layer 1 of the three-layer system. It requires a **customized skill** — off-the-shelf will not do, which is why its customizability was a Phase-1 go/no-go gate (§6).
 - **Telegram.** The intake channel where the Events Department already coordinates; the app does not replace it.
 - **OBS (live stream).** The projector/full-screen output (PowerPoint in Phase 1; the Web Slideshow projector output in Phase 5, FR-16) must be capturable by OBS as the live-stream source.
-- **Fonts.** Freely-licensed, headless-safe fonts (Montserrat is already open-licensed; the commercial Cooper BT Light song-title face is replaced with a freely-licensed look-alike), avoiding commercial-font licensing and headless-regeneration risk while closely resembling the current look. **Decision:** the generator **embeds** fonts in the PPTX when feasible; otherwise a **standardized** font is documented and installed on the presentation machine(s). Validated on a clean machine as a Phase-1 pre-requisite (§6).
+- **Fonts.** A dependency because the generator cannot ship the face the current deck uses: Montserrat is already open-licensed, the commercial Cooper BT Light song-title face is not, and it is replaced with a freely-licensed look-alike. The requirement itself is **NFR-7**, stated there and nowhere else. **Its clean-machine proof is the one Phase-1 gate still open** — the other four are run or waived (§6), and FR-14's offline-font consequence cannot be accepted until it closes.
 
 ## 12. Assumptions Index
 
 *Every `[ASSUMPTION]` from the document, surfaced for explicit confirmation:*
 
 - §4.1 — The Events Department sends the Rundown as text and the week's images (in sequence, with a textual description) to the same Telegram chat; picoclaw can access both and binds each image to its role/order from the description (FR-1).
-- §4.2 / §11 — **Decided:** fonts are freely-licensed and embedded, or a standardized font installed on the presentation machine (no commercial-font dependency). The only residual is church **fidelity sign-off** on a sample rebuilt slide set — a Phase-1 pre-requisite (§6), not an open assumption.
+- §4.2 / §11 — **Decided:** fonts are freely-licensed and embedded, or a standardized font installed on the presentation machine (no commercial-font dependency) — NFR-7. The residual is no longer the church fidelity sign-off, which the owner waived on 2026-07-29; it is the **clean-machine proof**, still open (§6).
 - §4.6 / FR-15 — The PPTX remains the hard offline guarantee; the Web Slideshow is best-effort offline after its initial online load, scoped to one Service.
 - §9 — **Decided (owner):** no formal data-retention/consent regime beyond restrict-access-by-Role + manual delete; PII-bearing payload (family/youth names, photos, prayer requests) persists until manually deleted. Risk accepted for v1.
+- §4.10 / FR-21 — **Decided (owner, 2026-07-30):** the three fixed liturgical songs are input manually and completely when the Registry is edited — text, slide count, and line breaks all by hand — and their readability is the Admin's own judgement. No splitter, no automated check. Raised as a blocking question on 2026-07-30, when FR-21 was written, and closed the same day; recorded here because the *absence* of automation for three projected slides is a deliberate choice, not an oversight to be re-litigated later.
+
+## 13. Extended Glossary
+
+*Nouns scoped to one feature or one phase. §3 holds the vocabulary §4 uses throughout; these are defined here and not there, so no noun has two definitions.*
+
+**Artifact Registry vocabulary** *(§4.10 — FR-20, FR-21)*
+
+- **Artifact Template** — One entry in the Artifact Registry: the stored definition of a slide's layout — its positioned elements, their sizes, and what content each is bound to. The unit an Admin edits.
+- **Artifact Registry** — The **ordered** set of Artifact Templates the Deck is built from. Runtime-editable by an Admin without a deploy, and the source of both *what slides exist* and *in what order* (FR-21). Distinct from the Template Skeleton, which is the *content* that repeats weekly; the Registry is *how every slide is laid out and sequenced*.
+- **Slide Kind** — The authoring-authority category of an Artifact Registry entry. Exactly three: **General**, **SongSet**, **Announcement**. The kind fixes what may be authored on the entry and nothing widens it. One Slide Kind can produce several Slide Types — a General entry may be a divider, a sermon slide, or a lyric page — so the two vocabularies describe the same deck along different axes and are always named distinctly.
+- **SongSet Slot** — One of four fixed positions a Song Block can occupy: Bible Talk opening/closing and Divine Service opening/closing. Each Slot receives one SDAH Number from the Service's own data. A Slot's identity is fixed by the system and is never an Admin's to edit or reorder into a different meaning.
+- **Placeholder Catalog** — The closed set of weekly-content placeholders an Admin can insert onto a General entry (sermon speaker, verse reading, family prayer request, and the like). Closed means the authoring UI cannot invent a new one; extending the catalog is a development change.
+- **Service Registry Snapshot** — The copy of the ordered Artifact Registry a Service takes when it is created, and renders from thereafter. It is why a template edit on Friday cannot change a Service that was already reviewed.
+- **Sync Artifact** — The explicit Admin action that replaces a Service's Registry Snapshot with the current live Registry. The only way a later Registry edit reaches an existing Service.
+
+**Presentation surfaces** *(§4.6)*
+
+- **Web Slideshow** *(Phase 2)* — The in-browser full-screen rendering of a Service's Deck; single screen, no presenter view until Phase 5.
+- **Presenter Mode** *(Phase 5)* — Dual-screen presentation: a clean full-screen output (projector, OBS-captured) plus an operator view (current slide, next slide, Run-Sheet, participant list). Provided natively by PowerPoint and replicated by the Web Slideshow in Phase 5.
+
+**Feature-scoped nouns**
+
+- **Announcement Asset** *(§4.1, §4.3)* — A pre-rendered poster/flyer **image** (video is out of scope), uploaded finished (Telegram/picoclaw **or** Web Hub local upload) and inserted into the Deck as-is on its own slide. Occasional, not weekly: many weeks have none beyond recurring items.
+- **Verse Database** *(§4.9)* — A developer-provided **KJV-only** scripture data source powering the Scripture Display feature. Independent of the Hymnal Database and never used for Deck slides.
+- **Retention Policy** *(Phase 4, §4.3)* — An Admin-configured rule (default 2 months) that automatically deletes **only generated Decks (PPTX)** past the retention window. Services, participant text, posters, and all other data persist and are manual-delete only.
