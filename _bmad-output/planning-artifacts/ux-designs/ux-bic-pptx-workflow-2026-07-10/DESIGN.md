@@ -79,6 +79,8 @@ The ~68-slide deck is this product's primary visual output, the subject of FR-5 
 | Slide geometry, fonts, colours, per-element layout | Artifact Registry rows (runtime data), validated by `AD-15` |
 | Which slides exist and in what order | `buildSlidePlan` (AD-7) + the `slide-kinds.md` companion |
 
+Both citations were re-checked against the architecture spine on 2026-07-30 and still say what this table claims. One forward note, so this row is not the next stale citation: under AD-20 and AD-16 — `[TARGET]`, landing with Epic 20 — *which slides exist* becomes ordered registry data that the planner merely applies, and the sequence is read from a per-service snapshot. `buildSlidePlan` stays the single order source (AD-7); what changes is where its sequence comes from. Neither move touches this file's own scope, and [`EXPERIENCE.md`](./EXPERIENCE.md) → *Information Architecture* carries the surface-level consequence.
+
 **What nobody owns: *is this readable from the pews?*** No artifact answers it, and no test in this repository can — every slide assertion is regex over XML text presence, never geometry. The only control is the pre-launch projector inspection carried as an owner action item in `sprint-status.yaml`, which replaced the PRD §6 fidelity sign-off waived on 2026-07-29.
 
 This file invents no minimum type sizes or contrast floors for projected slides: the registry's geometry came from a deck projected in this sanctuary for years, and invented numbers would displace that evidence. A readability standard is a product decision.
@@ -90,6 +92,7 @@ The operator surface is greyscale. Every token in `src/app/globals.css` is `oklc
 - **`destructive`** (`oklch(0.577 0.245 27.325)`, red) is the only chromatic token in the light theme. It carries delete and stale-write-conflict affordances. Because it is the *only* color on the surface, it needs no reinforcement to read as dangerous.
 - **`primary`** is near-black (`oklch(0.205 0 0)`) on near-white. High contrast is functional, not stylistic: the hub is read on a laptop in a poorly lit sanctuary.
 - `chart-1` … `chart-5` exist as shadcn leftovers and are unused — there are no charts in this product.
+- **A second hue ships without a token: Tailwind's `amber`.** Found 2026-07-30 while reconciling against the architecture spine, and stated here because the greyscale claim above is about `globals.css` tokens and would otherwise read as a claim about the rendered product. Six warning affordances across five files use amber utilities directly at five different shades — the date-collision warning (`CreateForm.tsx`), *hymn lookup unavailable* (`HymnNumberAutocomplete.tsx`), the scripture badge (`SlidePreviewList.tsx`), the projector-blanked border, a scripture-lookup error, and the live-transition-override notice (`PresenterOperator.tsx`). So *warning* is already a semantic color in this product, just not a designed one. Open Item 4.
 - A stray `--sidebar-primary: oklch(0.488 0.243 264.376)` (violet) sits in the dark block. It is dead because **nothing consumes it** — there is no sidebar; navigation lives in `Header.tsx`. The cause is disuse, not the absence of a dark theme — that block does render (Open Item 2). If a sidebar were ever added, this token would paint it violet on a surface that has no other hue.
 
 ### Contrast on load-bearing combinations
@@ -144,6 +147,8 @@ Every component below has a behavioral counterpart in `EXPERIENCE.md` → *Compo
 | `SlideView` / `SlidePreviewList` | Renders a slide plan on the web; consumes the hydrated AST. Slide chrome is `slide-surface`; the preview list is a scrollable strip of scaled `slide-surface` instances. |
 | `artifacts/ArtifactSlide` | Renders one Artifact template — geometry, fonts, and colors come from the Registry, **not** from this file. Nothing in DESIGN.md governs its interior. |
 | `admin/ArtifactEditor` | Fabric.js canvas editor at fixed 16:9. Editor chrome uses this file's tokens; the canvas interior does not. |
+| `admin/TransitionSettings` | A `card` on `/admin` holding a native `select` plus a `button`. No custom control and no iconography; the hint and the save confirmation are `muted-foreground` body text. |
+| Presenter transition control | A native `select` in the presenter's dark control bar, carrying an inline **Live only · not saved** badge — `border` outline on `muted`, no fill. When the live style differs from the saved one the surface adds a warning line in un-tokenized amber (*Open Item 4*), on the reasoning that greyscale alone cannot distinguish "this is temporary" from ordinary secondary text. |
 | `HymnNumberAutocomplete` | `popover` at `{rounded.md}` anchored to a number input; results are plain rows, no iconography. |
 | `ImageUploadField` / `ImageFieldPreview` | Upload control plus a `{rounded.md}` thumbnail. A rejected reference shows `destructive` text, not a `destructive` fill. |
 | `sonner` toasts | shadcn default, unmodified. Bottom-corner, greyscale, `destructive` only for failures. |
@@ -176,4 +181,6 @@ Items this file owns, most severe first. Behavioral gaps live in [`EXPERIENCE.md
 
 3. **`metadata` is still create-next-app boilerplate.** *Owner: Story 17.3.* `src/app/layout.tsx:16-17` exports `title: "Create Next App"`, `description: "Generated by create next app"` — re-confirmed in the source on 2026-07-30, unchanged. The browser tab and every bookmark of the hub read *Create Next App*. One-line fix; wording is product-owned.
 
-4. **`chart-*` and `sidebar-*` tokens are dead.** *No owner, deliberately.* Harmless, and they imply structure this product does not have. Recorded so a future reader does not mistake them for a plan; not worth a story until someone touches the file anyway.
+4. **`amber` is an undesigned second hue.** *No owner yet — this needs a product decision before a story is worth writing.* Six warning affordances use Tailwind amber utilities at five shades with no token behind them (see *Colors*), while this file's own *Avoid* list says the palette has no color to spare for encoding state. One of the two has to move: either *warning* becomes a real token pair alongside `destructive` and the six sites adopt it, or the affordances re-express themselves in greyscale and the utilities go. Deciding by default is how the inconsistency became six sites in the first place. **None of the six shades has been contrast-measured**, and two of them sit in the presenter — the same surface Open Item 2 already flags as never measured.
+
+5. **`chart-*` and `sidebar-*` tokens are dead.** *No owner, deliberately.* Harmless, and they imply structure this product does not have. Recorded so a future reader does not mistake them for a plan; not worth a story until someone touches the file anyway.

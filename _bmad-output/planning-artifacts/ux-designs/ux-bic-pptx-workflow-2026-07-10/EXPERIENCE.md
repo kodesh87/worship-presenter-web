@@ -16,6 +16,8 @@ design_reference: ./DESIGN.md
 >
 > **Where a state is designed but not shipped, this file now says so inline** — marked **⚠ designed, not shipped**. The 2026-07-29 version described four such states in the present tense and deferred verification to the readiness assessment; that assessment ran without answering the question, and one of the four turned out not to exist.
 >
+> **Reconciled against the architecture spine on 2026-07-30.** Structural invariants are the spine's (`AD-1`..`AD-23`) and are cited here, never restated. Everything this file carries from AD-16, AD-19 and AD-22 is `[TARGET]` in that spine — decided and unbuilt — so it appears under the marker above; the spine's own status tags are the authority on which is which. Every `AD-n` in this file was re-checked against the spine's *AD map* on that date, which is the translation table for the nine decisions it renumbered.
+>
 > **Glossary:** the operator-facing term is **run sheet** (two words). "Order of service" is the congregation's term and does not appear in the UI.
 
 ## Foundation
@@ -43,12 +45,34 @@ Ten surfaces, enumerated from `src/app/**/page.tsx`. Route → purpose → who o
 | Presenter | `/services/[id]/present` | Operator control view with notes + KJV lookup | PRD FR-16 / FR-19 |
 | Projector | `/services/[id]/present/projector` | Audience output, driven by the presenter | AD-10 |
 | Announcements | `/announcements` | Persistent flyer list; hub-local upload | PRD FR-3 |
-| Settings (admin) | `/admin` | Per-person Admin/Operator accounts | PRD FR-18 |
-| Artifact Registry (admin) | `/admin/artifacts` | Canvas editor for global slide templates | `spec-artifact-registry-authoring` (`slide-kinds.md`) |
+| Settings (admin) | `/admin` | Per-person Admin/Operator accounts, plus the app-wide slide-transition style | PRD FR-18, AD-23 |
+| Artifact Registry (admin) | `/admin/artifacts` | Registry authoring — three surfaces in one route, see below | `spec-artifact-registry-authoring` (`slide-kinds.md`) |
 
 Navigation exposes only three of these (`Dashboard` / `Announcements` / `Settings` in `Header`) plus the profile dropdown. Everything else is reached contextually from a service card or from Settings. `/admin` and `/admin/artifacts` are invisible to an operator-role account — the gate returns 403 rather than hiding a link that would then 403.
 
 Every surface above is landed on by a journey in *Key Flows*.
+
+### Inside `/admin/artifacts`: three surfaces, not one
+
+The route is one page and three authoring surfaces, and which one an administrator gets is fixed by the row's kind — no surface widens that authority (AD-22). What a save here reaches is the **live registry**; "global slide templates" is the description AD-16 retires.
+
+| Authoring surface | Applies to | What the administrator may do | Status |
+| --- | --- | --- | --- |
+| Ordered registry list | every row | Add, delete, rename, reorder. The order of this list is the order of the deck (CAP-2; AD-17 for a delete that stays deleted through a restart) | **⚠ designed, not shipped.** *Owner: Story 20.3.* `artifact_templates` has no ordering column — the list is sorted by label — and `/api/admin/artifacts` carries no create, delete or reorder verb |
+| Free canvas | `general` rows **only** | Compose freely, including Placeholder Catalog keys inserted onto the slide (CAP-3, CAP-4; AD-22 for *General only*, AD-19 for the catalog's key set) | **Partly shipped.** The canvas itself ships (AD-13, AD-15). *General only* and the catalog do not: **⚠** *Owners: Story 20.4, Story 20.5.* Today `READ_ONLY_BASE_TYPES` refuses every administrator edit to a `song-set` or `announcement` row instead |
+| Bounded configuration | `songset-*` rows | Exactly two background images — one for the title layout, one for the lyric layout that verse and refrain share — plus font style and font size. **No canvas**, and the row's placeholder set and slot binding are not the administrator's to touch (AD-22, AD-19) | **⚠ designed, not shipped.** *Owner: Story 20.7* |
+
+An `announcement` row is authored nowhere on this route: its membership is the Announcements master list at `/announcements` (CAP-7).
+
+### Sub-surfaces inside those routes
+
+Three surfaces carry their own behavior but no route of their own, so they are named here rather than left to be discovered inside a flow.
+
+| Sub-surface | Lives in | Role | Status |
+| --- | --- | --- | --- |
+| Slide transition (admin) | `/admin` | Picks the one app-wide transition style. Applied identically in the generated PPTX and on the projector (AD-23). Landed on by Flow 8 | **Shipped** (`admin/TransitionSettings.tsx` → `PUT /api/admin/settings`) |
+| Live transition override | `/services/[id]/present` | Lets the presenter change the style for the live browser session only. Travels to the projector over AD-10's channel; changes nothing persisted, and a PPTX already downloaded keeps the style it was built with (AD-23). Landed on by Flow 8 | **Shipped** (`PresenterOperator.tsx`, badged *Live only · not saved*) |
+| Four per-slot hymnal bindings | `/services/new` and the run sheet edit form | Binds a hymnal number to each of the four SongSet slot identities — `songset-bt-open`, `songset-bt-close`, `songset-ds-open`, `songset-ds-close`. The slot identity **is** the binding key and is never administrator-editable (AD-19, CAP-8). Landed on by Flow 1 step 4 and Flow 2 step 3 | **⚠ designed, not shipped.** *Owner: Story 20.7.* The four identities appear nowhere in `src/`; today these are the four positional fields `song1Number`…`song4Number`, which AD-19 replaces rather than aliases |
 
 ## Voice and Tone
 
@@ -73,6 +97,8 @@ Behavioral contracts only; visual specs live in [`DESIGN.md`](./DESIGN.md) → *
 | `artifacts/ArtifactSlide` | Renders one Artifact template from registry data. Purely presentational: no lookups, no interaction, no state. Identical output on web and in the PPTX path, because both consume the same hydrated AST (AD-12). |
 | `slide-surface` | Fixed 16:9 region. Content may be clipped at its edges deliberately, preserving source-deck geometry (AD-15); clipping is never treated as an error to correct. |
 | `admin/ArtifactEditor` | Fabric.js owns canvas state; React reads it only on explicit **Save** (AD-13). Consequence for the operator: **unsaved canvas changes are invisible to the app** — navigating away loses them silently. |
+| `admin/TransitionSettings` | Selects the one app-wide transition style and saves it explicitly (AD-23). Its confirmation must say *where* the change lands and when: new PPTX downloads and the projector, from the next download onward — never implying that decks already downloaded were restyled. |
+| Presenter transition control | Overrides the style for the live browser session and broadcasts it to the projector immediately (AD-23, AD-10). **It must read as live-only at a glance**, not on hover: the control is badged and, whenever the live style differs from the saved one, the surface says so in words. An operator who believed this had changed the deck would stop asking for the saved setting to be fixed, and their next download would contradict what they just watched. |
 | `dialog` / `popover` | Confirmations (delete) and lookups (hymn search). Never carry primary workflow; anything essential stays on the page. |
 | `sonner` toasts | Transient confirmations only. Never the sole channel for an error that blocks work. |
 | `LogoutButton` | Revokes the session server-side, not just client cookie state (AD-5). |
@@ -97,11 +123,11 @@ Per-surface states:
 | --- | --- |
 | `/` | **Empty** — first run, no services yet. **Filtered-empty** — search matches nothing; the filter must remain visible and clearable. |
 | `/services/new` | **Validation error** — per-field rules in `form-fields.md`; the form retains every entered value and names the offending field. **In-flight submit** — the submit control disables so a double-submit cannot create two services. **Unresolved hymn** — a number the corpus does not know is surfaced at entry, not at generation. |
-| `/services/[id]` | **Stale write** — as in the cross-cutting table. **Delete confirmation** — destructive and irreversible, so it is a `dialog`, never an inline control. |
+| `/services/[id]` | **Stale write** — as in the cross-cutting table. **Delete confirmation** — destructive and irreversible, so it is a `dialog`, never an inline control. **⚠ Stale snapshot — designed, not shipped.** *Owner: Story 20.8.* Once a service carries its own cloned registry snapshot (AD-16), the live registry can move on without it, so a reviewed service can be out of date with respect to what an administrator has since authored. AD-16 makes the *state* real; **whether and how an operator sees it is undecided, and this file owns that call** — see Open Item 5. |
 | `/services/[id]/slideshow` | **Plan cannot be built** — a `buildSlidePlan` throw renders a `destructive`-bordered card naming the failure, not a blank screen. *An "empty plan" state is deliberately absent:* `slide-plan.ts:253` pushes the `welcome` leaf unconditionally at the head of every plan, so zero slides cannot occur. |
-| `/services/[id]/present` | Four states — see the presenter table below. |
+| `/services/[id]/present` | Five states — see the presenter table below. |
 | `/announcements` | **Empty** — no flyers yet. **Upload rejected** — an image failing the AD-8 rules states which rule it failed, not a generic error. |
-| `/admin` | **Last admin** — shipped as a refusal, not a warning: `src/lib/auth/accounts.ts:158` refuses the role change, `:195` refuses the delete. |
+| `/admin` | **Last admin** — shipped as a refusal, not a warning: `src/lib/auth/accounts.ts:158` refuses the role change, `:195` refuses the delete. **Transition save failed** — shipped: the failure is stated on the surface and the selection stays as the administrator left it, so a failed save never reads as an applied one (`TransitionSettings.tsx`). |
 | `/admin/artifacts` | **Save rejected** — shipped. `AD-15` validates every registry write, so rejection is a designed outcome: the canvas keeps the operator's work and the message names what failed (`ArtifactEditor.tsx:728`, `:760` for the concurrent-edit case, which states explicitly what was discarded and what to re-apply). **Reset confirmation** — reset discards persisted edits for one template. **⚠ Unsaved canvas — designed, not shipped.** *Owner: Story 17.4.* No dirty flag and no `beforeunload` guard exists anywhere in `src/`; the only unsaved-work messaging is the 409 conflict path, which fires on save, not on leaving. |
 
 Presenter states, broken out because this is the surface an operator watches while a service runs:
@@ -111,11 +137,12 @@ Presenter states, broken out because this is the surface an operator watches whi
 | **Projector blanked** (FR-16) | Shipped, all four consequences. The operator blacks the projector at any time with `B` or the control and restores it; the deck still advances underneath; the projector window is not lost; a scripture overlay beneath is undisturbed; the operator view keeps showing current and next slide and indicates the blanked state; a projector opened or reloaded while blanked comes up blank. |
 | **Popup blocked** | The browser refused the projector window. The presenter offers the same URL as a plain link rather than leaving a dead button. |
 | **KJV corpus absent** | Lookup is unavailable when the corpus was never imported (an ops step). The presenter says so instead of returning empty results. |
+| **Live transition differs from the saved style** | Shipped. The operator has overridden the transition for this session (AD-23). The surface states which style is projecting, that nothing was saved, and what the deck, future PPTX downloads and the next Presenter will still use — so the override cannot be mistaken for a settings change. |
 | **⚠ Lost sync** — designed, not shipped | *Owner: Story 17.5.* The projector window is closed or crashed. AD-10 forbids a server fallback, so the presenter is the only thing that can report it, and today it detects nothing — see Open Item 1. |
 
 ## Interaction Primitives
 
-- **Presenter → projector** is one-way over a single `BroadcastChannel` (AD-10). Both windows are same-origin on one machine; there is no server round-trip and therefore no dependency on hub connectivity mid-service.
+- **Presenter → projector** is one-way over a single `BroadcastChannel` (AD-10). Both windows are same-origin on one machine; there is no server round-trip and therefore no dependency on hub connectivity mid-service. **What the channel does not yet carry is which deck it is talking about.** AD-10 requires every message to carry a plan identity so a receiver holding a different plan refuses to follow the index and says so on the room-facing screen; that clause is `[TARGET]` in the spine and the messages carry a bare index today. Presenter and projector each build their own plan at their own moment, so a structural change while a projector window is open — an administrator saving a template right now, a Sync once AD-16 ships — offsets one screen against the other with nothing to signal it. The remedy is code, not an affordance, which is why it is not an Open Item here; it is noted because it is the one way this primitive can be *silently* wrong, and it bounds what the presenter can currently promise.
 - **Full-screen surfaces** (slideshow, projector) fill the viewport; chrome is absent by design.
 - **PPTX download** is the terminal action of Friday preparation and the first action of Sabbath. It is a file, not a link.
 - **Search** is client-side filtering over an already-loaded list, not a server query per keystroke.
@@ -150,7 +177,7 @@ Product-specific section — experience constraints no generic UX checklist woul
 - A failure during a service cannot be retried later. Every constraint below follows from that, as does the offline primacy stated in *Foundation*.
 - The operator watches two surfaces at once — presenter notes on the laptop, audience output on the projector. Requiring attention on a third surface breaks the model.
 - The projected surface is 16:9 and fixed. Template geometry is normalized percentages with stable IDs; coordinates may deliberately exceed the canvas to preserve source-deck clipping (AD-15).
-- Registry edits are global and immediate. An administrator changing a template on Friday changes every service, including ones already reviewed. There is no per-service override, by design (AD-14). **Scheduled to reverse:** Epic 20 CAP-6 clones the registry per service and refreshes it only on Sync, which supersedes AD-4; this bullet and Flow 5's climax change with that amendment.
+- **Registry edits are global and immediate today, and that rule has already been reversed in the decision that governs it.** Both halves have to be stated, because the rule is settled and the code is not. *As shipped:* an administrator changing a template on Friday changes every service, including ones already reviewed, and there is no per-service override — the "global across services" clause of AD-14. *Decided, not scheduled:* AD-16 was recorded on 2026-07-30 and supersedes that clause. Creating a service clones the registry into a service-bound snapshot, a later live edit reaches an existing service only through the explicit **Sync Artifact** action, and Sync is admin-only. AD-16 is `[TARGET]` — it lands with Epic 20 (CAP-6, Story 20.8) and no code implements it yet, which is why this bullet still describes the old behavior first. It supersedes **AD-14** and nothing else; a previous version of this bullet cited `AD-4`, which is LiveServer durable paths and an unrelated decision. The new state this creates — a service whose snapshot has fallen behind — is in *State Patterns* under `/services/[id]`, and its affordance is Open Item 5.
 - **Nobody owns the question *"is this readable from the pews?"*** The ownership split for the projected deck, and the fact that this gap is deliberate rather than accidental, are stated once in [`DESIGN.md`](./DESIGN.md) → *Who owns the deck the congregation sees*.
 
 ## Key Flows
@@ -213,10 +240,13 @@ Saturday, 08:40. The song leader messages the events chat: the divine-service op
 1. Signs in as an administrator; reaches Settings, then the Artifact Registry.
 2. Picks the template whose title sits too low.
 3. Drags it on the canvas. Fabric owns this state — the app cannot see it yet.
-4. **Climax:** clicks **Save**. Validation runs on an untrusted payload; the template persists to SQLite and every service — including ones already reviewed — renders the new geometry on both web and PPTX, with no code change and no deploy.
-5. If the result is wrong, Reset restores that one template from the seed.
+4. **Climax:** clicks **Save**. Validation runs on an untrusted payload (AD-15) and the template persists to SQLite, with no code change and no deploy. *What the save reaches is the part that changes:* today it reaches **every** service, including ones already reviewed, which render the new geometry on both web and PPTX. **⚠ Designed, not shipped** (*AD-16; Epic 20 CAP-6, owner Story 20.8*): the save reaches the **live registry** only. A service that already exists keeps its own cloned snapshot and renders exactly what it rendered before — nothing Bimo does on this route reaches next Sabbath's service on its own.
+5. **⚠ Designed, not shipped** (*AD-16; owner Story 20.8*). To bring an existing service onto the new template he opens that service and runs **Sync Artifact**, which re-clones the registry into that service's snapshot. Three properties the affordance has to carry, because each is a promise to somebody: it is **admin-only**, so this beat is Bimo's and not an operator's; it carries the service's `updated_at` precondition (AD-6), so a Sync over a service someone else has just changed is refused rather than applied; and it **replaces the structure while leaving every value the operator entered untouched** (*State* convention) — "destructive" is about the snapshot, never about the run sheet.
+6. If the result is wrong, Reset restores that one template from the seed. Two consequences of AD-11 and AD-17 that will surprise him and that this file has not yet designed for: Reset restores the shipped **label** too, so it reverts a rename, and a row Bimo authored himself has no shipped content to restore and therefore exposes **no Reset at all** — two rows in one list with different affordances. Open Item 6.
 
 **Branch 5a — validation refuses the payload.** His canvas contains an element the registry vocabulary does not admit (rotation, for instance, which the validator has no property for). Save is refused, the canvas keeps his arrangement, and the message names the offending property rather than reporting a generic failure. Extending the vocabulary is a registry-contract change, not something he can resolve on the canvas.
+
+**Branch 5b — the service Elen presents on Sabbath is still on last week's structure. ⚠ Designed, not shipped** (*AD-16; owner Story 20.8*). Bimo's save at step 4 never reached it, and he does not run Sync — so the service is *stale*: correct, renderable, and behind. This is the intended behavior of AD-16 rather than a fault, which is precisely why it needs an affordance: a state nobody is shown is indistinguishable from a template edit that silently failed. Two constraints bound whatever this file eventually designs. The operator who reviews the service is the person most likely to notice, and Sync is admin-only, so **the most an operator can be given is seeing the staleness and asking for a sync** — the surface has to be honest about that rather than offering a control that 403s. And a stale snapshot must never read as an error on the run sheet: the deck it renders is the one that was reviewed. Open Item 5 owns the call.
 
 ### Flow 6 — Bimo refreshes the announcement flyers
 
@@ -234,6 +264,16 @@ Announcements persist between services, so this happens on its own schedule rath
 3. **Climax:** the volunteer signs in and sees the hub, Announcements, and every service — but neither Settings nor the Artifact Registry. Reaching `/admin` directly returns Forbidden, so they learn the surface exists and is not theirs.
 4. Months later the volunteer stops serving. Bimo deletes the account; any live session dies on its next request rather than lingering until the cookie expires.
 
+### Flow 8 — the transition style is set once, and overridden live
+
+Both halves of this ship today. It has no PRD user journey — transitions arrived as FR-7 without one — and it is here because both of its surfaces are otherwise landed on by nothing.
+
+1. Bimo opens **Settings** and finds **Slide transition**. One style, app-wide — there is no per-service choice to make (AD-23).
+2. He picks one and saves. The confirmation tells him where it lands: the projector, and the next PPTX generated. Decks already downloaded keep the style they were built with, because a file on a laptop cannot be restyled after the fact.
+3. Sabbath morning, Elen is in Presenter. The configured fade is fighting the room's projector, and the service starts in four minutes.
+4. **Climax:** she changes the transition on the presenter itself. The projector picks it up immediately over the same channel that carries the deck position (AD-10), so the two screens never disagree *about the style* — and the control tells her plainly that nothing was saved: the deck, future downloads, and the next Presenter she opens all stay on Bimo's setting. She fixes the room without touching a setting she has no mandate to change, and without needing Bimo on a Sabbath morning.
+5. Nothing to undo afterwards. Closing the presenter ends the override.
+
 ## Open Items
 
 Behavioral items this file owns. Token and visual-identity gaps — dark-mode choice, `metadata` boilerplate, `muted-foreground` contrast — live in [`DESIGN.md`](./DESIGN.md) → *Open Items* and are not restated here. **Each item names the story key that owns it**, or says why it has none.
@@ -247,3 +287,9 @@ Behavioral items this file owns. Token and visual-identity gaps — dark-mode ch
 3. **Unsaved canvas changes are silent.** *Owner: Story 17.4.* No dirty indicator, no navigation guard — confirmed absent from `src/` on 2026-07-30. A consequence of `AD-13` (Fabric owns canvas state) that no UX decision had answered until the story was written.
 
 4. **Session revocation has no mid-edit warning.** *No owner yet.* A demoted or logged-out operator loses in-progress work with no notice on their next request. The security behavior is correct and must not change; the experience around it is undesigned, and designing it properly means deciding what a mid-edit interruption owes the operator — which is adjacent to item 3 and may want one story, not two.
+
+**Items 5 and 6 are questions the architecture spine explicitly routes to this file.** It states in its own *Deferred* that both are UX concerns owned by `EXPERIENCE.md`, and until 2026-07-30 this list carried neither. Recording them here is what makes the handoff received rather than merely sent; both are undecided, and neither is a decision the spine will make.
+
+5. **A stale snapshot has no affordance.** *Owner: Story 20.8.* AD-16 makes staleness possible by design — a service renders its own cloned snapshot while the live registry moves on — so the state is real the moment CAP-6 ships. What an operator sees is undecided: a badge on the service card, a line on the run sheet, something on the download control, or deliberately nothing. Three constraints on the answer, all of them already fixed elsewhere. **Sync is admin-only** (AD-16), so an operator can be shown staleness and can *request* a sync, but cannot perform one — designing a control that 403s for the person most likely to notice would be the worst of the options. **A stale service is correct, not broken:** the deck it renders is the one that was reviewed, so this cannot borrow the `destructive` vocabulary that delete and stale-write conflicts own ([`DESIGN.md`](./DESIGN.md) → *Colors*). And *"nothing"* is a legitimate answer that has to be **chosen** rather than reached by omission — AD-16 exists partly so that a service being prepared does not shift underneath its reviewer, and telling that reviewer about every upstream edit is a way of reintroducing the interruption on the screen instead of in the deck.
+
+6. **Reset reverts a rename, and some rows have no Reset at all.** *Owner: Story 20.3.* AD-17 gives the administrator the row's `label`, and AD-11's Reset restores the shipped template *including* that label — so Reset silently undoes a rename nobody thought they were resetting. It is defensible (Reset means restore what we shipped) and it is a new operator-visible surprise, which makes it this file's call and not the spine's: confirm-with-consequences, keep the label, or restore it and say so. The same decision has a second face in the same list — under AD-17 a row an administrator *authored* has no seed to restore, so it exposes **no Reset**, and two rows sitting side by side will offer different verbs. Whatever answers the first face has to explain the second, or the list reads as broken. Both are visible in Flow 5 step 6.
