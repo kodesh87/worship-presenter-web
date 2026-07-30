@@ -77,8 +77,7 @@ An operator who attends a worship planning meeting can open the web app on their
 ## Assumptions
 
 - The `hymns` table is fully populated with 695 SDAH entries and does not require import as part of this feature.
-- Structured mode is the default form view, with the raw text editor placed in a collapsible section.
 - `parseRundown()` output and the structured-form-produced `ParsedRundown` are consumed identically by `buildSlidePlan` — no format variations exist beyond what `normalizeParsedRundown()` already handles.
-- Hymn searching/autocomplete in the form is performed client-side using a preloaded index of the 695 SDAH entries.
+- Hymn searching/autocomplete queries `GET /api/hymns?q=` on a debounce as the operator types (capped at 40 rows), with numeric lookups batched via `GET /api/hymns?numbers=` and a client-side cache of already-seen hymns. Pages seed only the hymns a service's initial values already reference, not the full 695-entry hymnal.
 - One-off flyer URLs added to the form are assumed to be already uploaded via the separate upload endpoints; the form does not handle file syncing.
 - The Unmapped Content card on `/services/[id]` remains unless later directed. (Service Highlights and Order of Service are *removed* — that is a decision, binding via `edit-page-chrome.md`, not an assumption.)

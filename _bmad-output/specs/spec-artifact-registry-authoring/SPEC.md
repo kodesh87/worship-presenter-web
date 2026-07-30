@@ -84,6 +84,7 @@ Admin builds an ordered registry with Generals, the four predefined SongSets (wi
 
 - Migrated seed ordered registry mirrors today’s plan sequence, mapping today’s four song positions to the four predefined SongSet slots plus Generals/Announcement as appropriate.
 - Multiple SongSet rows beyond the four defaults may be added later only if new stable slot identities and form bindings are introduced in code; v1 ships the four named slots.
+- Worship services that already exist when this model ships (no clone yet) continue to render from their stored `parsed_data` plus the then-current live registry until an operator freezes/clones or syncs one for them.
 
 ## Open Questions
 

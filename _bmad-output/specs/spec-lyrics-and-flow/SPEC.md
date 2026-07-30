@@ -27,7 +27,7 @@ Operators need lyrics to be more readable on screen (consolidated into continuou
 
 The songs are SDAH **671** "Now, Dear Lord, as we pray", **684** "Hear our prayer, O Lord", and **214** "We have this hope".
 
-**Effective on delivery of Story `20-1`, not today.** As of 2026-07-30 the behavior below is still what ships: `skipTitle` at `src/lib/slide-plan.ts:438` (671), `:460` (684), `:550` (214), plus `weHaveThisHopeFixed` at `:165` via `src/lib/lyrics.ts:109`, asserted by two tests named `CAP-4:` in `tests/lyrics.test.mjs`. The entries are kept verbatim below because they are the record of what Story 20.1's General seed must reproduce on canvas — `epics.md:332` states this is the only record of those sites and their liturgical reasons.
+**Effective on delivery of Story `20-1`, not today.** As of 2026-07-30 the behavior below is still what ships: `skipTitle` at `src/lib/slide-plan.ts:438` (671), `:460` (684), `:550` (214), plus `weHaveThisHopeFixed` at `:165` via `src/lib/lyrics.ts:429` (`splitWeHaveThisHopeSlides`), asserted by two tests named `CAP-4:` in `tests/lyrics.test.mjs`. The entries are kept verbatim below because they are the record of what Story 20.1's General seed must reproduce on canvas — `epics.md:332` states this is the only record of those sites and their liturgical reasons.
 
 IDs `CAP-3` and `CAP-4` are burned: never reused, never renumbered. The next new capability here takes `CAP-5`.
 
