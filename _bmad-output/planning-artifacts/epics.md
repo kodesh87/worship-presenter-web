@@ -332,6 +332,72 @@ Each is a **liturgical** judgment about this congregation's order of service, cu
 
 **Open question the story must answer before implementation, not during:** whether suppression is a property of the template, of the plan node, or of a service-level setting. Getting that wrong makes the rule harder to change than the literal it replaced. `buildSlidePlan` must remain the single slide-order source for PPTX, slideshow and presenter (INIT AD-7) — this story moves *where the rule is stored*, never who applies it.
 
+### Epic 20: The registry becomes where the deck is authored *(backlog)*
+
+**Contract:** `../specs/spec-artifact-registry-authoring/SPEC.md` + companions `authoring-boundaries.md`, `placeholder-catalog.md`, `slide-kinds.md`. **The SPEC is authoritative for every detail below** — this epic exists to make it a tracked delivery unit, not to restate it.
+
+Created 2026-07-30. The owner's decision, recorded verbatim in intent: *this SPEC is the final change.* It is adopted whole.
+
+**Why this epic had to be created before any of it could be built.** The SPEC is marked *Canonical contract* and declares that it **supersedes Story 16.1's non-goals** and that where adopted Epic 16 companions conflict, *"this SPEC wins"*. It was referenced by no epic, no story and no sprint key — only by the readiness report's inventory, `DESIGN.md`, `EXPERIENCE.md`, and its own companions. A document claiming authority over shipped code while carrying no delivery status is the inverse of the drift Correct Course fixed on 2026-07-29: there, code ran ahead of the artifacts; here, an artifact ran ahead of the code, and nothing recorded that it was waiting.
+
+**Epic 19 is a subset of this epic.** Story 19.1 moves the `{ skipTitle: true }` literals out of `slide-plan.ts`; CAP-1's success criterion is *"…without editing TypeScript plan constants."* Deliver 19.1 inside Story 20.1 or retire Epic 19 — not both.
+
+#### What this changes about Epic 16, stated plainly
+
+Epic 16 shipped a **template catalog**: rows in `artifact_templates` holding layout JSON, editable on a Fabric canvas, rendering identically to web and PPTX with no deploy (FR-20). What it deliberately did not ship: any notion of **order**, and any way to **create or delete** an entry. Slide sequence stayed in `buildSlidePlan`.
+
+This epic makes the registry the **ordered** authoring surface for the deck itself. Two consequences are breaking, and both are the SPEC's explicit instruction rather than an interpretation:
+
+**1. Seven base types collapse to three kinds.** SPEC *Constraints*: *"Slide kinds are exactly three: General, SongSet, Announcement. Epic 16's TextPlaceholder / ImagePlaceholder / MixPlaceholder / FullScreenImage are retired as distinct kinds."*
+
+| Epic 16 `base_type` | Becomes |
+| --- | --- |
+| `general`, `text-placeholder`, `image-placeholder`, `mix-placeholder` | **General** — a placeholder stops being a *kind* and becomes an element inserted from the Placeholder Catalog (CAP-4) |
+| `fullscreen-image` | **Announcement** (CAP-7: upload means fullscreen, no extra elements) |
+| `song-set` | **SongSet** (CAP-8) |
+| `announcement` | **Announcement** |
+
+`READ_ONLY_BASE_TYPES` / `EDITABLE_BASE_TYPES` in `src/lib/registry/types.ts` collapse with them: under the SPEC, *General* is the only canvas-authorable kind, and SongSet/Announcement expose label, order and background but never a freeform canvas.
+
+> **Correction recorded rather than buried.** The first reading offered to the owner was that the base-type classification could be kept as an orthogonal permission layer and only the "limited to seven kinds" reading retired. The SPEC's *Constraints* section names four types and retires them. The reading was wrong; adoption is a genuine migration of the `base_type` column and its validator rules, not an additive change.
+
+**2. `epic-16 AD-4` is reversed.** That decision states registry edits are **global and immediate** — an administrator changing a template on Friday changes every service, including ones already reviewed, with no per-service override *by design*. CAP-6 requires the opposite: creating a service **clones** the ordered registry into a service-bound snapshot, live edits do **not** reach an existing service, and **Sync Artifact** is what refreshes it.
+
+This is an architecture invariant reversal, not a feature. Before Story 20.8 is implemented:
+
+- the epic-16 architecture spine needs a new `AD-n` superseding `AD-4` — **never renumber**, per `AGENTS.md`;
+- `EXPERIENCE.md` → *Venue & Projection Constraints* states the global-and-immediate rule, and Flow 5's climax turns on it (*"every service — including ones already reviewed"*). Both change in the same change set.
+
+**Migration cost is unusually low and this is the moment to spend it.** No production system exists yet, so rewriting `base_type` across the seed is a seed edit rather than a data migration. Delivered after deployment, the same change needs a backfill over live `artifact_templates` rows plus every service snapshot.
+
+#### Stories
+
+One per capability, in dependency order. Acceptance criteria live in the story files; the SPEC's `success:` clause is the starting point for each.
+
+### Story 20.1: One Ordered Registry *(backlog)* — CAP-1
+As an administrator, I want the registry to define which slides exist **and in what order**, so that deck structure is data. Adds ordering to `artifact_templates` (no such column exists today) and makes the ordered snapshot the sequence source `buildSlidePlan` consumes. **Absorbs Story 19.1** — the `skipTitle` literals are exactly the "TypeScript plan constants" CAP-1 forbids. `buildSlidePlan` remains the single order source for PPTX, slideshow and presenter (INIT AD-7); what changes is where its sequence comes from, never that there is one.
+
+### Story 20.2: Three Slide Kinds *(backlog)* — CAP-5 + *Constraints*
+As an administrator, I want every entry to be General, SongSet or Announcement with an editable label shown as `[kind] label`, so that the list reads as a deck. The breaking migration described above. Renaming a General's label updates Presenter badges for services that clone or sync afterward — which is only meaningful once 20.8 exists, so until then the story's own AC must say what "afterward" means.
+
+### Story 20.3: Add, Delete, Rename, Reorder *(backlog)* — CAP-2
+As an administrator, I want to add, delete, rename and reorder entries, including inserting SongSet and Announcement entries. Today the admin API has only list, read, update and reset — no create, delete or reorder verb. Explicit Save; no autosave (SPEC *Constraints*). Every new verb is an authorization surface: `/api/admin` is admin-gated in `src/proxy.ts`, and per Epic 18 the route must re-check with `requireAdminSession` rather than trusting the cookie.
+
+### Story 20.4: Full Canvas Authoring for General Slides *(backlog)* — CAP-3
+As an administrator, I want background, inserted images and text areas, drag and resize, and font colour/size/style on **General** slides only. Story 16.5 shipped element add/delete against the old base types; this story is scoped to what the three-kind model changes and to the style properties CAP-3 names. Validation still rejects any property the registry vocabulary does not admit (`epic-16 AD-5`) — a rejected Save keeps the operator's work and names the property.
+
+### Story 20.5: The Placeholder Catalog *(backlog)* — CAP-4
+As an administrator, I want to insert predefined placeholders onto General slides and style them locally, with weekly worship fields filling the bindings. The same catalog key may appear on several Generals with different styling. **The UI must not be able to invent a catalog key** — extending the catalog is a code-plus-tests change (SPEC *Constraints*), which is also what keeps a placeholder from becoming a channel for arbitrary congregation text.
+
+### Story 20.6: Announcement Is One Entry That Expands *(backlog)* — CAP-7
+As an administrator, I want a single Announcement entry that expands to one full-bleed slide per image from the Announcements list. No canvas editor for it, ever (SPEC *Non-goals*). Image membership keeps coming from the Announcements menu, not from inside the registry.
+
+### Story 20.7: SongSet Slots *(backlog)* — CAP-8
+As an administrator, I want four predefined SongSet slots — Bible Talk open/close, Divine Service open/close — with configurable backgrounds, reorderable, each receiving its hymn number from worship-service settings. **The four slots need stable identities** so a service's hymn-number binding survives a label change or a reorder (SPEC *Constraints*); that identity is the story's central design decision. No freeform canvas for lyric pages.
+
+### Story 20.8: Service Clones the Registry, and Sync Artifact *(backlog)* — CAP-6
+As an operator, I want a service to hold its own snapshot of the registry, and a **Sync Artifact** action to refresh it. Live registry edits must not reach an existing service until Sync. **Blocked on the architecture amendment above** — this is the story that reverses `epic-16 AD-4`, and it must not be implemented before that decision is recorded and `EXPERIENCE.md` reconciled. It is last for a reason: every story above defines what gets cloned.
+
 ---
 
 ## Epic 1: System Foundation & Authentication *(shipped)*

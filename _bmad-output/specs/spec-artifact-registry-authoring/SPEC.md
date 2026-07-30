@@ -14,6 +14,8 @@ sources: []
 > **Canonical contract.** This SPEC and the files in `companions:` are the complete, preservation-validated contract for what to build, test, and validate. Source documents listed in frontmatter are for traceability only.
 >
 > **Correct Course.** This contract supersedes Story 16.1 non-goals that forbade create/delete/reorder and treated the registry as an unordered template catalog only. Where adopted Epic 16 companions conflict with this SPEC (including the seven-base-type authoring model), **this SPEC wins**.
+>
+> **Delivery status — added 2026-07-30.** Adopted whole by owner decision and now tracked as **Epic 20** in `../../planning-artifacts/epics.md`, one story per capability (`20-1`…`20-8` in `sprint-status.yaml`), all `backlog`. Until that date this SPEC had a supersession claim over shipped code and **no epic, story or sprint key at all** — the claim above was therefore unenforceable and unscheduled, which is how it sat for weeks while `artifact_templates` still had no ordering column and the admin API no create/delete/reorder verb. **Two adoption consequences are recorded in the epic, not here:** the `base_type` migration implied by *Constraints* (seven types to three kinds), and the fact that CAP-6 **reverses** architecture decision `epic-16 AD-4`, which blocks Story 20.8 until the spine is amended.
 
 # Ordered Artifact Registry Authoring
 

@@ -1,5 +1,5 @@
 # generated: 2026-07-10
-# last_updated: 2026-07-29
+# last_updated: 2026-07-30
 # project: BIC Worship Presentation Automation
 # project_key: NOKEY
 # tracking_system: file-system
@@ -24,7 +24,7 @@
 #   - done: Retrospective has been completed
 
 generated: 2026-07-10
-last_updated: 2026-07-29 # Correct Course: Epic 14 closed, 16.2-16.5 keys retired, FR-11b/FR-20 tracked
+last_updated: 2026-07-30 # bmad-ux Update + owner directives: story 17-5 (lost sync is specified but not shipped), Epic 19 (song-title skip gets a tracked home), Epic 20 (spec-artifact-registry-authoring adopted whole, 8 stories). Action items 22 — done 15, open 4, not-reproducible 1, partially-done 1, waived 1
 project: BIC Worship Presentation Automation
 project_key: NOKEY
 tracking_system: file-system
@@ -170,6 +170,40 @@ development_status:
   19-1-song-title-suppression-as-data: backlog
   epic-19-retrospective: optional
 
+  # --- Epic 20: The registry becomes where the deck is authored ---
+  # Created 2026-07-30. Owner decision: spec-artifact-registry-authoring is the final
+  # change, adopted whole. That SPEC is marked "Canonical contract", declares it
+  # supersedes Story 16.1 non-goals and that "this SPEC wins" over conflicting Epic 16
+  # companions — and until now was referenced by NO epic, story or sprint key. An
+  # artifact claiming authority over shipped code with no delivery status is the
+  # inverse of the 2026-07-29 drift: there code ran ahead of docs, here docs ran ahead
+  # of code and nothing recorded that it was waiting.
+  #
+  # TWO BREAKING CONSEQUENCES, both the SPEC's explicit instruction:
+  #  (a) seven base types collapse to three kinds (General/SongSet/Announcement).
+  #      SPEC Constraints retires TextPlaceholder/ImagePlaceholder/MixPlaceholder/
+  #      FullScreenImage by name. Placeholders stop being a kind and become elements
+  #      inserted onto a General from the Placeholder Catalog (CAP-4).
+  #  (b) CAP-6 REVERSES epic-16 AD-4 (registry edits are global and immediate, no
+  #      per-service override by design). Story 20.8 must not ship before the epic-16
+  #      architecture spine carries a new AD-n superseding AD-4 — never renumber — and
+  #      EXPERIENCE.md Venue & Projection Constraints + Flow 5 are reconciled.
+  #
+  # Epic 19 is a SUBSET: story 19-1 moves the skipTitle literals, and CAP-1 forbids
+  # exactly those "TypeScript plan constants". Deliver inside 20.1 or retire Epic 19.
+  # Migration is cheap only while no production exists — after deploy the same change
+  # needs a backfill over live artifact_templates rows and every service snapshot.
+  epic-20: backlog
+  20-1-ordered-registry: backlog
+  20-2-three-slide-kinds: backlog
+  20-3-add-delete-rename-reorder: backlog
+  20-4-general-canvas-authoring: backlog
+  20-5-placeholder-catalog: backlog
+  20-6-announcement-expands: backlog
+  20-7-songset-slots: backlog
+  20-8-service-clone-and-sync: backlog
+  epic-20-retrospective: optional
+
 action_items:
   - epic: 14
     action: "Harden BMAD gate in AGENTS.md (+ sync .agents/AGENTS.md, .cursorrules, CLAUDE.md): forbid large feature work without Epic→Story→Spec; call out Antigravity/Google AI Pro jump-to-code bias"
@@ -253,3 +287,13 @@ action_items:
     action: "Re-infection vector: scripts/extract-pptx-assets.mjs build-map regenerates data/asset-map.json from the real deck, and its `evidence` field is the slide's own text runs — so re-running it reintroduced real member names and prayer requests. Closed by filtering at the generator rather than by blocking afterwards"
     owner: "Developer"
     status: done # 2026-07-29. `evidenceFor` now reads the distinction out of the registry instead of a hand-kept list: a template with no placeholders is chrome and its runs stay (that is how the Part C plates were audited); a template that declares placeholders may contribute only runs matching copy it declares in an element `content`. Matching is whitespace-collapsed, case-insensitive, substring-wise, because one declared two-line label arrives as two separate runs. Withheld runs are COUNTED, not silently dropped, so a filtered row stays distinguishable from an unchecked one. Applied to the committed map offline (the deck is gitignored, so build-map cannot run in CI): 7 rows changed — family-youth keeps its two labels and withholds the name plus prayer body, closing-prayer-ds keeps Closing/Prayer and withholds the speaker, sermon/song-set/verse-reading/bible-verse-contemplation withhold everything. Asserted by tests/asset-map-evidence.test.mjs (4 assertions, stated independently of the generator so it cannot agree with the bug). Negative-tested: injecting one payload run fails two of the four. Rule written into AGENTS.md, .agents/AGENTS.md, .cursorrules and .constitution/public-repository.md — the three agent files verified still identical in their shared blocks
+
+  # --- Added 2026-07-30 with Epic 20 ---
+  - epic: 20
+    action: "BLOCKS Story 20.8. Amend the epic-16 architecture spine via bmad-architecture Update: CAP-6 reverses AD-4 (registry edits are global and immediate; no per-service override, by design) because a service must hold a cloned snapshot that only Sync Artifact refreshes. Add the next AD-n superseding AD-4 — never renumber an existing one — then reconcile EXPERIENCE.md (Venue & Projection Constraints states the global-and-immediate rule, and Flow 5's climax turns on it) in the same change set"
+    owner: "kodesh87"
+    status: open
+  - epic: 20
+    action: "Decide Epic 19's fate when Story 20.1 is planned: deliver story 19-1 inside 20.1 or retire Epic 19. CAP-1's success criterion forbids exactly the TypeScript plan constants 19-1 moves, so shipping both means doing the same work twice with two owners"
+    owner: "kodesh87"
+    status: open
