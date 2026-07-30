@@ -62,6 +62,8 @@ Worship Presenter Web is an operator tool used twice a week: once on Friday to p
 
 The honest description of the as-built identity is *shadcn/ui (base-nova) defaults, unmodified*. This is not a placeholder awaiting a brand — it is the decision. Prior UX capture recorded it as AD-UX-1 ("clean, high-contrast, uncluttered … minimal custom brand colors"), and the shipped code took that to its logical end: **zero brand hue**.
 
+> **Honesty note.** No visual design exploration was ever run for this product. This file documents what shipped and why it is defensible — not a design brief. Where reality falls short, it is recorded under *Open Items* rather than described as if it worked.
+
 Two things are deliberately out of this file's scope:
 
 - **Projected slide appearance** is governed by the Artifact Registry (`spec-slide-artifact-model`, `spec-artifact-registry-authoring`), which is runtime-editable by an administrator. This DESIGN.md governs the *operator chrome* only. A congregation never sees the tokens in this file.
@@ -69,7 +71,7 @@ Two things are deliberately out of this file's scope:
 
 ### Who owns the deck the congregation sees
 
-Stated because it was previously a silence rather than a boundary. The ~68-slide deck is this product's primary visual output and the subject of FR-5 readability and NFR-3, and it has no design document. That is now a deliberate three-part split, not an omission:
+The ~68-slide deck is this product's primary visual output, the subject of FR-5 readability and NFR-3 — and it has no design document. That is a deliberate three-part split:
 
 | Concern | Owner |
 | --- | --- |
@@ -77,11 +79,9 @@ Stated because it was previously a silence rather than a boundary. The ~68-slide
 | Slide geometry, fonts, colours, per-element layout | Artifact Registry rows (runtime data), validated by `epic-16 AD-5` |
 | Which slides exist and in what order | `buildSlidePlan` (INIT AD-7) + the `slide-kinds.md` companion |
 
-**What nobody owns: *is this readable from the pews?*** No artifact answers it and no test in this repository can — every slide assertion is regex over XML text presence, never geometry or legibility. The only control is a human one: the pre-launch projector inspection carried as an owner action item in `sprint-status.yaml`. That gate replaced the PRD §6 fidelity sign-off, which was waived on 2026-07-29.
+**What nobody owns: *is this readable from the pews?*** No artifact answers it, and no test in this repository can — every slide assertion is regex over XML text presence, never geometry. The only control is the pre-launch projector inspection carried as an owner action item in `sprint-status.yaml`, which replaced the PRD §6 fidelity sign-off waived on 2026-07-29.
 
-This file deliberately does **not** invent minimum type sizes or contrast floors for projected slides. Registry geometry was extracted from a real source deck that has been projected in this sanctuary for years; numbers invented here would displace evidence with taste. A readability standard is a product decision, and it needs someone who has stood at the back of the room.
-
-> **Honesty note.** No visual design exploration was ever run for this product. This file documents what shipped and why it is defensible — not a design brief. Where reality falls short, it is recorded under *Open Items* rather than described as if it worked.
+This file invents no minimum type sizes or contrast floors for projected slides: the registry's geometry came from a deck projected in this sanctuary for years, and invented numbers would displace that evidence. A readability standard is a product decision.
 
 ## Colors
 
@@ -90,7 +90,7 @@ The operator surface is greyscale. Every token in `src/app/globals.css` is `oklc
 - **`destructive`** (`oklch(0.577 0.245 27.325)`, red) is the only chromatic token in the light theme. It carries delete and stale-write-conflict affordances. Because it is the *only* color on the surface, it needs no reinforcement to read as dangerous.
 - **`primary`** is near-black (`oklch(0.205 0 0)`) on near-white. High contrast is functional, not stylistic: the hub is read on a laptop in a poorly lit sanctuary.
 - `chart-1` … `chart-5` exist as shadcn leftovers and are unused — there are no charts in this product.
-- A stray `--sidebar-primary: oklch(0.488 0.243 264.376)` (violet) sits in the dark block. It is dead because **nothing consumes it** — there is no sidebar; navigation lives in `Header.tsx`. Note that this is *not* dead for lack of a dark theme: the dark block does render (Open Item 2). If a sidebar were ever added, this token would paint it violet on a surface that has no other hue.
+- A stray `--sidebar-primary: oklch(0.488 0.243 264.376)` (violet) sits in the dark block. It is dead because **nothing consumes it** — there is no sidebar; navigation lives in `Header.tsx`. The cause is disuse, not the absence of a dark theme — that block does render (Open Item 2). If a sidebar were ever added, this token would paint it violet on a surface that has no other hue.
 
 ### Contrast on load-bearing combinations
 
@@ -103,7 +103,7 @@ The operator surface is greyscale. Every token in `src/app/globals.css` is `oklc
 | `muted-foreground` on `background` | `#737373` on `#ffffff` | **4.74:1** | ~4.7:1 | AA normal text — passes by 0.24 |
 | `muted-foreground` on `muted` | `#737373` on `#f5f5f5` | **4.35:1** | ~4.4:1 | ❌ **FAILS AA** (needs 4.5:1) |
 
-`muted-foreground` is shadcn's default and carries secondary text throughout. Confirmed by measurement: on `muted` it **fails** WCAG AA for normal text, and on `background` it passes only by 0.24. Darkening the single `--muted-foreground` token fixes both surfaces at once — `#6b6b6b` reaches 5.1:1 on `background` and 4.7:1 on `muted`.
+`muted-foreground` is shadcn's default and carries secondary text throughout, which is why the two `muted-foreground` rows matter more than their margins suggest. Darkening that single token fixes both surfaces at once — `#6b6b6b` reaches 5.1:1 on `background` and 4.7:1 on `muted`.
 
 **Avoid:** introducing a brand hue surface-wide without a product decision; using color to encode state (the palette has none to spare); tinting the operator chrome to match projected slides — the chrome must stay visually separate from the content so the operator never mistakes one for the other.
 
@@ -167,12 +167,12 @@ Items this file owns, most severe first. Behavioral gaps live in [`EXPERIENCE.md
 
 1. **`muted-foreground` fails WCAG AA on `muted` — measured, not estimated.** *Owner: Story 17.2.* 4.35:1 where 4.5:1 is required, and 4.74:1 on `background` (passing by 0.24), on the token that carries all secondary text. Verified 2026-07-29 against the running application via canvas-resolved sRGB. Darkening `--muted-foreground` to about `#6b6b6b` clears both surfaces; no other token needs to move.
 
-2. **Dark mode cannot be *chosen*.** *Owner: Story 17.1 (`ready-for-dev`).* **This item previously said the palette was unreachable dead code. That was wrong, and the correction is the point of this entry.** Verified against `src/` on 2026-07-30:
+2. **Dark mode cannot be *chosen*.** *Owner: Story 17.1 (`ready-for-dev`).* **This item previously said the palette was unreachable dead code; that was wrong.** Verified against `src/` on 2026-07-30:
 
    - `src/app/services/[id]/present/PresenterOperator.tsx:449` and `SlideGridDialog.tsx:176` each pin `className="dark …"` on their own wrapper.
    - `src/app/globals.css:5` — `@custom-variant dark (&:is(.dark *))` matches any *descendant* of a `.dark` element.
 
-   So the 33-token palette renders **today**, in the two surfaces an operator uses while a service is actually running. No provider is involved. The earlier conclusion came from grepping for a mounted `ThemeProvider`, finding none, and inferring dead code from its absence — the inference did not survive reading the components. What is genuinely missing is **operator choice**: the rest of the hub is light-only, and the palette is reachable only where someone hardcoded it. Story 17.1 makes it selectable **without** disturbing those two deliberate opt-outs.
+   So the 33-token palette renders **today**, in the two surfaces an operator uses while a service is running, with no provider involved. What is missing is **operator choice**: the rest of the hub is light-only, and the palette is reachable only where someone hardcoded it. Story 17.1 makes it selectable **without** disturbing those two deliberate opt-outs.
 
 3. **`metadata` is still create-next-app boilerplate.** *Owner: Story 17.3.* `src/app/layout.tsx:16-17` exports `title: "Create Next App"`, `description: "Generated by create next app"` — re-confirmed in the source on 2026-07-30, unchanged. The browser tab and every bookmark of the hub read *Create Next App*. One-line fix; wording is product-owned.
 
