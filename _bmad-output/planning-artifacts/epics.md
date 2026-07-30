@@ -95,15 +95,71 @@ UX-DR1: High-contrast UI on Tailwind / Shadcn defaults (as-built hub/run-sheet).
 
 ## Epic List
 
-### Epic 1–5 — Shipped story slices (historical)
+### Epics 1–5: the shipped vertical slice *(historical)*
 
-See story files under `_bmad-output/implementation-artifacts/stories/`. Sprint marks these epics **done** for their story ACs.
+Story files live under `_bmad-output/implementation-artifacts/stories/`. Condensed from ten near-empty headings into one table on 2026-07-30. Every "done" claim is scoped to its own story ACs — several were later superseded, and the successor is named rather than left implied.
+
+| Epic | Stories | Status and what superseded it |
+| --- | --- | --- |
+| **1** System Foundation & Authentication | 1.1, 1.2 | Done. 1.1 has a retrospective stub (`stories/1-1-next-js-foundation-and-monorepo-setup.md`). 1.2 delivered *shared* Basic Auth (architecture v1); full FR-18 → **Story 6.2** |
+| **2** Data Ingestion & Processing | 2.1, 2.2 | Done — webhook + hymnal corpus. picoclaw skill completed in **Story 6.5** (`.claude/skills/picoclaw-webhook/`) |
+| **3** Presentation Assembly & PPTX Export | 3.1 | Done. FR-4/6 fidelity → **Stories 6.3, 6.4, Epic 7** (intercessory `#671`/`#684` closed) |
+| **4** Web Hub & Operator Interface | 4.1 | Done for Phase-1 UI — list + shadcn run sheet. FR-9/15/16/19 shipped later in **Epics 8–12**, and were never part of Epic 4's "done" claim |
+| **5** MVP Completion & Bug Fixes | 5.1–5.4 | Done. 5.4 was the per-service images MVP; FR-3 persistent list → **Story 6.1** (empty-list Announcements title closed by `spec-close-audit-product-partials`) |
 
 ### Epic 6: Phase 1 Gap Closure *(done — story keys)*
 
 Closed planned Phase 1 gap stories (announcements, auth, blueprint, sections, picoclaw, tests, SSRF, deploy). FR-3/FR-4 product Partials closed by `spec-close-audit-product-partials`. Remaining **Partial** on the FR map: FR-11 edit dual-path, FR-19 corpus ops (not in `data/`).
 
 **FRs addressed:** FR-1 (picoclaw skill), FR-3 (list), FR-4/6 fidelity, FR-18, hardening/tests
+
+#### Story 6.1: Persistent Announcement List
+
+As an operator,  
+I want a persistent Announcement List with add/replace/remove,  
+So that weekly flyers follow FR-3 (not only per-service URL arrays).
+
+#### Story 6.2: Per-person Admin / Operator Auth
+
+As a church admin,  
+I want individual accounts with Admin and Operator roles,  
+So that FR-18 is met beyond a shared Basic Auth password.
+
+#### Story 6.3: Deck Blueprint Fidelity
+
+As an operator,  
+I want the PPTX to follow BIC Part A/B/C payload rules more closely (theme verse from rundown, standing liturgy lyrics, family/youth, verse reading),  
+So that FR-4 / FR-6 approach Sabbath-ready fidelity.
+
+#### Story 6.4: Section-aware Hymn Mapping
+
+As the system,  
+I want hymns assigned to Bible Talk vs Divine Service by section markers,  
+So that atypical song counts do not mis-slot Song Blocks.
+
+#### Story 6.5: picoclaw Intake + Hymn Title Readback
+
+As Events Department,  
+I want picoclaw to call the webhook and receive resolved hymn titles / failed numbers,  
+So that FR-1 Telegram round-trip is complete.
+
+#### Story 6.6: Automated Tests (parser / middleware / webhook)
+
+As a maintainer,  
+I want regression tests for auth, webhook, and rundown parsing,  
+So that NFR-5 (robust parsing) and NFR-6 (access control) are covered.
+
+#### Story 6.7: Image URL Allowlist (SSRF Harden)
+
+As the system,  
+I want remote announcement image URLs restricted to an allowlist / safe download path (hub-local `/api/uploads/...` is a separate exception — Epic 13.3),  
+So that open webhook/edit cannot SSRF via `addImage`.
+
+#### Story 6.8: Deploy + SQLite Production Hardening
+
+As a maintainer,  
+I want `DB_PATH`, WAL/busy timeout, and deploy notes for a single-node host (LiveServer Docker + tunnel + durable volumes — Epic 13.1),  
+So that `better-sqlite3` is production-safe for BIC’s hosting choice.
 
 ### Epics 7–12 — Phases 1 residuals + Phases 2–6 *(done — story keys)*
 
@@ -123,100 +179,52 @@ Planning drift for 14.1 closed by Correct Course 2026-07-19 (`sprint-change-prop
 
 **Closed 2026-07-29** by Correct Course (`sprint-change-proposal-2026-07-29.md`): all six stories `14-1`…`14-6` were already `done`, so both this heading and `epic-14: in-progress` contradicted the sprint tracker's own definition (*"done: All stories in epic completed"*). **FRs realized: FR-11 and FR-11b** — the latter was absent from this document entirely until the same Correct Course, despite being a Phase-1 requirement in `prd.md` (§6) and the documented fallback for a Telegram intake outage (UJ-5).
 
-### Epic 15: Parser & Rendering Refinements (Phase 2) *(done — retrospective 2026-07-26)*
-
-Refinements for lyric formatting, chorus placement logic, and service flow slide skips based on operator feedback.
-
-### Story 15.1: Lyric Formatting and Service Flow Skips
-
-As an operator,
-I want lyrics formatted as continuous text, chorus injected after every verse, and unnecessary song titles skipped during prayer flow,
-So that the generated PPTX flow is more seamless and lyric slides are easier to read.
-
-
-### Story 14.1: Worship Web Input Forms & API
+#### Story 14.1: Worship Web Input Forms & API
 
 As an operator,
 I want to create and edit service inputs via a web form,
 So that I can customize worship details (family/youth photos, announcements) directly in the hub.
 
-### Story 14.2: Worship Web Input UX Refinements
+#### Story 14.2: Worship Web Input UX Refinements
 
 As an operator,
 I want a unified raw text input with a manual parse trigger and autocomplete hymn dropdowns,
 So that I can easily extract structured roles and select hymns without separate helper sidebars, and explicitly group UI sections.
 
-### Story 14.3: Worship Web Input UI Tweaks
+#### Story 14.3: Worship Web Input UI Tweaks
 
 As an operator,
 I want hymn labels, section nesting, Parse placement, and autocomplete fixed on create and edit forms,
 So that the structured overlays match the intended layout after Story 14.2.
 
-### Story 14.4: Service Page Create-Parity & Shell Stability
+#### Story 14.4: Service Page Create-Parity & Shell Stability
 
 As an operator,
 I want `/services/[id]` to present the same worship form as create (with a working edit/save path) plus Preview/Present/Delete/Download PPTX and Announcement Manage list, without Order of Service chrome and without header/width jumps,
 So that opening an existing service feels like editing create — not a separate show/run-sheet.
 
-### Story 14.5: Sermon Section Split & KJV Resolve
+#### Story 14.5: Sermon Section Split & KJV Resolve
 
 As an operator,
 I want Sermon as its own form Card after Divine Worship (create and edit lockstep), and Resolve KJV to return scripture text when the corpus is imported,
 So that section grouping matches the intended overlays and CAP-6 scripture lookup works during worship planning.
 
-### Story 14.6: Worship Form UX Polish (Highlights, Hymn Labels, Announcement Help)
+#### Story 14.6: Worship Form UX Polish (Highlights, Hymn Labels, Announcement Help)
 
 As an operator,
 I want Service Highlights removed, hymn inputs that show number and title together, and clear Announcement Flyers usage guidance,
 So that create/edit forms stay focused on Raw Rundown Text and I can pick hymns and manage flyers without confusion.
 
-### Story 6.1: Persistent Announcement List
+### Epic 15: Parser & Rendering Refinements (Phase 2) *(done — retrospective 2026-07-26)*
 
-As an operator,  
-I want a persistent Announcement List with add/replace/remove,  
-So that weekly flyers follow FR-3 (not only per-service URL arrays).
+Refinements for lyric formatting, chorus placement logic, and service flow slide skips based on operator feedback.
 
-### Story 6.2: Per-person Admin / Operator Auth
+#### Story 15.1: Lyric Formatting and Service Flow Skips
 
-As a church admin,  
-I want individual accounts with Admin and Operator roles,  
-So that FR-18 is met beyond a shared Basic Auth password.
+As an operator,
+I want lyrics formatted as continuous text, chorus injected after every verse, and unnecessary song titles skipped during prayer flow,
+So that the generated PPTX flow is more seamless and lyric slides are easier to read.
 
-### Story 6.3: Deck Blueprint Fidelity
-
-As an operator,  
-I want the PPTX to follow BIC Part A/B/C payload rules more closely (theme verse from rundown, standing liturgy lyrics, family/youth, verse reading),  
-So that FR-4 / FR-6 approach Sabbath-ready fidelity.
-
-### Story 6.4: Section-aware Hymn Mapping
-
-As the system,  
-I want hymns assigned to Bible Talk vs Divine Service by section markers,  
-So that atypical song counts do not mis-slot Song Blocks.
-
-### Story 6.5: picoclaw Intake + Hymn Title Readback
-
-As Events Department,  
-I want picoclaw to call the webhook and receive resolved hymn titles / failed numbers,  
-So that FR-1 Telegram round-trip is complete.
-
-### Story 6.6: Automated Tests (parser / middleware / webhook)
-
-As a maintainer,  
-I want regression tests for auth, webhook, and rundown parsing,  
-So that NFR-5 (robust parsing) and NFR-6 (access control) are covered.
-
-### Story 6.7: Image URL Allowlist (SSRF Harden)
-
-As the system,  
-I want remote announcement image URLs restricted to an allowlist / safe download path (hub-local `/api/uploads/...` is a separate exception — Epic 13.3),  
-So that open webhook/edit cannot SSRF via `addImage`.
-
-### Story 6.8: Deploy + SQLite Production Hardening
-
-As a maintainer,  
-I want `DB_PATH`, WAL/busy timeout, and deploy notes for a single-node host (LiveServer Docker + tunnel + durable volumes — Epic 13.1),  
-So that `better-sqlite3` is production-safe for BIC’s hosting choice.
 
 ### Epic 16: Slide Artifact Model Refactoring *(done — retrospective 2026-07-26)*
 
@@ -228,27 +236,27 @@ Delivered across Stories 16.1–16.5. Specs: `../specs/spec-slide-artifact-model
 
 **Story-file reality (recorded 2026-07-29):** only Story 16.1 has a story file. Stories 16.2–16.5 shipped with no story file and therefore no acceptance criteria; their four `done` keys have been retired from `sprint-status.yaml` rather than backfilled with AC written to match already-shipped code. `spec-16-2-artifact-pipeline-completion.md` is the delivery contract for all four. The user-story statements below are retained as the scope record — they are not evidence that a tracked, AC-bearing delivery unit existed.
 
-### Story 16.1: Artifact Registry & Canvas Editor Foundation *(delivered)*
+#### Story 16.1: Artifact Registry & Canvas Editor Foundation *(delivered)*
 As an administrator,
 I want a SQLite-backed Artifact Registry seeded from validated JSON, with 7 base types and a constrained canvas editor for existing templates,
 So that global slide layouts can be safely edited and restored without deploying code changes (CAP-1, CAP-2, CAP-3, CAP-9).
 
-### Story 16.2: buildSlidePlan Refactoring & Placeholder Resolution *(delivered — no story file; contract: `spec-16-2-artifact-pipeline-completion.md`)*
+#### Story 16.2: buildSlidePlan Refactoring & Placeholder Resolution *(delivered — no story file; contract: `spec-16-2-artifact-pipeline-completion.md`)*
 As the system,
 I want `buildSlidePlan` to output `ArtifactInstance[]` and resolve dynamic placeholders (and standing defaults) from `ParsedRundown` and `SlidePlanMedia`,
 So that the output feeds downstream consumers uniformly (CAP-4, CAP-7, CAP-8).
 
-### Story 16.3: Unified Rendering across PPTX & Web Slideshow *(delivered — no story file; contract: `spec-16-2-artifact-pipeline-completion.md`)*
+#### Story 16.3: Unified Rendering across PPTX & Web Slideshow *(delivered — no story file; contract: `spec-16-2-artifact-pipeline-completion.md`)*
 As the system,
 I want PPTX (`pptx.ts`) and Web Slideshow (`SlideView.tsx`) to render directly from the positioned elements defined in the Artifact JSON,
 So that layout changes apply instantly across both formats without hardcoded switch statements (CAP-6).
 
-### Story 16.4: Live Slide Preview & Semantic Badges *(delivered — no story file; contract: `spec-16-2-artifact-pipeline-completion.md`)*
+#### Story 16.4: Live Slide Preview & Semantic Badges *(delivered — no story file; contract: `spec-16-2-artifact-pipeline-completion.md`)*
 As an operator,
 I want the Live Slide Preview to group children under parents (e.g. SongSets) and display semantic Artifact labels,
 So that the preview accurately reflects the worship structure and Artifact taxonomy (CAP-5).
 
-### Story 16.5: Canvas Element Authoring *(delivered — no story file; contract: `spec-16-2-artifact-pipeline-completion.md`)*
+#### Story 16.5: Canvas Element Authoring *(delivered — no story file; contract: `spec-16-2-artifact-pipeline-completion.md`)*
 As an administrator,
 I want to add and delete my own text boxes and shapes on an editable Artifact template,
 So that layouts can be extended without a code change.
@@ -261,38 +269,41 @@ Created 2026-07-29 from the implementation-readiness assessment's product defect
 
 **Requirement ancestry — a recorded decision, not an omission.** These stories change the *operator chrome's* visual identity and self-presentation. Per the authority map in `AGENTS.md`, that is governed by `DESIGN.md`, not by a PRD FR. Unlike Epic 16 — which changed how every slide is produced and needed FR-20 — nothing here alters a Deck, a Slide Type, or any payload contract. **Constraint that keeps that true:** whatever an operator's theme, the projected output (`slide-surface`, PPTX, projector window) must be byte-identical. The congregation never sees operator chrome.
 
-### Story 17.1: Reachable Dark Mode *(ready-for-dev)*
+#### Story 17.1: Reachable Dark Mode *(ready-for-dev)*
 As an operator running a service in a dim sanctuary,
 I want the hub to follow a dark theme I can choose,
 So that a full-brightness white screen in my hands does not light up the room.
 
 **Corrected 2026-07-30 (`bmad-ux` Update):** this story previously ended *"…stops being dead code"*, inheriting a claim from the readiness assessment. The 33-token `.dark` palette is **not** dead — `PresenterOperator.tsx:449` and `SlideGridDialog.tsx:176` pin the class on their own wrappers and `globals.css:5` matches any descendant, so it renders today in the two surfaces an operator uses during a service. What is missing is **choice**, and the story's real constraint is to add it *without* disturbing those two deliberate opt-outs.
 
-### Story 17.2: `muted-foreground` Contrast *(backlog)*
+#### Story 17.2: `muted-foreground` Contrast *(backlog)*
 As an operator reading secondary text,
 I want the muted foreground token to meet WCAG AA,
 So that labels, hints and timings are legible. Measured 2026-07-29 against the running app: **4.35:1 on `muted`, which fails AA (4.5:1)**, and 4.74:1 on `background`, passing by 0.24. Darkening `--muted-foreground` to about `#6b6b6b` clears both surfaces; no other token moves.
 
-### Story 17.3: The App Says Its Own Name *(backlog)*
+#### Story 17.3: The App Says Its Own Name *(backlog)*
 As anyone with the hub open,
 I want the browser tab and bookmarks to name this application,
 So that it is not filed as *Create Next App*. `src/app/layout.tsx` still exports the create-next-app `metadata`. One-line change; the wording is product-owned.
 
-### Story 17.4: Unsaved Canvas Work Is Not Lost Silently *(backlog)*
+#### Story 17.4: Unsaved Canvas Work Is Not Lost Silently *(backlog)*
 As an administrator editing an Artifact template,
 I want a dirty indicator and a navigation guard,
 So that leaving the canvas editor cannot discard layout work without warning. Today unsaved changes are invisible to the application (FR-20 surface).
 
-### Story 17.5: The Presenter Knows When the Projector Is Gone *(backlog)*
+#### Story 17.5: The Presenter Knows When the Projector Is Gone *(backlog)*
 As an operator presenting to a congregation,
 I want the presenter to tell me the moment the projector window stops answering,
 So that I cannot advance a deck for the rest of a service with nothing on the second screen.
 
-**Added 2026-07-30 by `bmad-ux` Update.** This is the one finding of that run that was not a documentation defect. `EXPERIENCE.md` had specified *Lost sync* as a cross-cutting state since 2026-07-19 and asserted in Flow 3 Branch 3a that the presenter surfaces it immediately; verified against `src/`, **no detection of any kind exists.** `BroadcastChannel` gives the sender no delivery signal, `src/lib/present-channel.ts` defines no heartbeat or acknowledgement, and `projectorRef.current.closed` is read only inside `openProjector` — only if the operator clicks the button again. The only surfaced projector state is `projectorBlocked`, which is the popup blocker.
+**This block is the single source for the evidence** — `EXPERIENCE.md` Open Item 1 points here rather than repeating it. `EXPERIENCE.md` had specified *Lost sync* as a shipped state since 2026-07-19; verified against `src/` on 2026-07-30, **no detection of any kind exists:**
 
-**Constraint:** INIT AD-10 forbids a server realtime channel, so this is solved locally or not at all — a `closed` poll on the retained window handle, or an acknowledgement message added to `present-channel.ts`. Extending `PresentMessage` is a wire change and the presenter must stay the single authority (see that file's header contract).
+- `BroadcastChannel` gives the sender no delivery signal;
+- `src/lib/present-channel.ts` defines no heartbeat and no acknowledgement message;
+- `projectorRef.current.closed` is read only inside `openProjector` (`PresenterOperator.tsx:271-276`) — only if the operator clicks the button again;
+- the only surfaced projector state is `projectorBlocked`, which is the popup blocker.
 
-**Placed in Epic 17 rather than its own epic** because it is precisely what this epic is named for: an operator surface that is *honest* about what the congregation is seeing.
+**Constraint:** INIT AD-10 forbids a server realtime channel, so this is solved locally or not at all — a `closed` poll on the retained window handle, or an acknowledgement added to `present-channel.ts`. Extending `PresentMessage` is a wire change, and the presenter must stay the single authority (see that file's header contract).
 
 ### Epic 18: Member data stays gated even when the perimeter moves *(backlog)*
 
@@ -302,25 +313,23 @@ Nine API routes rely on `src/proxy.ts` as their only authorization layer, with n
 
 Separate from Epic 17 deliberately: one epic is what an operator sees, this one is what a visitor must never see. Bundling them would have produced exactly the mixed technical/UX epic C5-1 flags.
 
-### Story 18.1: In-route Authorization for the Nine Proxy-Only Routes *(backlog)*
+#### Story 18.1: In-route Authorization for the Nine Proxy-Only Routes *(backlog)*
 As a church member whose name and prayer request live in this system,
 I want every API route to check the session itself,
 So that no single regex edit can expose Service data. Privileged routes re-check role against the database (`requireAdminSession`), not the cookie.
 
 ### Epic 19: Liturgical rules live in data, not in the planner *(backlog)*
 
-Created 2026-07-30 at the owner's direction, to give a tracked home to an item that had been carried as a bare *"Consider"* in `sprint-status.yaml` since the 2026-07-29 Correct Course. A "Consider" with no story is how a decision stays unmade indefinitely.
+Created 2026-07-30 at the owner's direction, to give a tracked home to an item carried as a bare *"Consider"* in `sprint-status.yaml` since 2026-07-29. Not opened as a Story 15.2 because Epic 15 is `done`, and moving a rule from code to data is a new capability rather than a refinement.
 
-**Not opened as a Story 15.2.** Epic 15 (*Parser & Rendering Refinements*) is `done`, and reopening a closed epic for this is the exact contradiction Correct Course closed on Epic 14 the day before. This is also not a refinement: moving a rule from code to data is a new capability.
+> **Likely absorbed by Epic 20.** `spec-artifact-registry-authoring` CAP-1 forbids exactly the TypeScript plan constants this epic moves. That SPEC was adopted on 2026-07-30, so fold this into Story 20.1 or retire this epic — do not deliver both.
 
-> **This epic may be absorbed whole.** `spec-artifact-registry-authoring` CAP-1 states its success criterion as *"reordering two registry entries … **without editing TypeScript plan constants**"* — and the constant below is one of those. That SPEC is a canonical contract that no epic, story or sprint key currently references, and whether to adopt it is a pending owner decision. If it is adopted, this epic is a subset of it and should be folded in rather than delivered twice. Recorded here so the overlap is visible at the point of work, not discovered during it.
-
-### Story 19.1: Song-Title Suppression Becomes Registry Data *(backlog)*
+#### Story 19.1: Song-Title Suppression Becomes Registry Data *(backlog)*
 As an administrator adjusting the order of service,
 I want to control which songs are announced with a title slide,
 So that a liturgical decision does not require a code change and a deploy.
 
-A normal Song Block renders a title slide (`"O Worship the King · SDAH #83"`) followed by its lyric slides — FR-5. Three call sites in `src/lib/slide-plan.ts` suppress that title with `{ skipTitle: true }`:
+A normal Song Block renders a title slide (`"O Worship the King · SDAH #83"`) followed by its lyric slides — FR-5. Three call sites in `src/lib/slide-plan.ts` suppress that title with `{ skipTitle: true }`. **This table is the only record of those line numbers and their liturgical reasons; Story 20.1 will need it.**
 
 | Site | Song | Why the title is suppressed |
 | --- | --- | --- |
@@ -328,25 +337,21 @@ A normal Song Block renders a title slide (`"O Worship the King · SDAH #83"`) f
 | `slide-plan.ts:460` | Around the Special Song | Same reason |
 | `slide-plan.ts:550` | Closing *We Have This Hope* (`weHaveThisHopeFixed`) | A fixed song needs no introduction |
 
-Each is a **liturgical** judgment about this congregation's order of service, currently expressed as a literal in the slide planner. The Artifact Registry now exists and is runtime-editable (FR-20), so the rule *can* be data.
+Each is a **liturgical** judgment about this congregation's order of service, expressed as a literal in the slide planner.
 
-**Open question the story must answer before implementation, not during:** whether suppression is a property of the template, of the plan node, or of a service-level setting. Getting that wrong makes the rule harder to change than the literal it replaced. `buildSlidePlan` must remain the single slide-order source for PPTX, slideshow and presenter (INIT AD-7) — this story moves *where the rule is stored*, never who applies it.
+**Open question the story must answer before implementation, not during:** whether suppression is a property of the template, of the plan node, or of a service-level setting. Getting that wrong makes the rule harder to change than the literal it replaced. `buildSlidePlan` remains the single slide-order source (INIT AD-7) — this story moves *where the rule is stored*, never who applies it.
 
 ### Epic 20: The registry becomes where the deck is authored *(backlog)*
 
 **Contract:** `../specs/spec-artifact-registry-authoring/SPEC.md` + companions `authoring-boundaries.md`, `placeholder-catalog.md`, `slide-kinds.md`. **The SPEC is authoritative for every detail below** — this epic exists to make it a tracked delivery unit, not to restate it.
 
-Created 2026-07-30. The owner's decision, recorded verbatim in intent: *this SPEC is the final change.* It is adopted whole.
+Adopted whole 2026-07-30 by owner decision: **this SPEC is the final reference for development.** It is marked *Canonical contract*, supersedes Story 16.1's non-goals, and states that where adopted Epic 16 companions conflict, *"this SPEC wins"*.
 
-**Why this epic had to be created before any of it could be built.** The SPEC is marked *Canonical contract* and declares that it **supersedes Story 16.1's non-goals** and that where adopted Epic 16 companions conflict, *"this SPEC wins"*. It was referenced by no epic, no story and no sprint key — only by the readiness report's inventory, `DESIGN.md`, `EXPERIENCE.md`, and its own companions. A document claiming authority over shipped code while carrying no delivery status is the inverse of the drift Correct Course fixed on 2026-07-29: there, code ran ahead of the artifacts; here, an artifact ran ahead of the code, and nothing recorded that it was waiting.
+Epic 16 shipped a **template catalog** — rows in `artifact_templates` holding layout JSON, editable on a Fabric canvas, rendering identically to web and PPTX with no deploy (FR-20). It deliberately shipped no notion of **order** and no way to **create or delete** an entry; slide sequence stayed in `buildSlidePlan`. This epic makes the registry the **ordered** authoring surface for the deck itself.
 
-**Epic 19 is a subset of this epic.** Story 19.1 moves the `{ skipTitle: true }` literals out of `slide-plan.ts`; CAP-1's success criterion is *"…without editing TypeScript plan constants."* Deliver 19.1 inside Story 20.1 or retire Epic 19 — not both.
+**Epic 19 is a subset.** Story 19.1 moves the `{ skipTitle: true }` literals out of `slide-plan.ts`; CAP-1's success criterion is *"…without editing TypeScript plan constants."* Deliver 19.1 inside Story 20.1 or retire Epic 19 — not both.
 
-#### What this changes about Epic 16, stated plainly
-
-Epic 16 shipped a **template catalog**: rows in `artifact_templates` holding layout JSON, editable on a Fabric canvas, rendering identically to web and PPTX with no deploy (FR-20). What it deliberately did not ship: any notion of **order**, and any way to **create or delete** an entry. Slide sequence stayed in `buildSlidePlan`.
-
-This epic makes the registry the **ordered** authoring surface for the deck itself. Two consequences are breaking, and both are the SPEC's explicit instruction rather than an interpretation:
+Two consequences are breaking, and both are the SPEC's explicit instruction rather than an interpretation.
 
 **1. Seven base types collapse to three kinds.** SPEC *Constraints*: *"Slide kinds are exactly three: General, SongSet, Announcement. Epic 16's TextPlaceholder / ImagePlaceholder / MixPlaceholder / FullScreenImage are retired as distinct kinds."*
 
@@ -357,73 +362,36 @@ This epic makes the registry the **ordered** authoring surface for the deck itse
 | `song-set` | **SongSet** (CAP-8) |
 | `announcement` | **Announcement** |
 
-`READ_ONLY_BASE_TYPES` / `EDITABLE_BASE_TYPES` in `src/lib/registry/types.ts` collapse with them: under the SPEC, *General* is the only canvas-authorable kind, and SongSet/Announcement expose label, order and background but never a freeform canvas.
+`READ_ONLY_BASE_TYPES` / `EDITABLE_BASE_TYPES` in `src/lib/registry/types.ts` collapse with them: *General* becomes the only canvas-authorable kind, and SongSet/Announcement expose label, order and background but never a freeform canvas. This is a migration of the `base_type` column and its validator rules, not an additive change — and it is cheap **only while no production system exists**, since after deployment the same change needs a backfill over live `artifact_templates` rows plus every service snapshot.
 
-> **Correction recorded rather than buried.** The first reading offered to the owner was that the base-type classification could be kept as an orthogonal permission layer and only the "limited to seven kinds" reading retired. The SPEC's *Constraints* section names four types and retires them. The reading was wrong; adoption is a genuine migration of the `base_type` column and its validator rules, not an additive change.
-
-**2. `epic-16 AD-4` is reversed.** That decision states registry edits are **global and immediate** — an administrator changing a template on Friday changes every service, including ones already reviewed, with no per-service override *by design*. CAP-6 requires the opposite: creating a service **clones** the ordered registry into a service-bound snapshot, live edits do **not** reach an existing service, and **Sync Artifact** is what refreshes it.
-
-This is an architecture invariant reversal, not a feature. Before Story 20.8 is implemented:
+**2. `epic-16 AD-4` is reversed.** That decision states registry edits are **global and immediate**, with no per-service override *by design*. CAP-6 requires the opposite: creating a service **clones** the ordered registry into a service-bound snapshot, live edits do **not** reach an existing service, and **Sync Artifact** refreshes it. This is an architecture invariant reversal, so before Story 20.8 is implemented:
 
 - the epic-16 architecture spine needs a new `AD-n` superseding `AD-4` — **never renumber**, per `AGENTS.md`;
-- `EXPERIENCE.md` → *Venue & Projection Constraints* states the global-and-immediate rule, and Flow 5's climax turns on it (*"every service — including ones already reviewed"*). Both change in the same change set.
+- `EXPERIENCE.md` → *Venue & Projection Constraints* states the global-and-immediate rule, and Flow 5's climax turns on it. Both change in the same change set.
 
-**Migration cost is unusually low and this is the moment to spend it.** No production system exists yet, so rewriting `base_type` across the seed is a seed edit rather than a data migration. Delivered after deployment, the same change needs a backfill over live `artifact_templates` rows plus every service snapshot.
+Stories below are one per capability in dependency order. Acceptance criteria live in the story files; each SPEC capability's `success:` clause is the starting point.
 
-#### Stories
-
-One per capability, in dependency order. Acceptance criteria live in the story files; the SPEC's `success:` clause is the starting point for each.
-
-### Story 20.1: One Ordered Registry *(backlog)* — CAP-1
+#### Story 20.1: One Ordered Registry *(backlog)* — CAP-1
 As an administrator, I want the registry to define which slides exist **and in what order**, so that deck structure is data. Adds ordering to `artifact_templates` (no such column exists today) and makes the ordered snapshot the sequence source `buildSlidePlan` consumes. **Absorbs Story 19.1** — the `skipTitle` literals are exactly the "TypeScript plan constants" CAP-1 forbids. `buildSlidePlan` remains the single order source for PPTX, slideshow and presenter (INIT AD-7); what changes is where its sequence comes from, never that there is one.
 
-### Story 20.2: Three Slide Kinds *(backlog)* — CAP-5 + *Constraints*
+#### Story 20.2: Three Slide Kinds *(backlog)* — CAP-5 + *Constraints*
 As an administrator, I want every entry to be General, SongSet or Announcement with an editable label shown as `[kind] label`, so that the list reads as a deck. The breaking migration described above. Renaming a General's label updates Presenter badges for services that clone or sync afterward — which is only meaningful once 20.8 exists, so until then the story's own AC must say what "afterward" means.
 
-### Story 20.3: Add, Delete, Rename, Reorder *(backlog)* — CAP-2
+#### Story 20.3: Add, Delete, Rename, Reorder *(backlog)* — CAP-2
 As an administrator, I want to add, delete, rename and reorder entries, including inserting SongSet and Announcement entries. Today the admin API has only list, read, update and reset — no create, delete or reorder verb. Explicit Save; no autosave (SPEC *Constraints*). Every new verb is an authorization surface: `/api/admin` is admin-gated in `src/proxy.ts`, and per Epic 18 the route must re-check with `requireAdminSession` rather than trusting the cookie.
 
-### Story 20.4: Full Canvas Authoring for General Slides *(backlog)* — CAP-3
+#### Story 20.4: Full Canvas Authoring for General Slides *(backlog)* — CAP-3
 As an administrator, I want background, inserted images and text areas, drag and resize, and font colour/size/style on **General** slides only. Story 16.5 shipped element add/delete against the old base types; this story is scoped to what the three-kind model changes and to the style properties CAP-3 names. Validation still rejects any property the registry vocabulary does not admit (`epic-16 AD-5`) — a rejected Save keeps the operator's work and names the property.
 
-### Story 20.5: The Placeholder Catalog *(backlog)* — CAP-4
+#### Story 20.5: The Placeholder Catalog *(backlog)* — CAP-4
 As an administrator, I want to insert predefined placeholders onto General slides and style them locally, with weekly worship fields filling the bindings. The same catalog key may appear on several Generals with different styling. **The UI must not be able to invent a catalog key** — extending the catalog is a code-plus-tests change (SPEC *Constraints*), which is also what keeps a placeholder from becoming a channel for arbitrary congregation text.
 
-### Story 20.6: Announcement Is One Entry That Expands *(backlog)* — CAP-7
+#### Story 20.6: Announcement Is One Entry That Expands *(backlog)* — CAP-7
 As an administrator, I want a single Announcement entry that expands to one full-bleed slide per image from the Announcements list. No canvas editor for it, ever (SPEC *Non-goals*). Image membership keeps coming from the Announcements menu, not from inside the registry.
 
-### Story 20.7: SongSet Slots *(backlog)* — CAP-8
+#### Story 20.7: SongSet Slots *(backlog)* — CAP-8
 As an administrator, I want four predefined SongSet slots — Bible Talk open/close, Divine Service open/close — with configurable backgrounds, reorderable, each receiving its hymn number from worship-service settings. **The four slots need stable identities** so a service's hymn-number binding survives a label change or a reorder (SPEC *Constraints*); that identity is the story's central design decision. No freeform canvas for lyric pages.
 
-### Story 20.8: Service Clones the Registry, and Sync Artifact *(backlog)* — CAP-6
+#### Story 20.8: Service Clones the Registry, and Sync Artifact *(backlog)* — CAP-6
 As an operator, I want a service to hold its own snapshot of the registry, and a **Sync Artifact** action to refresh it. Live registry edits must not reach an existing service until Sync. **Blocked on the architecture amendment above** — this is the story that reverses `epic-16 AD-4`, and it must not be implemented before that decision is recorded and `EXPERIENCE.md` reconciled. It is last for a reason: every story above defines what gets cloned.
 
----
-
-## Epic 1: System Foundation & Authentication *(shipped)*
-
-### Story 1.1 / 1.2 — see `stories/` (done)
-
-**Note:** Story 1.1 has a retrospective stub (`stories/1-1-next-js-foundation-and-monorepo-setup.md`). Story 1.2 delivered shared Basic Auth (architecture v1); full FR-18 → Story 6.2 (done).
-
-## Epic 2: Data Ingestion & Processing *(shipped)*
-
-### Story 2.1 / 2.2 — done (webhook + hymnal corpus)
-
-**Note:** picoclaw skill completed in Story 6.5 (`.claude/skills/picoclaw-webhook/`).
-
-## Epic 3: Presentation Assembly & PPTX Export *(shipped)*
-
-### Story 3.1 — done; FR-4/6 fidelity → Story 6.3 / 6.4 / Epic 7 (Intercessory `#671`/`#684` closed)
-
-## Epic 4: Web Hub & Operator Interface *(shipped for Phase 1 UI)*
-
-### Story 4.1 — done (list + Shadcn run-sheet)
-
-**Note:** FR-9/15/16/19 later shipped in Epics 8–12; not part of Epic 4’s original “done” claim.
-
-## Epic 5: MVP Completion & Bug Fixes *(shipped)*
-
-### Stories 5.1–5.4 — done
-
-**Note:** 5.4 was per-service images MVP; FR-3 persistent list → Story 6.1 (empty-list Announcements title closed by `spec-close-audit-product-partials`).
