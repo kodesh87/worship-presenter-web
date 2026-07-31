@@ -10,6 +10,7 @@ import {
   type PresentMessage,
 } from '@/lib/present-channel';
 import { transitionLayerStyle, type SlideTransition } from '@/lib/transitions';
+import { useProjectedShell } from '@/lib/use-projected-shell';
 import { useSlideTransition } from '@/lib/use-slide-transition';
 
 export default function ProjectorClient({
@@ -86,37 +87,13 @@ export default function ProjectorClient({
     };
   }, [serviceId]);
 
-  // The projector is a full-screen surface that must never scroll, and the app
-  // shell paints `body` with the theme background — white in the light theme.
-  // `globals.css` also sets `scrollbar-gutter: stable` on `html`, which is right
-  // for the app (no layout shift when a scrollbar appears) and wrong here: it
-  // reserves a gutter, so `fixed inset-0` sizes to the viewport *minus* that
-  // gutter and the white page shows as a bright strip down the edge — on the
-  // projector, in front of the congregation. Released on unmount so the rest of
-  // the app keeps the shell's own behaviour.
-  useEffect(() => {
-    const root = document.documentElement;
-    const { body } = document;
-    const previous = {
-      rootOverflow: root.style.overflow,
-      bodyOverflow: body.style.overflow,
-      rootGutter: root.style.scrollbarGutter,
-      rootBackground: root.style.backgroundColor,
-      bodyBackground: body.style.backgroundColor,
-    };
-    root.style.overflow = 'hidden';
-    body.style.overflow = 'hidden';
-    root.style.scrollbarGutter = 'auto';
-    root.style.backgroundColor = '#000000';
-    body.style.backgroundColor = '#000000';
-    return () => {
-      root.style.overflow = previous.rootOverflow;
-      body.style.overflow = previous.bodyOverflow;
-      root.style.scrollbarGutter = previous.rootGutter;
-      root.style.backgroundColor = previous.rootBackground;
-      body.style.backgroundColor = previous.bodyBackground;
-    };
-  }, []);
+  // The projector is a full-screen surface that must never scroll, over an app
+  // shell that paints `body` with the theme background and reserves a scrollbar
+  // gutter. `useProjectedShell` holds both at literal black for as long as this
+  // window is mounted and releases them on unmount; the slideshow uses the same
+  // hook, because it is the same `fixed inset-0` pattern at an equally
+  // room-facing URL. See that file for what the strip down the edge looked like.
+  useProjectedShell();
 
   const slide = slides[index];
   const outgoingSlide = outgoing === null ? undefined : slides[outgoing];

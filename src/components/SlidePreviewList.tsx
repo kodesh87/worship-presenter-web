@@ -23,11 +23,30 @@ export type SlidePreviewItem = {
   body?: string;
 };
 
+/**
+ * The `song-title` and `default` tones paint from theme tokens and follow the
+ * operator's theme on their own — measured on the dark surface at 11.09:1 and
+ * 5.86:1. The three chromatic tones do not: their `-600` shades were chosen
+ * against white, and Story 17.1 made this list dark-switchable (it renders in
+ * both forms' Live Slide Preview, which is hub chrome). Measured on dark `--card`
+ * they were `text-emerald-600` **4.23:1**, `text-amber-600` 4.76:1 and
+ * `text-indigo-600` **2.54:1** — the last below even the 3:1 large-text floor.
+ *
+ * The `dark:` halves are the shades from `PRESENTER_TONE_CLASS`
+ * (`present/presenter-model.ts`), which exists because that surface has always
+ * been dark and needed shades that survive it. Ported rather than re-invented,
+ * and re-measured here: 10.56:1, 10.57:1, 9.72:1. Two tables still, for the
+ * reason stated there — the Presenter is dark under either theme, so it cannot
+ * express itself in `dark:` variants at all.
+ */
 const TONE_CLASS: Record<PreviewBadgeTone, string> = {
   'song-title': 'bg-primary/10 text-primary border-primary/20',
-  'song-lyric': 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
-  scripture: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-  image: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20',
+  'song-lyric':
+    'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:bg-emerald-400/15 dark:text-emerald-200 dark:border-emerald-400/40',
+  scripture:
+    'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:bg-amber-400/15 dark:text-amber-200 dark:border-amber-400/40',
+  image:
+    'bg-indigo-500/10 text-indigo-600 border-indigo-500/20 dark:bg-indigo-400/15 dark:text-indigo-200 dark:border-indigo-400/40',
   default: 'bg-muted text-muted-foreground border-border/40',
 };
 

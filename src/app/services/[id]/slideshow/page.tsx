@@ -7,14 +7,6 @@ import { ArtifactHydrationError } from '@/lib/artifacts/runtime-contract';
 import { getSlideTransition } from '@/lib/settings';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import SlideshowClient from './SlideshowClient';
 
 /**
@@ -74,41 +66,32 @@ export default async function SlideshowPage({
       `Failed to build the slide plan for service ${serviceId}:`,
       error
     );
+    // This URL is projected. It used to render a token-painted `Card` —
+    // `bg-background`, `text-destructive`, `bg-muted` — so a registry failure
+    // put a theme-following surface on the room-facing screen, and an operator
+    // flipping their theme restyled it live. The projector's own failure branch
+    // has always used literals for that reason; this one now matches it. Same
+    // information, same two recovery routes, no theme token.
     return (
-      <div className="min-h-screen bg-background text-foreground p-8 font-sans">
-        <div className="max-w-2xl mx-auto pt-16">
-          <Card className="border-destructive/40">
-            <CardHeader>
-              <CardTitle className="text-destructive">
-                Slides cannot be built
-              </CardTitle>
-              <CardDescription>
-                The artifact registry could not produce this service&apos;s
-                slides, so the preview cannot be shown.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="rounded-md bg-muted p-4 font-mono text-sm break-words">
-                {slidePlanFailureDetail(error)}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Reset the affected template in Admin &rarr; Artifacts, or fix
-                the run-sheet, then reload. The offline PPTX download is
-                unaffected by this page.
-              </p>
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  variant="outline"
-                  render={<Link href={`/services/${serviceId}`} />}
-                >
-                  Back to run-sheet
-                </Button>
-                <Button variant="outline" render={<Link href="/admin/artifacts" />}>
-                  Admin &rarr; Artifacts
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+      <div className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden bg-black px-12 text-center text-white">
+        <p className="mb-6 text-4xl font-bold tracking-tight">
+          Slides cannot be built
+        </p>
+        <p className="max-w-4xl font-mono text-xl break-words text-white/80">
+          {slidePlanFailureDetail(error)}
+        </p>
+        <p className="mt-8 max-w-3xl text-lg text-white/60">
+          Reset the affected template in Admin &rarr; Artifacts, or fix the
+          run-sheet, then reload. The offline PPTX download is unaffected by
+          this page.
+        </p>
+        <div className="mt-10 flex flex-wrap justify-center gap-8 text-base text-white/70">
+          <Link href={`/services/${serviceId}`} className="underline hover:text-white">
+            Back to run-sheet
+          </Link>
+          <Link href="/admin/artifacts" className="underline hover:text-white">
+            Admin &rarr; Artifacts
+          </Link>
         </div>
       </div>
     );

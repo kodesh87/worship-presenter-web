@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import LogoutButton from './LogoutButton';
+import ThemeToggle from './ThemeToggle';
 
 interface HeaderProps {
   username?: string;
@@ -103,7 +104,9 @@ export default function Header({ isAdmin = false, username = 'Operator' }: Heade
             </Link>
           </>
         )}
-        
+
+        <ThemeToggle />
+
         {/* Profile Dropdown Menu */}
         <div className="relative">
           <button 
@@ -174,7 +177,12 @@ export default function Header({ isAdmin = false, username = 'Operator' }: Heade
                 />
               </div>
               {pwError && <p className="text-xs text-destructive font-medium">{pwError}</p>}
-              {pwSuccess && <p className="text-xs text-emerald-600 font-medium animate-pulse">Password updated successfully!</p>}
+              {/* `emerald-600` holds at 4.91:1 on the dark card — it passes AA,
+                  but only just, and it is the same shade the slide-preview
+                  badges had to leave behind for the dark surface. `emerald-400`
+                  measures 9.25:1, so the success line reads as clearly as the
+                  failure line beside it under either theme. */}
+              {pwSuccess && <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium animate-pulse">Password updated successfully!</p>}
               
               <div className="flex gap-2 justify-end pt-2">
                 <button

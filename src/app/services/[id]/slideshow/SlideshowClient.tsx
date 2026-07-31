@@ -5,6 +5,7 @@ import Link from 'next/link';
 import type { SlidePlanItem } from '@/lib/slide-plan';
 import SlideView from '@/components/SlideView';
 import { transitionLayerStyle, type SlideTransition } from '@/lib/transitions';
+import { useProjectedShell } from '@/lib/use-projected-shell';
 import { useSlideTransition } from '@/lib/use-slide-transition';
 
 export default function SlideshowClient({
@@ -22,6 +23,14 @@ export default function SlideshowClient({
     transition,
     slides.length
   );
+
+  // `bg-black` below covers this surface, but not the shell behind it: `body`
+  // carries `bg-background` and `html` reserves a scrollbar gutter, so the theme
+  // paints a strip down the edge that `fixed inset-0` never reaches. The
+  // projector neutralised that for itself from the start; this surface did not,
+  // and once an operator can pick a theme the strip follows the pick — live,
+  // because next-themes syncs across same-origin windows. AC-4.
+  useProjectedShell();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

@@ -305,6 +305,17 @@ So that I cannot advance a deck for the rest of a service with nothing on the se
 
 **Constraint:** AD-10 forbids a server realtime channel, so this is solved locally or not at all — a `closed` poll on the retained window handle, or an acknowledgement added to `present-channel.ts`. Extending `PresentMessage` is a wire change, and the presenter must stay the single authority (see that file's header contract).
 
+#### Story 17.6: The Toast Channel Two Documents Describe Does Not Exist *(backlog)*
+As an operator completing an action,
+I want the transient confirmation the design documents promise to actually appear — or the promise withdrawn,
+So that I am not the only one who knows the channel is empty.
+
+**Registered 2026-07-31 at the owner's direction, during Story 17.1's review remediation, as a tracked home rather than as work to start.** `sonner` is installed and `src/components/ui/sonner.tsx` exports `Toaster`; verified against `src/` that day, **it is mounted in no layout or page and `toast(` is called nowhere.** Both `DESIGN.md` → *Components* and `EXPERIENCE.md` → *Component Patterns* describe toasts as a shipped pattern, so two artifacts document a channel that cannot fire.
+
+This is what Story 17.1's AC-5 ran into: the AC requires toasts to follow the theme, which is structurally satisfied — `sonner.tsx` calls `useTheme()` and now resolves against a real provider — and unobservable, because nothing triggers a toast. Mounting `<Toaster />` to make it observable was **explicitly declined** by the owner as a UI surface no story had asked for.
+
+**The story's first job is a decision, not an implementation:** does this product want a transient channel at all? Every confirmation today is inline, which is a defensible design for an operator tool used under pressure — and if that is the answer, this story deletes two documentation rows and uninstalls a dependency, which is smaller than building the alternative. `EXPERIENCE.md` Open Item 4 owns the question.
+
 ### Epic 18: Member data stays gated even when the perimeter moves *(backlog)*
 
 **FRs addressed:** FR-18 (per-person accounts and Roles), NFR-6 (access control — no endpoint exposes member PII).
