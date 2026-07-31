@@ -2,7 +2,7 @@
 
 This companion defines the normative data, persistence, API, validation, and Story 16.1 editor boundaries for `SPEC-slide-artifact-model`. The Artifact inventory remains in `artifact-catalog.md`.
 
-> **Superseded in part by `../spec-artifact-registry-authoring/SPEC.md` (Epic 20),** which adopts this file as a companion and wins on conflict. The **seven base types** below collapse to three kinds (General, SongSet, Announcement) under Story `20-2`, and the create/delete/reorder prohibitions become capabilities under Story `20-3`. The rules here are Epic 16's delivered contract and remain the description of what currently ships.
+> **Superseded in part by `../spec-artifact-registry-authoring/SPEC.md` (Epic 20),** which adopts this file as a companion and wins on conflict. Four reversals: the **seven base types** below collapse to three kinds (General, SongSet, Announcement) under Story `20-2` — per AD-19 the placeholder kinds are gone rather than renamed, and `BibleVerseContemplation`'s successor is a General carrying a Placeholder Catalog text element; the create/delete/reorder prohibitions become capabilities under Story `20-3`; **missing-only seeding** is reversed by AD-17 (the seed is a bootstrap, not a correction channel); **templates-are-global** is reversed by AD-16 (a service binds a registry snapshot at creation; only Sync Artifact refreshes it). The rules here are Epic 16's delivered contract and remain the description of what currently ships.
 
 ## Story Boundaries
 

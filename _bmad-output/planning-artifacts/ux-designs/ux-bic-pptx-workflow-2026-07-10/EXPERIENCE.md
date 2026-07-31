@@ -64,6 +64,8 @@ The route is one page and three authoring surfaces, and which one an administrat
 
 An `announcement` row is authored nowhere on this route: its membership is the Announcements master list at `/announcements` (CAP-7).
 
+**Row display — decided here 2026-07-31, closing the R9 routing.** A row's chip names its **kind** — `[general]`, `[song-set]`, `[announcement]` — never the entry key. `songset-bt-open` is AD-19's server-owned binding vocabulary, and this file's own voice rule keeps system vocabulary off every surface a human reads; CAP-5's `[kind] label` display and its rule that the label is the only administrator-editable part both point the same way. The four SongSet rows therefore share one chip and are told apart by their labels — and because rename is allowed, the bounded-configuration surface must state the row's slot identity read-only, phrased in worship vocabulary (which slot of which service part) rather than as the raw key, so a rename cannot orphan the row's liturgical identity. *Owners: Story 20.3 (list chip), Story 20.7 (read-only slot statement).*
+
 ### Sub-surfaces inside those routes
 
 Three surfaces carry their own behavior but no route of their own, so they are named here rather than left to be discovered inside a flow.

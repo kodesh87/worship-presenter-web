@@ -13,7 +13,14 @@ sources: []
 >
 > **Delivered — recorded 2026-07-30.** Epic 16 is `done` (retrospective 2026-07-26); Stories 16.1–16.5 shipped. Only 16.1 has a story file — `../../implementation-artifacts/spec-16-2-artifact-pipeline-completion.md` is the delivery contract for 16.2–16.5. The Story-16.1-scoped constraints and non-goals below are kept verbatim as the **delivered scope record**, not as live fences on future work.
 >
-> **Superseded in part by `../spec-artifact-registry-authoring/SPEC.md` (Epic 20).** That contract adopts this SPEC.md and `registry-contract.md` as companions and **wins on conflict**. Two reversals matter to anyone reading this file directly: the **seven base types** of CAP-2 and the `registry-contract.md` Base-Type Rules table collapse to **three kinds** (General, SongSet, Announcement), and the no-create / no-delete / no-reorder boundary becomes an explicit capability. The seven-type table is left standing here because rewriting it is Story `20-2`'s delivery, not this spec's to author.
+> **Superseded in part by `../spec-artifact-registry-authoring/SPEC.md` (Epic 20).** That contract adopts this SPEC.md and `registry-contract.md` as companions and **wins on conflict**. Four reversals matter to anyone reading this file directly:
+>
+> 1. The **seven base types** of CAP-2 and the `registry-contract.md` Base-Type Rules table collapse to **three kinds** (General, SongSet, Announcement). Per AD-19, `text-placeholder`, `image-placeholder`, `mix-placeholder` and `fullscreen-image` are gone rather than renamed — so **CAP-8's** "`BibleVerseContemplation` remains a TextPlaceholder" clause falls with them; its successor is a **General carrying a Placeholder Catalog text element**, standing defaults intact.
+> 2. The no-create / no-delete / no-reorder boundary becomes an explicit capability.
+> 3. The Constraints seed clause ("inserts missing template IDs only") is reversed by **AD-17**: the seed is a bootstrap, not a correction channel — a missing-ID gap-filler cannot tell *deleted on purpose* from *never existed here*, so it resurrects a deleted row on every boot.
+> 4. The Constraints "global across services" clause is reversed by **AD-16**: a service binds a registry snapshot at creation, and only Sync Artifact refreshes it.
+>
+> The seven-type table is left standing here because rewriting it is Story `20-2`'s delivery, not this spec's to author.
 
 # Slide Artifact Model
 
@@ -61,8 +68,8 @@ The current slide plan conflates content purpose with hardcoded renderer branche
 
 ## Constraints
 
-- SQLite is the live Artifact Registry source of truth. `data/default-registry.json` is a startup seed that inserts missing template IDs only and never overwrites persisted administrator edits.
-- Artifact templates are global across services. Registry management UI and HTTP APIs are admin-only and must re-check the account role from the database.
+- SQLite is the live Artifact Registry source of truth. `data/default-registry.json` is a startup seed that inserts missing template IDs only and never overwrites persisted administrator edits. **[Seed clause superseded by AD-17 (2026-07-30): the seed is a bootstrap, not a correction channel — missing-ID insertion resurrects deleted rows on every boot. The SQLite-SSOT clause stands.]**
+- Artifact templates are global across services. **[Superseded by AD-16 (2026-07-30): a service binds a registry snapshot at creation; only Sync Artifact refreshes it.]** Registry management UI and HTTP APIs are admin-only and must re-check the account role from the database.
 - Story 16.1 is limited to registry persistence, seed behavior, validation, admin APIs, and the minimal editor defined in `registry-contract.md`. It must not change `SlideKind`, `SlidePlanItem`, `buildSlidePlan`, slide order, PPTX rendering, web rendering, or preview badges.
 - `buildSlidePlan` remains the single slide-order source. Story 16.2 may change its output shape, but the resulting sequence and visible content must match the current behavior for identical inputs.
 - `ParsedRundown`, parser behavior, Part A/B/C structure, and existing hymn splitting rules remain unchanged.
