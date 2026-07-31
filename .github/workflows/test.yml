@@ -20,4 +20,11 @@ jobs:
         cache: 'npm'
         
     - run: npm ci
+
+    # tests/auth-http.test.mjs spawns the built server to prove an
+    # unauthenticated API call is refused, so it throws unless `.next` exists.
+    # Without this step it failed on every run while passing on any machine
+    # that had ever built the app.
+    - run: npm run build
+
     - run: npm test
