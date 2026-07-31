@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import LogoutButton from './LogoutButton';
 import ThemeToggle from './ThemeToggle';
+import { headerLinkClass } from './header-chrome';
 
 interface HeaderProps {
   username?: string;
@@ -21,11 +22,8 @@ export default function Header({ isAdmin = false, username = 'Operator' }: Heade
   const [pwSuccess, setPwSuccess] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  const getLinkClass = (isActive: boolean) => {
-    return isActive
-      ? "text-xs font-bold px-4 py-2.5 rounded-xl border border-primary bg-primary text-primary-foreground shadow-sm transition-all hover:bg-primary/95"
-      : "text-xs font-semibold px-4 py-2.5 rounded-xl border border-border bg-card/50 hover:bg-card transition-all text-muted-foreground hover:text-foreground shadow-sm";
-  };
+  // Shared with `ThemeToggle` via `header-chrome`, not reproduced there.
+  const getLinkClass = headerLinkClass;
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,37 +71,44 @@ export default function Header({ isAdmin = false, username = 'Operator' }: Heade
           </div>
         </Link>
       </div>
-      <nav className="flex items-center gap-2">
-        <Link
-          href="/"
-          className={getLinkClass(pathname === '/')}
-        >
-          Dashboard
-        </Link>
-        <Link
-          href="/announcements"
-          className={getLinkClass(pathname.startsWith('/announcements'))}
-        >
-          Announcements
-        </Link>
-        {isAdmin && (
-          <>
-            <Link
-              href="/admin/artifacts"
-              className={getLinkClass(pathname.startsWith('/admin/artifacts'))}
-            >
-              Artifacts
-            </Link>
-            <Link
-              href="/admin"
-              className={getLinkClass(
-                pathname.startsWith('/admin') && !pathname.startsWith('/admin/artifacts')
-              )}
-            >
-              Settings
-            </Link>
-          </>
-        )}
+      {/* `<nav>` ends where the links end. The theme control and the profile
+          menu are settings, not navigation, and a screen-reader operator should
+          not meet them inside the navigation landmark. `flex-wrap` on the row
+          because an admin already carries four pills plus the profile button,
+          and the toggle made it six controls on a row that could not wrap. */}
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <nav className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/"
+            className={getLinkClass(pathname === '/')}
+          >
+            Dashboard
+          </Link>
+          <Link
+            href="/announcements"
+            className={getLinkClass(pathname.startsWith('/announcements'))}
+          >
+            Announcements
+          </Link>
+          {isAdmin && (
+            <>
+              <Link
+                href="/admin/artifacts"
+                className={getLinkClass(pathname.startsWith('/admin/artifacts'))}
+              >
+                Artifacts
+              </Link>
+              <Link
+                href="/admin"
+                className={getLinkClass(
+                  pathname.startsWith('/admin') && !pathname.startsWith('/admin/artifacts')
+                )}
+              >
+                Settings
+              </Link>
+            </>
+          )}
+        </nav>
 
         <ThemeToggle />
 
@@ -143,7 +148,7 @@ export default function Header({ isAdmin = false, username = 'Operator' }: Heade
             </>
           )}
         </div>
-      </nav>
+      </div>
 
       {/* Change Password Modal */}
       {changePasswordOpen && (

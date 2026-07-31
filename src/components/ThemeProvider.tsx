@@ -12,6 +12,14 @@ import { ThemeProvider as NextThemesProvider } from 'next-themes';
  * surfaces pin `.dark` on their own wrappers and keep winning for their own
  * subtree; the projected output paints in literal colours and never reads a
  * theme token at all (pinned by `tests/theme-chrome.test.mjs`).
+ *
+ * `disableTransitionOnChange` because this shell is full of `transition-all`:
+ * every nav pill from `header-chrome`, the profile button, the logo tile, the
+ * dropdown items and every `buttonVariants` control. Without the flag a theme
+ * flip animates all of them at once and the shell smears through an
+ * intermediate palette instead of repainting — on the one control whose job is
+ * to make the change read as deliberate. next-themes ships the flag for exactly
+ * this: it injects a `* { transition: none }` rule for one frame.
  */
 export default function ThemeProvider({
   children,
@@ -19,7 +27,12 @@ export default function ThemeProvider({
   children: React.ReactNode;
 }) {
   return (
-    <NextThemesProvider attribute="class" defaultTheme="system" enableSystem>
+    <NextThemesProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
       {children}
     </NextThemesProvider>
   );

@@ -2,18 +2,21 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 
 /**
- * `text-red-600` was picked against a white dropdown. On the dark `--card` this
- * dropdown paints in once the operator can choose a theme, it measures 3.76:1
- * and fails AA. `red-400` is `oklch(0.704 0.191 22.216)` — byte for byte the
- * `.dark` block's own `--destructive` — and measures 6.21:1 here, 5.72:1 over
- * the `bg-red-500/10` hover. So the dark half is not a new shade choice; it is
- * the token this affordance would have used had it been written against one.
+ * `text-destructive`, not a hand-rolled `red-600`/`red-400` pair, because the
+ * two are the same colour: Tailwind's `--color-red-600` is
+ * `oklch(57.7% 0.245 27.325)` and `:root --destructive` is
+ * `oklch(0.577 0.245 27.325)`; `--color-red-400` is
+ * `oklch(70.4% 0.191 22.216)` and `.dark --destructive` is
+ * `oklch(0.704 0.191 22.216)`. Byte-identical on both halves, so the token
+ * reproduces the whole shipped effect (6.21:1 on the dark card, 5.72:1 over the
+ * `bg-red-500/10` hover) and cannot drift when the destructive identity is
+ * retuned. The pair was written against a white dropdown, before the operator
+ * could choose a theme; naming the token is what it meant all along.
  */
 const LOGOUT_CLASS =
-  'w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-red-500/10 text-red-600 dark:text-red-400 transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50';
+  'w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-red-500/10 text-destructive transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50';
 
 export default function LogoutButton() {
   const router = useRouter();

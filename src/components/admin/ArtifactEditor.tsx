@@ -848,7 +848,7 @@ export default function ArtifactEditor() {
                 className={`text-sm ${
                   status === 'error' || status === 'conflict'
                     ? 'text-destructive'
-                    : 'text-emerald-600'
+                    : 'text-emerald-600 dark:text-emerald-400'
                 }`}
               >
                 {message}

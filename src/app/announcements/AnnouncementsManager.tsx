@@ -332,10 +332,15 @@ export default function AnnouncementsManager({
                         {item.image_url}
                       </p>
                       <div className="flex items-center gap-2 mt-2">
+                        {/* The `-600` shades were picked against a white card. This page
+                            became dark-switchable in Story 17.1, and at `text-[10px]` the
+                            4.5:1 small-text floor applies — emerald measured 4.23:1 on the
+                            dark card. The dark halves are the same ones
+                            `SlidePreviewList` ports from `PRESENTER_TONE_CLASS`. */}
                         <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
                           item.service_id == null
-                            ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
-                            : 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+                            ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:bg-emerald-400/15 dark:text-emerald-200 dark:border-emerald-400/40'
+                            : 'bg-amber-500/10 text-amber-600 border-amber-500/20 dark:bg-amber-400/15 dark:text-amber-200 dark:border-amber-400/40'
                         }`}>
                           {item.service_id == null ? 'Recurring' : `One-off (Service #${item.service_id})`}
                         </span>
@@ -369,7 +374,7 @@ export default function AnnouncementsManager({
                     <button
                       disabled={busy}
                       onClick={() => handleDelete(item.id)}
-                      className="px-3 py-2 rounded-lg bg-red-500/10 hover:bg-red-500 hover:text-white border border-red-500/20 text-red-600 transition-all text-xs font-semibold cursor-pointer"
+                      className="px-3 py-2 rounded-lg bg-red-500/10 hover:bg-red-500 hover:text-white border border-red-500/20 text-destructive transition-all text-xs font-semibold cursor-pointer"
                     >
                       Remove
                     </button>
