@@ -216,22 +216,27 @@ function ArtifactElement({ element }: { element: ResolvedElement }) {
  * output while the stage is exactly 16:9 — filling a 16:10 projector or laptop
  * viewport would scale boxes to the viewport ratio while text kept scaling to
  * height alone, so browser and deck would drift apart.
+ *
+ * It takes **no `className`**, and the omission is load-bearing rather than
+ * tidy. This wrapper is the element the congregation sees, so a `className`
+ * parameter is a hole straight through AC-4 of Story 17.1: any caller could put
+ * `bg-card` on a projected slide without touching a file that story's guards
+ * read. `SlideView` — the only caller — stopped forwarding one for the same
+ * reason, and removing the parameter here turns the invariant into a compile
+ * error instead of a regex over `.tsx` files, which a `{...props}` spread, a
+ * `React.createElement` call, a renamed import or a `.ts` call site all escape.
  */
 export default function ArtifactSlide({
   instance,
-  className = '',
 }: {
   instance: ArtifactInstance;
-  className?: string;
 }) {
   assertRuntimeVersion(instance);
 
   const { layout } = instance;
 
   return (
-    <div
-      className={`flex h-full w-full items-center justify-center overflow-hidden ${className}`}
-    >
+    <div className="flex h-full w-full items-center justify-center overflow-hidden">
       <div
         style={{
           position: 'relative',

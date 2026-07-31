@@ -4,6 +4,13 @@ import { useSyncExternalStore } from 'react';
 import { useTheme } from 'next-themes';
 import { SunIcon, MoonIcon, MonitorIcon, SunMoonIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { HEADER_CONTROL_BOX } from './header-chrome';
+import {
+  asThemeChoice,
+  nextTheme,
+  THEME_LABEL,
+  type ThemeChoice,
+} from '@/lib/theme-cycle';
 
 /**
  * One control cycling system -> light -> dark -> system.
@@ -33,9 +40,6 @@ import { Button } from '@/components/ui/button';
  * `aria-disabled` rather than natively disabled.
  */
 
-const ORDER = ['system', 'light', 'dark'] as const;
-type ThemeChoice = (typeof ORDER)[number];
-
 /**
  * Hydration detection without `setState` in an effect, which
  * `react-hooks/set-state-in-effect` rejects under React 19. React uses the
@@ -47,44 +51,53 @@ const neverChanges = () => () => {};
 const hydrated = () => true;
 const notYetHydrated = () => false;
 
-const LABEL: Record<ThemeChoice, string> = {
-  system: 'Follow system theme',
-  light: 'Light theme',
-  dark: 'Dark theme',
-};
-
 export default function ThemeToggle() {
   const { theme, setTheme } = useTheme();
   const mounted = useSyncExternalStore(neverChanges, hydrated, notYetHydrated);
 
-  const current: ThemeChoice = ORDER.includes(theme as ThemeChoice)
-    ? (theme as ThemeChoice)
-    : 'system';
-  const next = ORDER[(ORDER.indexOf(current) + 1) % ORDER.length];
+  // Order, wrap-around and labels come from `@/lib/theme-cycle`. They used to
+  // live here, where the modulo could only be checked by a regex over this
+  // file's own text — which is where an off-by-one ships green.
+  const current: ThemeChoice = asThemeChoice(theme);
+  const next = nextTheme(current);
 
-  // The `dark:` half is not redundant. `outline` carries
+  // The box comes from `header-chrome` rather than being restated here, so a
+  // restyle of the nav pills carries the toggle with it. It used to reproduce
+  // those seven classes by hand, which is the drift this control specifically
+  // cannot have — matching its siblings is the whole point of the shape.
+  //
+  // The `dark:` half stays local, because it is a `Button` problem the `<Link>`
+  // pills do not have. `outline` carries
   // `dark:border-input dark:bg-input/30 dark:hover:bg-input/50` (`ui/button.tsx`),
   // and `tailwind-merge` does not treat a `dark:`-prefixed class as conflicting
-  // with an unprefixed one, so both survive the merge and `:is(.dark *)`
-  // out-specifies the plain call-site override. Without these the toggle renders
-  // its box at `input/30` (#151515 over `--background`) while the sibling nav
-  // pills — styled by hand in `Header`, with no `dark:` variants — stay at
-  // `card/50` (#111111). Matching in light and drifting in dark is the one thing
-  // this control cannot do: dark is the mode it exists to enable.
-  const shell =
-    'size-[2.375rem] rounded-xl border-border bg-card/50 text-muted-foreground shadow-sm hover:bg-card hover:text-foreground dark:border-border dark:bg-card/50 dark:hover:bg-card';
+  // with an unprefixed one, so an unprefixed override cannot displace them and
+  // `:is(.dark *)` out-specifies it. Without these the toggle renders its box at
+  // `input/30` (#151515 over `--background`) while the pills stay at `card/50`
+  // (#111111). Matching in light and drifting in dark is the one failure this
+  // control cannot have: dark is the mode it exists to enable.
+  const shell = `size-[2.375rem] ${HEADER_CONTROL_BOX} dark:border-border dark:bg-card/50 dark:hover:bg-card`;
 
   // Before mount the button is present, sized, focusable and inert. Base UI's
   // `focusableWhenDisabled` emits `aria-disabled` and keeps `tabIndex=0` instead
   // of the native `disabled` attribute, so focus order does not shift on
   // hydration and `disabled:opacity-50` never fires — the box does not step from
-  // 50% to 100% opacity either. Clicks are still swallowed by the primitive.
+  // 50% to 100% opacity either.
+  //
+  // That same absence of a native `disabled` is why the hover has to be killed
+  // by hand: Tailwind's `disabled:` variant compiles to `:disabled`, so NEITHER
+  // `disabled:opacity-50` nor `disabled:pointer-events-none` from
+  // `buttonVariants` reaches an `aria-disabled` element — and the placeholder
+  // kept `hover:bg-card hover:text-foreground` from the shared box and lit up
+  // under the cursor while inert. `aria-disabled:pointer-events-none` is the
+  // `aria` twin of the class that was meant to do this. It also means a click
+  // here passes through to the header row rather than being swallowed, which is
+  // the same nothing from the operator's side.
   if (!mounted) {
     return (
       <Button
         variant="outline"
         size="icon"
-        className={shell}
+        className={`${shell} aria-disabled:pointer-events-none`}
         aria-label="Theme"
         disabled
         focusableWhenDisabled
@@ -103,8 +116,10 @@ export default function ThemeToggle() {
       size="icon"
       className={shell}
       onClick={() => setTheme(next)}
-      aria-label={`${LABEL[current]}. Switch to: ${LABEL[next].toLowerCase()}`}
-      title={LABEL[current]}
+      aria-label={`${THEME_LABEL[current]}. Switch to: ${THEME_LABEL[
+        next
+      ].toLowerCase()}`}
+      title={THEME_LABEL[current]}
     >
       <Icon aria-hidden="true" />
     </Button>

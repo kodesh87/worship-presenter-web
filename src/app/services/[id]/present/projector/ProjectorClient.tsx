@@ -98,8 +98,16 @@ export default function ProjectorClient({
   const slide = slides[index];
   const outgoingSlide = outgoing === null ? undefined : slides[outgoing];
 
+  // `text-white` on the root is not decoration. `globals.css` puts
+  // `body { @apply text-foreground }` on the shell, so any projected node that
+  // sets no colour of its own inherits a theme-dependent one — five of eleven
+  // nodes here did, and none of them painted it only because `ArtifactSlide`
+  // gives every text box an explicit inline colour with a literal `#FFFFFF`
+  // fallback. That left the invariant resting on an observation about another
+  // file. One word makes it structural, and it matches the wrapper the
+  // slideshow already had.
   return (
-    <div className="fixed inset-0 overflow-hidden bg-black">
+    <div className="fixed inset-0 overflow-hidden bg-black text-white">
       {/* The slide being left behind, kept mounted underneath for exactly as
           long as the run lasts. A cross-fade needs it to fade *over* something,
           and a push needs something to push; `overflow-hidden` above is what

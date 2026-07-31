@@ -60,7 +60,17 @@ export default function SlideshowClient({
   return (
     <div className="fixed inset-0 overflow-hidden bg-black text-white">
       <div className="absolute left-3 top-3 z-10 flex gap-3 text-xs text-white/70">
-        <Link href={`/services/${serviceId}`} className="hover:text-white">
+        {/* `focus-visible:outline-white` states the colour and lets the UA supply
+            the width. Without it this ring paints from `--ring` — `globals.css`
+            applies `outline-ring/50` through a universal selector, and that token
+            differs per theme (`oklch(0.708 0 0)` light, `oklch(0.556 0 0)` dark),
+            so focusing Exit on the projected screen would show the operator's
+            choice. A literal colour is the sanctioned way out of the AC-4 edge
+            guard; a width utility here would trip it, and correctly. */}
+        <Link
+          href={`/services/${serviceId}`}
+          className="hover:text-white focus-visible:outline-white"
+        >
           Exit
         </Link>
         <span>

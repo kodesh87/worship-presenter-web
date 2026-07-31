@@ -69,29 +69,49 @@ export default async function SlideshowPage({
     // This URL is projected. It used to render a token-painted `Card` —
     // `bg-background`, `text-destructive`, `bg-muted` — so a registry failure
     // put a theme-following surface on the room-facing screen, and an operator
-    // flipping their theme restyled it live. The projector's own failure branch
-    // has always used literals for that reason; this one now matches it. Same
-    // information, same two recovery routes, no theme token.
+    // flipping their theme restyled it live. It paints in literals now, for the
+    // reason the projector's own failure branch always has.
+    //
+    // It is NOT otherwise the projector's twin, and claiming so was a false
+    // comment beside code that had none. Same headline and same explanation,
+    // deliberately. Different in two ways that are both intentional: this page
+    // runs in the operator's own tab, so it offers navigation the projector
+    // window has nowhere to send, and it SCROLLS. An `ArtifactHydrationError`
+    // carries up to five `key=value` scope pairs at `text-xl font-mono`
+    // (`runtime-contract.ts`), and the first version of this branch was
+    // `overflow-hidden` with the content centred — on a short viewport the
+    // detail clipped at both ends and the recovery links went off-screen with
+    // nothing able to reach them, on the one screen whose whole job is telling
+    // the operator how to recover. `min-h-full` on the inner column keeps it
+    // centred while it fits and lets it grow past the fold when it does not.
     return (
-      <div className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden bg-black px-12 text-center text-white">
-        <p className="mb-6 text-4xl font-bold tracking-tight">
-          Slides cannot be built
-        </p>
-        <p className="max-w-4xl font-mono text-xl break-words text-white/80">
-          {slidePlanFailureDetail(error)}
-        </p>
-        <p className="mt-8 max-w-3xl text-lg text-white/60">
-          Reset the affected template in Admin &rarr; Artifacts, or fix the
-          run-sheet, then reload. The offline PPTX download is unaffected by
-          this page.
-        </p>
-        <div className="mt-10 flex flex-wrap justify-center gap-8 text-base text-white/70">
-          <Link href={`/services/${serviceId}`} className="underline hover:text-white">
-            Back to run-sheet
-          </Link>
-          <Link href="/admin/artifacts" className="underline hover:text-white">
-            Admin &rarr; Artifacts
-          </Link>
+      <div className="fixed inset-0 overflow-y-auto bg-black text-white">
+        <div className="flex min-h-full flex-col items-center justify-center px-12 py-16 text-center">
+          <p className="mb-6 text-4xl font-bold tracking-tight">
+            Slides unavailable
+          </p>
+          <p className="max-w-4xl font-mono text-xl break-words text-white/80">
+            {slidePlanFailureDetail(error)}
+          </p>
+          <p className="mt-8 max-w-3xl text-lg text-white/60">
+            The artifact registry could not build this service. Reset the
+            affected template in Admin &rarr; Artifacts, or fix the run-sheet,
+            then reload. The offline PPTX download is unaffected by this page.
+          </p>
+          <div className="mt-10 flex flex-wrap justify-center gap-8 text-base text-white/70">
+            <Link
+              href={`/services/${serviceId}`}
+              className="underline hover:text-white focus-visible:outline-white"
+            >
+              Back to run-sheet
+            </Link>
+            <Link
+              href="/admin/artifacts"
+              className="underline hover:text-white focus-visible:outline-white"
+            >
+              Admin &rarr; Artifacts
+            </Link>
+          </div>
         </div>
       </div>
     );
