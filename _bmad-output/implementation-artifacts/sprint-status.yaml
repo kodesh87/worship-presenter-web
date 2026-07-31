@@ -159,6 +159,18 @@ development_status:
   # nowhere — and two artifacts describe toasts as shipped. Its first job is the
   # decision (channel or no channel), not an implementation.
   17-6-toast-channel-decision: backlog
+  # 17.7 added 2026-07-31 at the owner's direction, from round 2 of 17.1's code
+  # review. It owns AC-4's *shell* guarantee — `html`/`body`, which no component in
+  # the projected tree can see — after 17.1 was scoped in writing to AC-4's *token*
+  # guarantee. Four paths leak it and no hook can reach any of them: first paint on
+  # every projected load (the leaked paint is the server's, so `useLayoutEffect` is
+  # not a fix), the two Server-Component error branches, `notFound()` at six sites
+  # with no not-found.tsx/error.tsx anywhere in `src/`, and any future route shell.
+  # Owner chose one route-group layout over four point-fixes, because only the layout
+  # catches the fourth. This story is what takes AD-24 from [ADOPTED, partial] to
+  # [ADOPTED], so it carries an `EXPERIENCE.md` IA-table update and a
+  # `bmad-architecture` Update run in the same change set, per AGENTS.md.
+  17-7-projected-shell-route-group: backlog
   epic-17-retrospective: optional
 
   # --- Epic 18: Member data stays gated even when the perimeter moves ---

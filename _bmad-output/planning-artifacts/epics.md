@@ -269,7 +269,7 @@ Created 2026-07-29 from the implementation-readiness assessment's product defect
 
 **Requirement ancestry — a recorded decision, not an omission.** These stories change the *operator chrome's* visual identity and self-presentation. Per the authority map in `AGENTS.md`, that is governed by `DESIGN.md`, not by a PRD FR. Unlike Epic 16 — which changed how every slide is produced and needed FR-20 — nothing here alters a Deck, a Slide Type, or any payload contract. **Constraint that keeps that true:** whatever an operator's theme, the projected output (`slide-surface`, PPTX, projector window) must be byte-identical. The congregation never sees operator chrome.
 
-#### Story 17.1: Reachable Dark Mode *(ready-for-dev)*
+#### Story 17.1: Reachable Dark Mode *(in-progress — 24 patch action items from code-review round 2; AC-4 scoped to the token guarantee, its shell half spun out to Story 17.7)*
 As an operator running a service in a dim sanctuary,
 I want the hub to follow a dark theme I can choose,
 So that a full-brightness white screen in my hands does not light up the room.
@@ -315,6 +315,24 @@ So that I am not the only one who knows the channel is empty.
 This is what Story 17.1's AC-5 ran into: the AC requires toasts to follow the theme, which is structurally satisfied — `sonner.tsx` calls `useTheme()` and now resolves against a real provider — and unobservable, because nothing triggers a toast. Mounting `<Toaster />` to make it observable was **explicitly declined** by the owner as a UI surface no story had asked for.
 
 **The story's first job is a decision, not an implementation:** does this product want a transient channel at all? Every confirmation today is inline, which is a defensible design for an operator tool used under pressure — and if that is the answer, this story deletes two documentation rows and uninstalls a dependency, which is smaller than building the alternative. `EXPERIENCE.md` Open Item 4 owns the question.
+
+#### Story 17.7: The Room-Facing Shell Belongs to the Route, Not to the App *(backlog)*
+As a congregation watching the screen at the front of the room,
+I want nothing the operator chose about their own screen to reach mine — including on the frames and failure paths nobody planned for,
+So that a theme switch in the back row cannot change what is projected, mid-service.
+
+**Registered 2026-07-31 at the owner's direction, from round 2 of Story 17.1's code review.** It carries the constraint stated in this epic's own preamble — *"whatever an operator's theme, the projected output must be byte-identical"* — for the half Story 17.1 could not reach. 17.1 closes AC-4's **token** guarantee: the projected tree paints in literal colours or registry-resolved inline styles, enforced by `PROJECTED` in `tests/theme-chrome.test.mjs`. This story owns AC-4's **shell** guarantee: `html` and `body`, which no component in the projected tree can see.
+
+**Four paths leak it, and a hook cannot reach any of them.** `src/lib/use-projected-shell.ts` fixes the two full-screen Clients and nothing else:
+
+- **First paint, on every projected load.** The hook is a `useEffect`, so from the server's paint until hydration completes, `html` keeps `scrollbar-gutter: stable` and `body` keeps `bg-background` — and next-themes' blocking script has *already* resolved the theme class on `<html>` by then. `useLayoutEffect` is not a fix: the paint that leaks is the server's.
+- **The two Server-Component error branches** — `slideshow/page.tsx` and `projector/page.tsx`, the `fixed inset-0` screens a `buildSlidePlan` throw renders. They cannot call a hook at all.
+- **`notFound()`, six reachable sites** across those same two routes. Verified 2026-07-31: `find src -name "not-found.tsx" -o -name "error.tsx" -o -name "global-error.tsx"` returns **zero**, so Next renders its default 404 inside the themed root layout, full-screen, at a room-facing URL.
+- **Any future route shell.** The guard's closure test walks imports *out of* projected files, so nothing checks what renders *above* them — `layout.tsx` today, and an `error.tsx` / `loading.tsx` / `template.tsx` the moment someone adds one. This is verbatim the argument that put `page.tsx` into `PROJECTED` in the first place.
+
+**Owner's decision on the shape (2026-07-31): one route-group layout owning every room-facing URL**, with `FULL_SCREEN` widened to it. Four point-fixes close the first three and leave the fourth open; the layout closes all four, including the shell nobody has written yet. The architecture spine's *Deferred* records the three candidates and names this one for that reason.
+
+**This story is what takes AD-24 from `[ADOPTED, partial]` to `[ADOPTED]`.** Two same-change-set obligations follow from `AGENTS.md` and are part of the story, not follow-ups: a new route surface updates the IA table in `EXPERIENCE.md`, and the spine amendment goes through a `bmad-architecture` Update run rather than an inline edit. A third consumer is already waiting — `deferred-work.md` records that `PresenterOperator` pins `dark` on its own wrapper and not on the shell, so a light-theme operator gets a white canvas framing the dark Presenter.
 
 ### Epic 18: Member data stays gated even when the perimeter moves *(backlog)*
 
