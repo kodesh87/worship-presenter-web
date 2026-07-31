@@ -32,7 +32,7 @@ sources: []
 
 - **CAP-2**
   - **intent:** An administrator can add, delete, rename, and reorder registry entries, including inserting special **SongSet** and **Announcement** entries.
-  - **success:** After Save, the ordered list persists; a new service clone and Presenter list reflect the same order, kinds, and labels.
+  - **success:** After Save, the ordered list persists; a new service clone and Presenter list reflect the same order, kinds, and labels. Adding a SongSet entry means claiming one of the four slot identities no row currently holds — a second row claiming an identity already taken, or a fifth slot invented in the UI, is refused (`AD-19`).
 
 - **CAP-3**
   - **intent:** For **General** slides only, an administrator can fully author the canvas: background; insert images, text, and text areas; drag, resize; font color, size, and style (bold, italic, underline); Save required.
@@ -44,7 +44,7 @@ sources: []
 
 - **CAP-5**
   - **intent:** Each registry entry has a kind of **General**, **SongSet**, or **Announcement**, plus an editable label; lists show `[kind] label`.
-  - **success:** Renaming a General sequence slide’s label updates Presenter badges for services that clone/sync afterward; Announcement and SongSet rows never open a freeform canvas.
+  - **success:** Renaming a General sequence slide’s label updates Presenter badges for services that clone/sync afterward; Announcement and SongSet rows never open a freeform canvas. The **label is the only** part of a row an administrator edits: no surface exposes the row’s kind or its SongSet slot identity (`AD-19`).
 
 - **CAP-6**
   - **intent:** Creating a worship service clones the full ordered Artifact Registry into a service-bound snapshot; **Sync Artifact** replaces that snapshot from the live registry.
@@ -63,6 +63,7 @@ sources: []
 - Weekly placeholder **values** and announcement image membership continue to come from worship-service intake and the Announcements menu — not from inventing content inside the registry canvas.
 - `buildSlidePlan` (or successor) consumes the **ordered registry snapshot** (per service) as the sequence source.
 - Slide kinds are exactly three: General, SongSet, Announcement (`slide-kinds.md`). Epic 16’s TextPlaceholder / ImagePlaceholder / MixPlaceholder / FullScreenImage are retired as distinct kinds.
+- Every **cross-boundary key** is a server-owned value no authoring surface may edit: a row’s kind, its SongSet slot identity, and every Placeholder Catalog key. `AD-19` fixes the recognized entry set as **closed at six keys over three kinds** — `general`, the four `songset-*` slot identities, `announcement` — with at most one row per slot identity, and bare `song-set` naming the kind but never an entry. Extending the vocabulary is code + tests.
 - Placeholder Catalog extensions require code + tests.
 - Public-repository rules unchanged.
 - Explicit Save for registry/canvas mutations; no autosave.
@@ -86,6 +87,7 @@ Admin builds an ordered registry with Generals, the four predefined SongSets (wi
 - Migrated seed ordered registry mirrors today’s plan sequence, mapping today’s four song positions to the four predefined SongSet slots plus Generals/Announcement as appropriate.
 - Multiple SongSet rows beyond the four defaults may be added later only if new stable slot identities and form bindings are introduced in code; v1 ships the four named slots.
 - Worship services that already exist when this model ships (no clone yet) continue to render from their stored `parsed_data` plus the then-current live registry until an operator freezes/clones or syncs one for them.
+- **Needs owner ratification.** That CAP-2’s “add a SongSet entry” means *claiming one of the four slot identities no row currently holds* is **derived**, not stated in `AD-19`. The spine fixes three things — the recognized set is closed, at most one row carries each slot identity, and a deleted slot leaves an inert binding — and this is the only reading under which CAP-2 keeps its add verb and `AD-19` keeps its closed set. If the intent was instead that SongSet rows can never be added at all once seeded, CAP-2 needs the narrower wording.
 
 ## Open Questions
 
