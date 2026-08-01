@@ -56,6 +56,38 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..'
 const readRaw = (rel) => fs.readFileSync(path.join(repoRoot, rel), 'utf8');
 const srcUrl = (...parts) => pathToFileURL(path.join(repoRoot, ...parts)).href;
 
+/**
+ * The two `.ts` subjects exercised as behaviour, imported **here** rather than
+ * above the sections that use them.
+ *
+ * A dynamic import is a top-level `await`, and a top-level `await` suspends
+ * module evaluation. Both of these used to sit mid-file, below the ~330 tests
+ * already registered above them. While the module is suspended the runner starts
+ * the tests it has, so every `const` declared *below* the await is still in its
+ * temporal dead zone when those tests run. `jsxReturnBranches` is a hoisted
+ * function declaration and stayed callable; `branchSurfaceRoot`, the arrow it
+ * called, did not — so both AC-4 full-screen guards died with *"Cannot access
+ * 'branchSurfaceRoot' before initialization"*.
+ *
+ * It is a race, not a version rule: it is lost whenever the import takes long
+ * enough for the runner to get going first. CI (Node 22, resolving `.ts` through
+ * the strip-types loader) lost it every time; Node 24 locally resolved the same
+ * import fast enough to win, so the file was green on developer machines and red
+ * on CI alone. Substituting a 50ms timer for the import reproduces the identical
+ * ReferenceError on Node 24 too.
+ *
+ * The defect is not the scheduling; it is a test running against a half-evaluated
+ * module at all. Hoisting both imports above the first `test()` — which is what
+ * every other file in `tests/` already does — makes that unreachable rather than
+ * merely fixed, and no future helper added below can reintroduce it.
+ */
+const { claimProjectedShell, resetProjectedShellForTest } = await import(
+  srcUrl('src', 'lib', 'projected-shell.ts')
+);
+const { THEME_ORDER, nextTheme, asThemeChoice } = await import(
+  srcUrl('src', 'lib', 'theme-cycle.ts')
+);
+
 // --- source hygiene ---------------------------------------------------------
 
 /** Past the string literal opening at `at`, escapes honoured. */
@@ -1172,9 +1204,9 @@ test('AC-4: the shell claim paints a literal, never a token', () => {
 
 // --- AC-4: the shell claim as behaviour, not as source text -----------------
 
-const { claimProjectedShell, resetProjectedShellForTest } = await import(
-  srcUrl('src', 'lib', 'projected-shell.ts')
-);
+// `claimProjectedShell` / `resetProjectedShellForTest` are imported at the top
+// of the file, not here: a top-level await below a registered test is what broke
+// the AC-4 guards on CI. See the note above the imports.
 
 /** The five properties, and nothing else, as a plain object. */
 function documentStub(initial = {}) {
@@ -1378,8 +1410,12 @@ const carriesDark = (value) => /(?:^|[\s'"`])dark(?:[\s'"`]|$)/.test(value);
  * classed element on the way down, and a level with more than one element and no
  * class above it is **ambiguous and says so**, because at that point nothing in
  * the source distinguishes the container from its sibling.
+ *
+ * A declaration rather than a `const` arrow, to match its only caller. A hoisted
+ * `jsxReturnBranches` calling a `const` was the asymmetry that let the CI failure
+ * reach a ReferenceError instead of never being callable at all.
  */
-const branchSurfaceRoot = (subtree) => {
+function branchSurfaceRoot(subtree) {
   for (let depth = 0; ; depth += 1) {
     const here = subtree.filter((el) => el.depth === depth);
     if (here.length === 0) return undefined;
@@ -1395,7 +1431,7 @@ const branchSurfaceRoot = (subtree) => {
     );
     if (classNameValues(here[0].tag).length > 0) return here[0].tag;
   }
-};
+}
 
 /**
  * The default-exported function's own body, so `jsxReturnBranches` reads the
@@ -1766,9 +1802,8 @@ test('AC-1: the control resolves to the same box as its sibling header controls'
 
 // --- AC-1: the cycle, as behaviour ------------------------------------------
 
-const { THEME_ORDER, nextTheme, asThemeChoice } = await import(
-  srcUrl('src', 'lib', 'theme-cycle.ts')
-);
+// `THEME_ORDER` / `nextTheme` / `asThemeChoice` are imported at the top of the
+// file, for the same reason. See the note above the imports.
 
 test('AC-1 behaviour: the cycle visits all three states and wraps', () => {
   // The modulo is where an off-by-one lives, and it shipped with no coverage of
