@@ -454,7 +454,7 @@ As an administrator, I want four predefined SongSet slots — Bible Talk open/cl
 As an operator, I want a service to hold its own snapshot of the registry, and a **Sync Artifact** action to refresh it. Live registry edits must not reach an existing service until Sync. **Still blocked, but on one item rather than two** — `AD-16` was recorded on 2026-07-30, so what remains is the `EXPERIENCE.md` reconciliation above. Two `AD-16` clauses the story must implement rather than re-decide: Sync carries the service's `updated_at` precondition (`AD-6`, which the spine had been silent on — a different decision, not a typo), and Sync is permitted on **any** service including one already presented — because the freeze event is service **creation**, and what a service holds against the registry is its supporting data entry, not a reproducible deck. Announcement membership is deliberately **not** frozen, and a later structural change need not keep an old snapshot renderable. It is last for a reason: every story above defines what gets cloned.
 
 
-### Epic 21: Scripture is on hand, in the translation being read *(in-progress — Story 21.1 done 2026-08-01; 21.2, 21.3, 21.4 and 21.5 backlog)*
+### Epic 21: Scripture is on hand, in the translation being read *(in-progress — Story 21.1 done 2026-08-01; 21.2 ready-for-dev; 21.3, 21.4 and 21.5 backlog)*
 
 **FRs addressed:** FR-19 (on-demand Scripture Display — the last product `Partial` on the coverage map above), **FR-22** (several translations, one default) — added to the PRD by the same Correct Course that opened this epic — and, since the second Correct Course of 2026-08-01, **FR-24** (Data Locale) for the scripture half.
 
@@ -487,12 +487,12 @@ Converts the export to a normalised `data/bible/kjv.json` and seeds it from zero
 
 > **Path superseded 2026-08-01, after this story closed.** FR-24 moves the corpus to **`data/en/bible-translation/kjv.json`**. This story's AC-1 and its file list name `data/bible/kjv.json`, and they are left standing as the record of what shipped — the move is Story 21.2's to perform, not a retroactive edit to a `done` story. Everything else this story asserts (the seed-from-zero channel, the structural completeness counts, the deleted export) is unaffected: only the path changes.
 
-#### Story 21.2: Translation Is a Parameter, Not a Literal *(backlog)*
+#### Story 21.2: Translation Is a Parameter, Not a Literal *(ready-for-dev — story file 2026-08-01)*
 As the system,
 I want every scripture read path to name the translation it is reading,
 So that a second corpus is an addition rather than a rewrite of six call sites.
 
-`lookupScripture(ref, translation)`, a translation parameter on `/api/scripture`, and an emptiness check that answers per translation instead of for `'KJV'` alone — `isKjvCorpusEmpty()` becomes `isBibleTranslationEmpty(code)`. The 503 message stops naming `.work/` and `npm run import:kjv`, which will no longer be how a corpus arrives.
+`lookupScripture(ref, translation)`, a translation parameter on `/api/scripture`, and an emptiness check that answers per translation instead of for `'KJV'` alone — `isKjvCorpusEmpty()` becomes `isBibleTranslationEmpty(code)`. ~~The 503 message stops naming `.work/` and `npm run import:kjv`, which will no longer be how a corpus arrives.~~ **Struck 2026-08-01 by `bmad-create-story`: Story 21.1 already did that.** Verified at `route.ts:22-24` — the shipped message names neither, it names `npm run corpus:verify`. What is left for this story is a different thing: that message hard-codes a **translation** and the **old path**, and FR-22 requires absence to be reported *for that translation* while the others keep working.
 
 **Measured 2026-08-01, so the story knows its own size.** The `'KJV'` literal survives at four sites in `src/lib/scripture.ts` — the type at `:6`, the emptiness count at `:106`, the lookup predicate at `:128` and the returned value at `:144` — plus the two importers in `src/app/api/scripture/route.ts`. That is the whole surface; the epic preamble's older "six call sites" and this list agree.
 
@@ -638,7 +638,7 @@ So that the next corpus to quietly stop shipping is caught here instead of by a 
 
 > **Amended 2026-08-01 (FR-24).** The corpus paths move again, to `data/<locale>/bible-translation/<code>.json` and `data/<locale>/song-book/<code>.json`. This story's criterion is written as a rule rather than a line list precisely so an amendment like this does not invalidate it — but the **rule itself widens**: no tracked document may name `data/hymns.json`, **`data/bible/`** or **`data/song-book/`** as a corpus path, nor tell a reader to run `npm run import:kjv` or `npm run import:hymnal`. The two middle spellings are new, and they are ones this repository's own documentation started using *this morning*, which is the argument for the criterion form restated in miniature.
 
-### Epic 24: The interface speaks the operator's language *(backlog)*
+### Epic 24: The interface speaks the operator's language *(in-progress — Story 24.1 ready-for-dev; 24.2 backlog)*
 
 **FRs addressed:** **FR-25** (UI Locale) — added to the PRD by the second Correct Course of 2026-08-01, as new §4.12.
 
@@ -655,7 +655,7 @@ Created 2026-08-01. **Deliberately not folded into Epic 21 or 22**, which carry 
 
 **Noted, and explicitly out of scope:** `src/lib/slide-plan.ts:261` hard-codes `'Bandung International Community'` — a church name living in code rather than configuration. Story 24.2 passes directly over this line and will be tempted to fix it. It should not: a church name is not a translatable string, and moving it to configuration is a different capability with a different owner. Recorded here so the temptation is a decision rather than a drive-by.
 
-#### Story 24.1: A String Catalogue, a Switcher, and an Honest `lang` *(backlog)*
+#### Story 24.1: A String Catalogue, a Switcher, and an Honest `lang` *(ready-for-dev — story file 2026-08-01)*
 
 As an operator who reads Indonesian more comfortably than English,
 I want to set the hub's language and have the page say which language it is in,
