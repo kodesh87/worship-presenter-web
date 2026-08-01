@@ -8,7 +8,6 @@ review_loop_iteration: 0
 followup_review_recommended: false
 context:
   - '{project-root}/_bmad-output/implementation-artifacts/epic-7-context.md'
-  - '{project-root}/_bmad-output/implementation-artifacts/phase1-gap-audit-2026-07-18.md'
 warnings:
   - multiple-goals
   - oversized
