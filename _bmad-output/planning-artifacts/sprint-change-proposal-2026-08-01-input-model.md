@@ -4,7 +4,9 @@ date: 2026-08-01
 run: third Correct Course of 2026-08-01 (after `-2026-08-01.md` and `-2026-08-01-locale.md`)
 trigger: owner direction, raised after the architecture Update shipped and before PR #16 merged
 scope_classification: Moderate
-status: proposed
+status: approved
+approved_by: kodesh87
+approved_date: 2026-08-01
 ---
 
 # Sprint Change Proposal — Scripture Input Is Scoped, Not Generous
