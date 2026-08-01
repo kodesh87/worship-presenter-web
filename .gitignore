@@ -83,3 +83,15 @@ slides-new/
 # Local databases and their backups.
 data/*.db
 data.db.bak-*
+
+# Raw diff dumps from review sessions. A diff is worse than scratch output: it
+# records the *pre-remediation* state of the files it touches, which is exactly
+# what a sanitisation pass removes from the tree. `_bmad-output/review-diff.diff`
+# was tracked from the initial commit until 2026-08-01 and the guard never read
+# it — `.diff` is absent from TEXT_EXTENSIONS, and PowerShell had written it as
+# UTF-16, so the name matcher saw letters separated by NUL. It happened to be
+# clean. Not producing the value beats blocking it afterwards.
+#
+# `*.patch` is deliberately NOT added here: `!.yarn/patches` above un-ignores
+# that directory, and a blanket `*.patch` would silently re-ignore its contents.
+*.diff

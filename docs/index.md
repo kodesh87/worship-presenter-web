@@ -1,6 +1,8 @@
 # Project Documentation Index
 
-Welcome to the documentation index for the `bic-pptx-workflow` project. This page acts as a directory to navigate the system's architecture, API contracts, data schemas, and setup manuals.
+Welcome to the documentation index for `worship-presenter-web`. This page acts as a directory to navigate the system's architecture, API contracts, data schemas, and setup manuals.
+
+> This index was generated while the project still lived in `bic-pptx-workflow`, and until 2026-08-01 it said so — naming the frozen legacy repository and linking three entry points to absolute paths inside it. `worship-presenter-web` is the only active root; see `AGENTS.md`.
 
 ---
 
@@ -12,12 +14,12 @@ Welcome to the documentation index for the `bic-pptx-workflow` project. This pag
 
 ### Quick Reference
 
-- **Tech Stack:** Next.js 16, React 19, SQLite (`better-sqlite3`), Tailwind CSS v4, PptxGenJS, JSZip
+- **Tech Stack:** Next.js 16, React 19, SQLite (`better-sqlite3`), Tailwind CSS v4, PptxGenJS, JSZip, Fabric.js (canvas editor)
 - **Application Entry Points:**
-  - Standard Browser UI Layout: [src/app/layout.tsx](file:///d:/Developer/bic/bic-pptx-workflow/src/app/layout.tsx)
-  - Bot Webhook Entry Point: [src/app/api/webhook/route.ts](file:///d:/Developer/bic/bic-pptx-workflow/src/app/api/webhook/route.ts)
-  - Session Interceptor: [src/proxy.ts](file:///d:/Developer/bic/bic-pptx-workflow/src/proxy.ts) (Next 16 renamed the `middleware` convention to `proxy`; the proxy runs on the Node.js runtime and re-checks each session against SQLite)
-- **Primary Database File:** `data.db` (SQLite, WAL mode active)
+  - Standard Browser UI Layout: [src/app/layout.tsx](../src/app/layout.tsx)
+  - Bot Webhook Entry Point: [src/app/api/webhook/route.ts](../src/app/api/webhook/route.ts)
+  - Session Interceptor: [src/proxy.ts](../src/proxy.ts) (Next 16 renamed the `middleware` convention to `proxy`; the proxy runs on the Node.js runtime and re-checks each session against SQLite)
+- **Primary Database File:** `data.db` (SQLite, WAL mode active). In production the path comes from `DB_PATH` and points at a durable host directory, never a container layer — see [Durable Server Deployment](./deploy.md)
 
 ---
 
@@ -36,9 +38,12 @@ Welcome to the documentation index for the `bic-pptx-workflow` project. This pag
 
 ## Pre-existing Project Documentation
 
+- **[Quickstart](./QUICKSTART.md):** Shortest path from a fresh clone to a running hub.
+- **[Private Data](./PRIVATE-DATA.md):** Where a congregation's own data lives, and why none of it belongs in this repository. **Read before committing anything** — this repository is public.
 - **[Cloudflare Tunnel Setup](./cloudflare-tunnel.md):** Configurations to expose the local Windows server container to public domains.
 - **[Durable Server Deployment](./deploy.md):** Guidelines for standard deployments, WAL configurations, and server font dependencies.
 - **[Picoclaw Webhook Specifications](./picoclaw-webhook.md):** Request body contract for the bot webhook receiver.
+- **[LiveServer Implementation Plan](./liveserver-implementation-plan.md):** The WP1–WP8 design record behind the Docker / Cloudflare Tunnel deployment. Delivered under Story 13.1 — a historical plan, not operator instructions; use the two guides above for that.
 
 ---
 

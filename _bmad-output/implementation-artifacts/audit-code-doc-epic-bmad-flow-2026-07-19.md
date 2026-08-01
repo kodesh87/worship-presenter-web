@@ -4,7 +4,7 @@ date: 2026-07-19
 baseline_head: fc8804ef7c889e6cfab456bc94be2912489c1471
 phase1_merge: 47a9442
 pre_jules_bmad: fe759cf
-spec: spec-audit-code-doc-epic-bmad-flow.md
+spec: null # spec-audit-code-doc-epic-bmad-flow.md — a `type: chore` doc-hygiene spec, deleted 2026-08-01. This report is what it produced and is the surviving record.
 ---
 
 # Audit: Code ↔ Docs, Epic/Story Truth, BMAD Flow
