@@ -75,7 +75,7 @@ UX-DR1: High-contrast UI on Tailwind / Shadcn defaults (as-built hub/run-sheet).
 | FR | Primary epic | Status (2026-07-29 correct course) |
 |----|--------------|---------------------------|
 | FR-1 | Epic 2 + Epic 6 | Done (webhook+upsert+readback; `.claude/skills/picoclaw-webhook/`) |
-| FR-2 | Epic 2 + Epic 22 | Partial (695-hymn corpus resolves, but its titles are first lyric lines, its source is gone, and its licence is undocumented — Epic 22) |
+| FR-2 | Epic 2 + Epic 22 | Done (Stories 22.1 + 22.2, 2026-08-01: corpus at `data/song-book/sdah.json` carrying its own book code, attribution and takedown statement; `hymns` keyed by `(book_code, number)`; all 695 titles replaced with the owner-supplied index, so the PRD `:120` readback echoes a title a human can recognise rather than a lyric line. FR-23's several-song-books work remains open in Story 22.3) |
 | FR-3 | Epic 6 | Done (persistent list; Announcements title gated on non-empty flyers) |
 | FR-4 | Epic 3 + Epic 6 + Epic 7 | Done (Part A/B/C + Intercessory standing `#671`/`#684` pair) |
 | FR-5 | Epic 3 | Done (verse/Reff splitter) |
@@ -95,7 +95,7 @@ UX-DR1: High-contrast UI on Tailwind / Shadcn defaults (as-built hub/run-sheet).
 | FR-16 | Epic 11 | Done (presenter + projector BroadcastChannel) |
 | FR-17 | Epic 4 + Epic 7 | Done (timings on Run-Sheet) |
 | FR-18 | Epic 1 + Epic 6 | Done (per-person admin/operator) |
-| FR-19 | Epic 12 + Epic 21 | Partial (`import:kjv` + Presenter lookup ship; the corpus reaches no fresh clone at all — `bible_verses` has no writer outside a git-ignored export. Epic 21) |
+| FR-19 | Epic 12 + Epic 21 | Done (Story 21.1, 2026-08-01: `data/bible/kjv.json` ships and seeds an empty database on first boot — 66 books, 1,189 chapters, 31,102 verses, asserted structurally in `tests/corpus.test.mjs`. A fresh clone resolves a reference with no file handed to it. FR-22's several-translations work remains open in Stories 21.2/21.3) |
 | FR-20 | Epic 16 | Done (Artifact Registry + canvas editor; contract in `../specs/spec-slide-artifact-model/` and `../implementation-artifacts/spec-16-2-artifact-pipeline-completion.md`) |
 | FR-21 | Epic 20 | Backlog (specified before any of its code exists — PRD §4.10; `AD-16`..`AD-22` all `[TARGET]`) |
 | FR-22 | Epic 21 | Backlog |
@@ -464,7 +464,7 @@ Created 2026-08-01 by Correct Course. Not a story on Epic 12: that epic is `done
 
 **Constraint: KJV is the shipped default, not the only possibility.** The corpus lands at `data/bible/<code>.json`, a shape a second translation extends by addition, and `bible_verses.translation` already exists and already defaults to `'KJV'`. What must not survive this epic is the *literal*: `lookupScripture()` takes no translation argument, `scripture.ts:116` and `isKjvCorpusEmpty()` hard-code `'KJV'`, and `/api/scripture` has no translation parameter.
 
-#### Story 21.1: The Verse Database Ships With the Repository *(backlog)*
+#### Story 21.1: The Verse Database Ships With the Repository *(done — 2026-08-01)*
 As an operator who has just cloned this repository,
 I want scripture lookup to work without being handed a file,
 So that FR-19 is a feature of the product rather than of one maintainer's disk.
@@ -502,14 +502,14 @@ A default-translation setting following the shipped per-concern pattern (`Retent
 - **Story 22.2 is blocked on a `bmad-architecture` Update.** No AD governs a *shipped reference corpus*: AD-11 and AD-17 govern the registry seed only, while the hymnal is upserted on **every boot** (`src/lib/db/index.ts:262`), overwriting `title` and `lyrics` — the boot-time value-change channel AD-17 removed for the registry and AD-21 routes through a declared transition *n*→*n+1*. Correcting 695 persisted titles is exactly AD-21's case, and the spine records at `:370` that **AD-21's counter does not exist and no story owns introducing it**. The same run amends the Structural Seed tree (`:315` names `data/ # hymnal corpus (hymns.json)`; `:322` the scripts list) and clears the two `Deferred` bullets (`:360`, `:363`).
 - **Story 22.3 is gated on Epic 20 Story 20.7.** A per-song "which book" qualifier hangs off the same binding AD-19 governs, and AD-19 fixes that a weekly value has **exactly one persisted home** and that the four `songset-*` slot identities **replace** `song1Number..song4Number`, *"deleted, not aliased"*. Built before 20.7, this ships four fields Epic 20 then deletes.
 
-#### Story 22.1: The Song Book Ships as One of Several, and Says Whose It Is *(backlog)*
+#### Story 22.1: The Song Book Ships as One of Several, and Says Whose It Is *(done — 2026-08-01)*
 As a maintainer,
 I want the corpus at `data/song-book/sdah.json`, carrying its own book code and its attribution,
 So that the last undocumented corpus stops being unreproducible, unattributed and unable to have a sibling.
 
 Moves the file, adds `hymns.book_code` (default `'SDAH'`) with `UNIQUE(book_code, number)`, writes the attribution and takedown statement, and updates the loader. **It must also decide what `npm run import:hymnal` now means** — its source is gone, so the committed corpus becomes the source of record and the script is repointed or retired. It does not stay in `package.json` pointing at a file nobody has.
 
-#### Story 22.2: A Hymn Title Is a Title *(backlog)*
+#### Story 22.2: A Hymn Title Is a Title *(done — 2026-08-01)*
 As an operator confirming a hymn number before it enters the run sheet,
 I want the readback to show the hymn's actual title,
 So that FR-2's only defence against a valid-but-wrong number is checking something a human can recognise.

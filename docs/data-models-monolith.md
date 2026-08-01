@@ -40,6 +40,7 @@ erDiagram
 
     hymns {
         INTEGER id PK
+        TEXT book_code UK
         INTEGER number UK
         TEXT title
         TEXT lyrics
@@ -103,14 +104,21 @@ Lists individual slide flyers mapped to services, allowing specific ordering.
 | `created_at` | `DATETIME` | DEFAULT CURRENT_TIMESTAMP | Timestamp of creation. |
 
 ### 3. `hymns`
-Maintains the Seventh-day Adventist Hymnal (SDAH) lyrics library.
+Maintains the song-book lyrics library. Ships with the Seventh-day Adventist
+Hymnal (`SDAH`); a second book is an addition, not a replacement.
 
 | Column Name | SQLite Type | Constraints | Description |
 |---|---|---|---|
 | `id` | `INTEGER` | PRIMARY KEY AUTOINCREMENT | Unique record ID. |
-| `number` | `INTEGER` | NOT NULL UNIQUE | Hymn number (SDAH index). |
+| `book_code` | `TEXT` | NOT NULL DEFAULT `'SDAH'` | Which song book the number belongs to. Matches the corpus file at `data/song-book/<book_code>.json`. |
+| `number` | `INTEGER` | NOT NULL | Hymn number within that book. |
 | `title` | `TEXT` | NOT NULL | Title of the hymn. |
 | `lyrics` | `TEXT` | NOT NULL | Full text/lyrics of the hymn. |
+
+Keyed by `UNIQUE(book_code, number)`, never by `number` alone: every song book
+has a #1, so a globally unique number cannot hold two books. Databases created
+before this constraint are rebuilt once at boot, with existing rows recorded as
+`SDAH` — the only corpus that ever shipped.
 
 ### 4. `accounts`
 Stores administrative and operator credentials.
@@ -156,6 +164,6 @@ Stores Bible scripture verses.
 
 ## Seeding & Initialization
 
-1. **Hymnal Data:** Loaded during system initialization from the file `data/hymns.json` and upserted into the `hymns` table on conflict.
-2. **Bible Verses:** Imported via utility commands `npm run import:kjv` which processes the raw database.
+1. **Song Book Data:** Loaded during system initialization from `data/song-book/sdah.json` and upserted into the `hymns` table on conflict `(book_code, number)`. Title and lyrics are re-applied from the file on every boot.
+2. **Bible Verses:** Seeded during system initialization from `data/bible/kjv.json` into `bible_books` / `bible_verses` — **only when that translation holds no verses**. A translation already populated is left untouched, so nothing persisted is overwritten at boot.
 3. **Bootstrap Admin:** If the `accounts` table is empty and environment variables `AUTH_BOOTSTRAP_USER` and `AUTH_BOOTSTRAP_PASSWORD` are configured, the first admin account is automatically seeded.

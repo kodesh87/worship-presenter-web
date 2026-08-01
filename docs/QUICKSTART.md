@@ -87,7 +87,8 @@ the deck and the browser.
 ## 6. Optional extras
 
 **Scripture lookup.** Presenter mode can put a KJV passage on the projector. The
-corpus is not shipped; supply one and run `npm run import:kjv`.
+corpus ships at `data/bible/kjv.json` and seeds itself the first time the app
+starts, so there is nothing to do here.
 
 **Chat intake.** `POST /api/webhook` with an `x-webhook-secret` header accepts a
 rundown as JSON, so a bot can create or correct a service. The secret is in
@@ -95,8 +96,10 @@ rundown as JSON, so a bot can create or correct a service. The secret is in
 
 ## Troubleshooting
 
-**`Missing hymnal corpus`** — `data/hymns.json` is absent. Run
-`npm run import:hymnal`, or supply your own corpus in the same shape.
+**`Missing song book corpus`** — `data/song-book/sdah.json` is absent. It ships
+with the repository, so restore it from version control:
+`git checkout -- data/song-book/sdah.json`. Then `npm run corpus:verify` to
+confirm both corpora are whole.
 
 **Locked out** — `npm run auth:set-password -- admin` sets a new password from an
 interactive prompt. `npm run auth:unlock -- --list` shows and clears sign-in

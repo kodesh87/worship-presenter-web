@@ -56,11 +56,20 @@ The shipped registry is a worked example — a real order of service with placeh
 1. **Slide templates.** Sign in as an administrator and open `/admin/artifacts`. Every template is editable on a canvas; the standing slides (offering, midweek prayer, contact) are where your own details go.
 2. **Private overrides.** If you would rather keep your congregation's registry out of git entirely, drop it at `data/local/default-registry.json` and the app seeds from that instead. That path is git-ignored. See [docs/PRIVATE-DATA.md](docs/PRIVATE-DATA.md).
 
-## Hymn corpus
+## Shipped corpora
 
-The repository ships the Seventh-day Adventist Hymnal corpus so the tool works out of the box for the congregations it was written for. Please read [ATTRIBUTIONS.md](ATTRIBUTIONS.md) — it names the copyright holder, states the non-commercial congregational purpose, and gives a contact for removal requests.
+Two default corpora are committed, so a clone resolves a hymn number and a scripture reference with no file handed to it and no network at boot:
 
-If you are adapting this for a different hymnal, replace `data/hymns.json` with your own corpus in the same shape and run `npm run import:hymnal`.
+| File | Seeds | On boot |
+| --- | --- | --- |
+| `data/song-book/sdah.json` | 695 hymns of the Seventh-day Adventist Hymnal | title and lyrics re-applied from the file |
+| `data/bible/kjv.json` | 66 books, 1,189 chapters, 31,102 KJV verses | seeded only when the translation is empty; never overwritten |
+
+`npm run corpus:verify` asserts both are whole. Neither has a generator: the exports they were converted from are gone, so these files are the source of record — restore from version control rather than rebuilding.
+
+Please read [ATTRIBUTIONS.md](ATTRIBUTIONS.md) — it names the copyright holders, states the non-commercial congregational purpose, and gives a contact for removal requests. Each corpus also carries its own licence text inside the file.
+
+If you are adapting this for a different hymnal, add your corpus at `data/song-book/<book-code>.json` in the same shape. Hymns are keyed by `(book_code, number)`, so a second book sits alongside the shipped one instead of replacing it.
 
 ## Deployment
 

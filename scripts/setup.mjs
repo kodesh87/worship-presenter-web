@@ -61,21 +61,50 @@ function ensureEnv() {
   return true;
 }
 
-/** Report on the hymn corpus rather than failing: the app explains it too. */
-function checkHymnCorpus() {
-  const corpus = path.join(root, 'data', 'hymns.json');
-  if (!fs.existsSync(corpus)) {
-    say('  data/hymns.json is missing — run `npm run import:hymnal` before starting');
-    return false;
+/**
+ * Report on the shipped corpora rather than failing: the app explains it too.
+ * Both are committed, so "missing" means the checkout is damaged, not that a
+ * step was skipped — the advice is restore, never import.
+ */
+function checkCorpora() {
+  let ok = true;
+
+  const songBook = path.join(root, 'data', 'song-book', 'sdah.json');
+  if (!fs.existsSync(songBook)) {
+    say('  data/song-book/sdah.json is missing — it ships with the repository;');
+    say('  restore it with `git checkout -- data/song-book/sdah.json`');
+    ok = false;
+  } else {
+    try {
+      const corpus = JSON.parse(fs.readFileSync(songBook, 'utf8'));
+      const count = Array.isArray(corpus.hymns) ? corpus.hymns.length : 0;
+      say(`  song book present (${corpus.book?.code ?? '?'}, ${count} hymns)`);
+    } catch {
+      say('  data/song-book/sdah.json is present but unreadable — check the file');
+      ok = false;
+    }
   }
-  try {
-    const hymns = JSON.parse(fs.readFileSync(corpus, 'utf8'));
-    say(`  hymn corpus present (${hymns.length} hymns)`);
-  } catch {
-    say('  data/hymns.json is present but unreadable — check the file');
-    return false;
+
+  const bible = path.join(root, 'data', 'bible', 'kjv.json');
+  if (!fs.existsSync(bible)) {
+    say('  data/bible/kjv.json is missing — it ships with the repository;');
+    say('  restore it with `git checkout -- data/bible/kjv.json`');
+    ok = false;
+  } else {
+    try {
+      const corpus = JSON.parse(fs.readFileSync(bible, 'utf8'));
+      const { books = 0, verses = 0 } = corpus.counts ?? {};
+      say(
+        `  bible present (${corpus.translation?.code ?? '?'}, ${books} books, ${verses} verses)`
+      );
+    } catch {
+      say('  data/bible/kjv.json is present but unreadable — check the file');
+      ok = false;
+    }
   }
-  return true;
+
+  if (!ok) say('  then run `npm run corpus:verify` to confirm both are whole');
+  return ok;
 }
 
 /** Touching the database runs the startup DDL, the seed and the admin bootstrap. */
@@ -114,7 +143,7 @@ say('');
 say('Setting up worship-presenter-web');
 say('');
 ensureEnv();
-checkHymnCorpus();
+checkCorpora();
 reportPrivateOverride();
 initialiseDatabase();
 say('');

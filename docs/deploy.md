@@ -7,7 +7,7 @@ For a worked container deployment, see [`deployment-guide.md`](./deployment-guid
 ## Requirements
 
 - Node.js 20+ (24 OK)
-- Built app: `npm ci` → `npm run import:hymnal` (once) → `npm run build`
+- Built app: `npm ci` → `npm run build` (the corpora ship in the repo; no import step)
 - Durable disk path for the database file
 
 ## Environment
@@ -64,15 +64,25 @@ Process manager example (systemd): one `ExecStart=npm run start` (or `node node_
 
 Generated PPTX files may be written under `.cache/pptx/` on download. Retention deletes **only those cache files** older than the policy window — Service rows, rundown text, and announcement images are never auto-deleted. Configure via `PPTX_RETENTION_DAYS` or Admin → Retention. Cleanup runs when a PPTX is generated and when Admin saves the retention setting.
 
-## KJV scripture (Phase 6 / FR-19)
+## Shipped corpora
 
-For Presenter Mode on-demand lookup only (never for deck theme/verse slides):
+Both default corpora are committed and seed themselves; there is no import step
+and nothing to copy onto the host beyond the repository itself.
+
+| File | Table | Boot behaviour |
+| --- | --- | --- |
+| `data/bible/kjv.json` | `bible_books`, `bible_verses` | seeded only when the translation is empty |
+| `data/song-book/sdah.json` | `hymns` | upserted on `(book_code, number)` every boot |
 
 ```bash
-npm run import:kjv
+npm run corpus:verify   # 66 books / 1,189 chapters / 31,102 verses; 695 hymns
 ```
 
-Reads the latest `.work/tp_bible_book_translations_*.json` and `.work/tp_bible_verses_*.json` into `bible_books` / `bible_verses`.
+KJV scripture (Phase 6 / FR-19) is for Presenter Mode on-demand lookup only —
+never for deck theme/verse slides, which use rundown-supplied scripture.
+
+**Containers:** both files must be present in the image. A standalone Next.js
+build does not copy `data/`, so copy it explicitly. Never bake `data.db`.
 
 ## Backup
 

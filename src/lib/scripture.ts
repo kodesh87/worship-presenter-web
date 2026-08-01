@@ -6,7 +6,13 @@ export type ScripturePassage = {
   translation: 'KJV';
 };
 
-/** Strip dump markup like `@9was@7` / `@6…@5`. */
+/**
+ * Strip source markup like `@9was@7` / `@6…@5` — the export encoded the words
+ * the 1611 translators supplied (printed italic in the KJV) this way. The
+ * committed corpus at `data/bible/kjv.json` is already clean and
+ * `npm run corpus:verify` fails if a marker reappears, so this now guards
+ * verses that reached the table by some other route.
+ */
 export function stripVerseMarkup(text: string): string {
   return text.replace(/@\d+/g, '').replace(/\s{2,}/g, ' ').trim();
 }
@@ -88,7 +94,11 @@ function resolveBookId(bookName: string): number | null {
   return null;
 }
 
-/** True when KJV corpus has not been imported (ops: npm run import:kjv). */
+/**
+ * True when the KJV table is empty. The corpus ships at `data/bible/kjv.json`
+ * and seeds on first boot, so this is no longer the normal state of a fresh
+ * clone — it means the seed did not run or the table was emptied.
+ */
 export function isKjvCorpusEmpty(): boolean {
   const db = getDb();
   const row = db

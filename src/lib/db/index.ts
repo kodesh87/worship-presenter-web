@@ -2,6 +2,13 @@ import Database from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
 import { hashPassword } from '../auth/password';
+import {
+  DEFAULT_SONG_BOOK,
+  DEFAULT_TRANSLATION,
+  loadBibleCorpus,
+  loadSongBookCorpus,
+  type HymnSeed,
+} from '../corpus';
 import { seedArtifactRegistry } from '../registry/seed';
 import { recordSeedHashesForMigratedRows } from '../registry/store';
 
@@ -14,64 +21,121 @@ const SEED_HASH_BACKFILL_KEY = 'artifact_seed_hash_backfilled';
 
 let db: Database.Database | null = null;
 
-type HymnSeed = {
-  number: number;
-  title: string;
-  lyrics: string;
-};
+/**
+ * `hymns` was created with `number INTEGER NOT NULL UNIQUE` — globally unique,
+ * and every song book has a #1, so a second book could not be stored. SQLite
+ * cannot add or drop a table constraint in place, so the table is rebuilt once.
+ * Existing rows are all SDAH: it was the only corpus that ever shipped.
+ */
+function migrateHymnsForSongBooks(database: Database.Database) {
+  const columns = database.prepare(`PRAGMA table_info(hymns)`).all() as {
+    name: string;
+  }[];
+  if (columns.length === 0) return;
+  if (columns.some((c) => c.name === 'book_code')) return;
 
-function loadHymnCorpus(): HymnSeed[] {
-  const corpusPath = path.join(process.cwd(), 'data', 'hymns.json');
-  if (!fs.existsSync(corpusPath)) {
-    throw new Error(
-      `Missing hymnal corpus at ${corpusPath}. Run: npm run import:hymnal`
+  database.exec(`
+    CREATE TABLE hymns_with_book_code (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      book_code TEXT NOT NULL DEFAULT '${DEFAULT_SONG_BOOK}',
+      number INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      lyrics TEXT NOT NULL,
+      UNIQUE(book_code, number)
     );
-  }
+    INSERT INTO hymns_with_book_code (id, book_code, number, title, lyrics)
+      SELECT id, '${DEFAULT_SONG_BOOK}', number, title, lyrics FROM hymns;
+    DROP TABLE hymns;
+    ALTER TABLE hymns_with_book_code RENAME TO hymns;
+  `);
 
-  const raw = JSON.parse(fs.readFileSync(corpusPath, 'utf8')) as unknown;
-  if (!Array.isArray(raw)) {
-    throw new Error(`Invalid hymnal corpus (expected array): ${corpusPath}`);
-  }
-
-  const hymns = raw
-    .map((row) => {
-      if (!row || typeof row !== 'object') return null;
-      const r = row as Record<string, unknown>;
-      const number = Number(r.number);
-      const title = String(r.title ?? '').trim();
-      const lyrics = String(r.lyrics ?? '').trim();
-      if (!Number.isInteger(number) || number <= 0 || !title || !lyrics) {
-        return null;
-      }
-      return { number, title, lyrics };
-    })
-    .filter((h): h is HymnSeed => h !== null);
-
-  if (hymns.length === 0) {
-    throw new Error(`Hymnal corpus is empty: ${corpusPath}`);
-  }
-
-  return hymns;
+  console.info(
+    `[corpus] migration: hymns keyed by (book_code, number); existing rows ` +
+      `recorded as ${DEFAULT_SONG_BOOK}`
+  );
 }
 
+/**
+ * Song book corpus rides the boot upsert it has always ridden: title and lyrics
+ * are re-applied from the committed file on every boot. Whether a shipped
+ * reference corpus should keep that channel is an open architecture question
+ * (no AD governs it yet) — this function does not answer it, it only stops
+ * reading the old un-keyed path.
+ */
 function upsertHymns(database: Database.Database) {
-  const hymns = loadHymnCorpus();
+  const corpus = loadSongBookCorpus(DEFAULT_SONG_BOOK);
 
   const upsert = database.prepare(`
-    INSERT INTO hymns (number, title, lyrics)
-    VALUES (@number, @title, @lyrics)
-    ON CONFLICT(number) DO UPDATE SET
+    INSERT INTO hymns (book_code, number, title, lyrics)
+    VALUES (@book_code, @number, @title, @lyrics)
+    ON CONFLICT(book_code, number) DO UPDATE SET
       title = excluded.title,
       lyrics = excluded.lyrics
   `);
 
   const tx = database.transaction((rows: HymnSeed[]) => {
     for (const hymn of rows) {
-      upsert.run(hymn);
+      upsert.run({ ...hymn, book_code: corpus.code });
     }
   });
 
-  tx(hymns);
+  tx(corpus.hymns);
+}
+
+/**
+ * Bible corpus seeds **from zero only**: a translation already holding verses is
+ * left untouched. Nothing persisted is ever overwritten at boot, which is why
+ * this path carries no transition counter while the hymn upsert above is the
+ * one under architectural review.
+ */
+function seedBibleCorpus(database: Database.Database) {
+  const existing = database
+    .prepare(`SELECT COUNT(*) AS n FROM bible_verses WHERE translation = ?`)
+    .get(DEFAULT_TRANSLATION) as { n: number } | undefined;
+  if (existing && Number(existing.n) > 0) return;
+
+  const corpus = loadBibleCorpus(DEFAULT_TRANSLATION);
+
+  const insertBook = database.prepare(`
+    INSERT INTO bible_books (id, name, short_name)
+    VALUES (@id, @name, @short_name)
+    ON CONFLICT(id) DO UPDATE SET
+      name = excluded.name,
+      short_name = excluded.short_name
+  `);
+  const insertVerse = database.prepare(`
+    INSERT INTO bible_verses (book_id, chapter, verse, verse_text, translation)
+    VALUES (@book_id, @chapter, @verse, @verse_text, @translation)
+    ON CONFLICT(book_id, chapter, verse, translation) DO NOTHING
+  `);
+
+  const tx = database.transaction(() => {
+    for (const book of corpus.books) {
+      insertBook.run({
+        id: book.id,
+        name: book.name,
+        short_name: book.shortName,
+      });
+      book.chapters.forEach((verses, chapterIndex) => {
+        verses.forEach((verse_text, verseIndex) => {
+          insertVerse.run({
+            book_id: book.id,
+            chapter: chapterIndex + 1,
+            verse: verseIndex + 1,
+            verse_text,
+            translation: corpus.code,
+          });
+        });
+      });
+    }
+  });
+
+  tx();
+
+  console.info(
+    `[corpus] seeded ${corpus.counts.verses} ${corpus.code} verses across ` +
+      `${corpus.counts.books} books`
+  );
 }
 
 export function getDb() {
@@ -101,11 +165,15 @@ export function getDb() {
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
 
+      -- Keyed by (book_code, number), never by number alone: every song book
+      -- has a #1. book_code matches the corpus file at data/song-book/<code>.json.
       CREATE TABLE IF NOT EXISTS hymns (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        number INTEGER NOT NULL UNIQUE,
+        book_code TEXT NOT NULL DEFAULT 'SDAH',
+        number INTEGER NOT NULL,
         title TEXT NOT NULL,
-        lyrics TEXT NOT NULL
+        lyrics TEXT NOT NULL,
+        UNIQUE(book_code, number)
       );
 
       CREATE TABLE IF NOT EXISTS announcement_items (
@@ -259,7 +327,9 @@ export function getDb() {
       );
     }
 
+    migrateHymnsForSongBooks(db);
     upsertHymns(db);
+    seedBibleCorpus(db);
     seedArtifactRegistry(db);
     bootstrapAdminIfEmpty(db);
   }

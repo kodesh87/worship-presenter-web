@@ -19,7 +19,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            'KJV database is empty. Run npm run import:kjv (requires .work/tp_bible_*.json).',
+            'KJV corpus is empty. It ships at data/bible/kjv.json and seeds on ' +
+            'first boot; check the file with npm run corpus:verify.',
         },
         { status: 503 }
       );
