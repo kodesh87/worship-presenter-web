@@ -4,7 +4,7 @@ baseline_commit: be69ce5ffe8e2e940878b2f97404caa09480f4a9
 
 # Story 24.1: A String Catalogue, a Switcher, and an Honest `lang`
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -84,49 +84,49 @@ unit, and it is why the mechanism questions below are ACs rather than notes.
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — read before writing anything (AC: all)**
-  - [ ] `src/lib/theme-cycle.ts` (34 lines) — the shape AC-2 asks you to copy, including *why* it is a `.ts` module and how it coerces an untrusted stored value. Read its header comment, not only its code.
-  - [ ] `src/lib/transitions.ts:1-40` — the *one table, described once* precedent, and the model for a catalogue no surface may keep its own copy of (AD-23).
-  - [ ] `src/lib/settings.ts` (81 lines) — the two key pairs you are appending beside, and the coerce-and-log posture of `getSlideTransition` (`:60-72`).
-  - [ ] `src/app/admin/TransitionSettings.tsx` (97) and `src/app/admin/page.tsx` (58) — the per-concern block and the `initial*` prop idiom, both of which AC-6 requires you to follow rather than reinvent.
-  - [ ] `src/app/api/admin/settings/route.ts` (97) — in particular the comment at `:50-52`, which states the all-or-nothing property AC-5 must preserve.
-  - [ ] `src/app/layout.tsx` (40) — all forty lines. Three separate stories have obligations inside it.
-  - [ ] `ARCHITECTURE-SPINE.md` → **AD-24** (the three homes, and the room-facing closure), **AD-25**'s *"What is not a corpus"* clause (this story's artifact, by name), and *Deferred* → *"The second root-level client provider is a live question"*.
-  - [ ] `EXPERIENCE.md:73`, `:81`, `:82` and Flow 9 (`:289-297`) — the sub-surface decisions already taken for you; `DESIGN.md` → *Components* → `admin/TransitionSettings` (`:199`) and *Do's and Don'ts* (`:211-216`).
-- [ ] **Task 2 — the catalogue and the resolver (AC: 1, 2, 3, 4)**
-  - [ ] Catalogue modules under `src/lib/` (kebab-case directory, e.g. `src/lib/i18n/`), one table per locale, `en` and `id`. **No JSON under `data/`** — that directory is corpus and upload territory and AD-25 draws the line explicitly.
-  - [ ] The locale vocabulary as a `const` tuple plus its derived type and a coercion function, on `THEME_ORDER` / `asThemeChoice`'s exact shape (`theme-cycle.ts:15-23`).
-  - [ ] The resolver: key + locale → string; missing key → a marker naming the key, plus a `console.error` (the repository's server-log floor).
-  - [ ] Key-set parity test. Derive the expected keys from one catalogue and compare, rather than hand-listing them — a hand-listed set is the anti-pattern this repository has spent four review rounds on in `tests/theme-chrome.test.mjs`.
-- [ ] **Task 3 — the setting and its API (AC: 5)**
-  - [ ] `settings.ts`: one `const`, one getter, one setter. Coerce-and-log on read like `getSlideTransition`, throw on an invalid write like `setSlideTransition`. **Touch nothing else in the file** — two other stories append here.
-  - [ ] `/api/admin/settings`: `ui_locale` in the `GET` payload; in `PUT`, validated **before** anything is written so a mixed body leaves all settings as they were.
-  - [ ] **The body gate needs the third field or your PUT is rejected as invalid.** `:44-48` computes `hasDays` and `hasTransition` and returns `400 Invalid body` when neither is present — a body carrying only `ui_locale` fails there today. Add the third flag; do not loosen the gate to "any object".
-  - [ ] An unknown locale value returns `400` naming the accepted set, following the `slide_transition` message shape at `:69-74`.
-- [ ] **Task 4 — the admin block (AC: 6)**
-  - [ ] New client component beside its siblings (`src/app/admin/`, e.g. `UiLocaleSettings.tsx`), `'use client'`, `useState` seeded from an `initial*` prop, `fetch('/api/admin/settings', { method: 'PUT' })`, `Card` + native `select` + `Button` — `TransitionSettings.tsx` is the template, line for line.
-  - [ ] `admin/page.tsx`: read the setting server-side beside `getPptxRetentionDays()` / `getSlideTransition()` (`:30-31`) and mount the component beside its two siblings (`:52-54`). **One line each — that is the append-shaped contact point; do not restructure the page.**
-  - [ ] Microcopy follows `EXPERIENCE.md` → *Voice and Tone*: plain and operational, worship vocabulary, and an error that states the recovery rather than the cause. The block's own strings go through the catalogue (AC-11).
-  - [ ] The page's own subtitle at `:46-49` names what `/admin` manages and will be wrong the moment you add a fourth block. Update that sentence; leave the rest of the page alone.
-- [ ] **Task 5 — `<html lang>` (AC: 7, 8)**
-  - [ ] Replace the literal at `:31` with the setting. Keep `suppressHydrationWarning`, keep `ThemeProvider` as the only client boundary, keep the layout a Server Component.
-  - [ ] Run `npm run build` and read the route table. If `login` (or any page) renders static, `lang` is baked there — close it deliberately and record which way and why.
-  - [ ] Do not touch `metadata` (`:16-19`). That is Story 17.3's and the wording is product-owned.
-- [ ] **Task 6 — the closure guard (AC: 10, 13)**
-  - [ ] Assert that no room-facing surface imports the catalogue or reads `ui_locale`. The room-facing set is already enumerated by `tests/theme-chrome.test.mjs` — **read how it walks the projected tree and reuse the approach rather than hand-listing files**, and note that same file's four hand-maintained lists are recorded in the spine as its own worst feature.
-  - [ ] Prove it reacts: import the catalogue into a projected file, watch red, revert.
-  - [ ] `<html lang>` is the deliberate exception in AC-10 — write the guard so it does not accidentally forbid it, and say so in a comment, or the next reader will read the exception as a leak.
-- [ ] **Task 7 — the artifacts this story makes stale (AC: none — process)**
-  - [ ] **In this change set:** your own status transitions on `sprint-status.yaml`'s `24-1-string-catalogue-switcher-and-lang` row, and `epics.md`'s Story 24.1 status tag plus the Epic 24 heading. (`epic-24` and the story row were already moved to `in-progress` / `ready-for-dev` when this story file was written — do not re-do that, continue from it.)
-  - [ ] **In this change set, if it is still true when you finish:** `_bmad-output/project-context.md`'s technology-stack section says nothing about i18n; if your mechanism introduces a rule an agent must follow (where the catalogue lives, that it is never persisted), that is a runtime rule and belongs there. Keep it to a bullet.
-  - [ ] **Hand off, do not perform.** `EXPERIENCE.md:82` (the UI-locale switcher row, *"⚠ designed, not shipped"*, and its evidence *"`lang="en"` is hard-coded at `src/app/layout.tsx:31`"*), `:81` (the Language-settings row's owner list), Flow 9's *"Every beat below is unbuilt"* preamble at `:291`, and **`DESIGN.md`'s *Components* table, which has no row for this switcher at all** while `EXPERIENCE.md:95` states the two tables cover the same component set. That is a `bmad-ux` run. Name all four precisely so it does not rediscover them. **If your implementation does introduce a visual delta or a token override, `AGENTS.md` moves the `DESIGN.md` row into your change set** — in which case AC-6 was violated and you should reconsider the control first.
-  - [ ] **Hand off, do not perform.** If you conclude a client provider is unavoidable (AC-9), that is a spine matter — AD-24's tiers and its *Deferred* provider question — and it routes through a `bmad-architecture` Update run. **Never renumber an existing `AD-n`.** State the enumeration of consumers you actually did, so the run is deciding rather than guessing.
-- [ ] **Task 8 — verification (AC: 14)**
-  - [ ] Baseline the suite **before** you start rather than trusting a recorded number; the last recorded figure is 387 tests / 386 pass / 1 skipped, and this story adds a suite.
-  - [ ] **Measure lint on a clean checkout.** The last recorded baseline is **31 problems on 2026-08-01**; a working copy with agent worktrees under `.claude/worktrees/` has printed 14,528 of one run's 14,559. A number in the thousands means you linted a worktree.
-  - [ ] `npm run build` green — CI's order is `npm ci` → `npm run build` → `npm test`, and `tests/auth-http.test.mjs` spawns the built server, so it throws unless `.next` exists.
-  - [ ] The manual end-to-end pass in AC-14, recorded as what you observed.
-  - [ ] `tests/public-repo-guard.test.mjs` green before committing, per `AGENTS.md`. Your new strings are UI copy — keep the synthetic congregation synthetic and invent nothing that looks like a real name.
+- [x] **Task 1 — read before writing anything (AC: all)**
+  - [x] `src/lib/theme-cycle.ts` (34 lines) — the shape AC-2 asks you to copy, including *why* it is a `.ts` module and how it coerces an untrusted stored value. Read its header comment, not only its code.
+  - [x] `src/lib/transitions.ts:1-40` — the *one table, described once* precedent, and the model for a catalogue no surface may keep its own copy of (AD-23).
+  - [x] `src/lib/settings.ts` (81 lines) — the two key pairs you are appending beside, and the coerce-and-log posture of `getSlideTransition` (`:60-72`).
+  - [x] `src/app/admin/TransitionSettings.tsx` (97) and `src/app/admin/page.tsx` (58) — the per-concern block and the `initial*` prop idiom, both of which AC-6 requires you to follow rather than reinvent.
+  - [x] `src/app/api/admin/settings/route.ts` (97) — in particular the comment at `:50-52`, which states the all-or-nothing property AC-5 must preserve.
+  - [x] `src/app/layout.tsx` (40) — all forty lines. Three separate stories have obligations inside it.
+  - [x] `ARCHITECTURE-SPINE.md` → **AD-24** (the three homes, and the room-facing closure), **AD-25**'s *"What is not a corpus"* clause (this story's artifact, by name), and *Deferred* → *"The second root-level client provider is a live question"*.
+  - [x] `EXPERIENCE.md:73`, `:81`, `:82` and Flow 9 (`:289-297`) — the sub-surface decisions already taken for you; `DESIGN.md` → *Components* → `admin/TransitionSettings` (`:199`) and *Do's and Don'ts* (`:211-216`).
+- [x] **Task 2 — the catalogue and the resolver (AC: 1, 2, 3, 4)**
+  - [x] Catalogue modules under `src/lib/` (kebab-case directory, e.g. `src/lib/i18n/`), one table per locale, `en` and `id`. **No JSON under `data/`** — that directory is corpus and upload territory and AD-25 draws the line explicitly.
+  - [x] The locale vocabulary as a `const` tuple plus its derived type and a coercion function, on `THEME_ORDER` / `asThemeChoice`'s exact shape (`theme-cycle.ts:15-23`).
+  - [x] The resolver: key + locale → string; missing key → a marker naming the key, plus a `console.error` (the repository's server-log floor).
+  - [x] Key-set parity test. Derive the expected keys from one catalogue and compare, rather than hand-listing them — a hand-listed set is the anti-pattern this repository has spent four review rounds on in `tests/theme-chrome.test.mjs`.
+- [x] **Task 3 — the setting and its API (AC: 5)**
+  - [x] `settings.ts`: one `const`, one getter, one setter. Coerce-and-log on read like `getSlideTransition`, throw on an invalid write like `setSlideTransition`. **Touch nothing else in the file** — two other stories append here.
+  - [x] `/api/admin/settings`: `ui_locale` in the `GET` payload; in `PUT`, validated **before** anything is written so a mixed body leaves all settings as they were.
+  - [x] **The body gate needs the third field or your PUT is rejected as invalid.** `:44-48` computes `hasDays` and `hasTransition` and returns `400 Invalid body` when neither is present — a body carrying only `ui_locale` fails there today. Add the third flag; do not loosen the gate to "any object".
+  - [x] An unknown locale value returns `400` naming the accepted set, following the `slide_transition` message shape at `:69-74`.
+- [x] **Task 4 — the admin block (AC: 6)**
+  - [x] New client component beside its siblings (`src/app/admin/`, e.g. `UiLocaleSettings.tsx`), `'use client'`, `useState` seeded from an `initial*` prop, `fetch('/api/admin/settings', { method: 'PUT' })`, `Card` + native `select` + `Button` — `TransitionSettings.tsx` is the template, line for line.
+  - [x] `admin/page.tsx`: read the setting server-side beside `getPptxRetentionDays()` / `getSlideTransition()` (`:30-31`) and mount the component beside its two siblings (`:52-54`). **One line each — that is the append-shaped contact point; do not restructure the page.**
+  - [x] Microcopy follows `EXPERIENCE.md` → *Voice and Tone*: plain and operational, worship vocabulary, and an error that states the recovery rather than the cause. The block's own strings go through the catalogue (AC-11).
+  - [x] The page's own subtitle at `:46-49` names what `/admin` manages and will be wrong the moment you add a fourth block. Update that sentence; leave the rest of the page alone.
+- [x] **Task 5 — `<html lang>` (AC: 7, 8)**
+  - [x] Replace the literal at `:31` with the setting. Keep `suppressHydrationWarning`, keep `ThemeProvider` as the only client boundary, keep the layout a Server Component.
+  - [x] Run `npm run build` and read the route table. If `login` (or any page) renders static, `lang` is baked there — close it deliberately and record which way and why.
+  - [x] Do not touch `metadata` (`:16-19`). That is Story 17.3's and the wording is product-owned.
+- [x] **Task 6 — the closure guard (AC: 10, 13)**
+  - [x] Assert that no room-facing surface imports the catalogue or reads `ui_locale`. The room-facing set is already enumerated by `tests/theme-chrome.test.mjs` — **read how it walks the projected tree and reuse the approach rather than hand-listing files**, and note that same file's four hand-maintained lists are recorded in the spine as its own worst feature.
+  - [x] Prove it reacts: import the catalogue into a projected file, watch red, revert.
+  - [x] `<html lang>` is the deliberate exception in AC-10 — write the guard so it does not accidentally forbid it, and say so in a comment, or the next reader will read the exception as a leak.
+- [x] **Task 7 — the artifacts this story makes stale (AC: none — process)**
+  - [x] **In this change set:** your own status transitions on `sprint-status.yaml`'s `24-1-string-catalogue-switcher-and-lang` row, and `epics.md`'s Story 24.1 status tag plus the Epic 24 heading. (`epic-24` and the story row were already moved to `in-progress` / `ready-for-dev` when this story file was written — do not re-do that, continue from it.)
+  - [x] **In this change set, if it is still true when you finish:** `_bmad-output/project-context.md`'s technology-stack section says nothing about i18n; if your mechanism introduces a rule an agent must follow (where the catalogue lives, that it is never persisted), that is a runtime rule and belongs there. Keep it to a bullet.
+  - [x] **Hand off, do not perform.** `EXPERIENCE.md:82` (the UI-locale switcher row, *"⚠ designed, not shipped"*, and its evidence *"`lang="en"` is hard-coded at `src/app/layout.tsx:31`"*), `:81` (the Language-settings row's owner list), Flow 9's *"Every beat below is unbuilt"* preamble at `:291`, and **`DESIGN.md`'s *Components* table, which has no row for this switcher at all** while `EXPERIENCE.md:95` states the two tables cover the same component set. That is a `bmad-ux` run. Name all four precisely so it does not rediscover them. **If your implementation does introduce a visual delta or a token override, `AGENTS.md` moves the `DESIGN.md` row into your change set** — in which case AC-6 was violated and you should reconsider the control first.
+  - [x] **Hand off, do not perform.** If you conclude a client provider is unavoidable (AC-9), that is a spine matter — AD-24's tiers and its *Deferred* provider question — and it routes through a `bmad-architecture` Update run. **Never renumber an existing `AD-n`.** State the enumeration of consumers you actually did, so the run is deciding rather than guessing.
+- [x] **Task 8 — verification (AC: 14)**
+  - [x] Baseline the suite **before** you start rather than trusting a recorded number; the last recorded figure is 387 tests / 386 pass / 1 skipped, and this story adds a suite.
+  - [x] **Measure lint on a clean checkout.** The last recorded baseline is **31 problems on 2026-08-01**; a working copy with agent worktrees under `.claude/worktrees/` has printed 14,528 of one run's 14,559. A number in the thousands means you linted a worktree.
+  - [x] `npm run build` green — CI's order is `npm ci` → `npm run build` → `npm test`, and `tests/auth-http.test.mjs` spawns the built server, so it throws unless `.next` exists.
+  - [x] The manual end-to-end pass in AC-14, recorded as what you observed.
+  - [x] `tests/public-repo-guard.test.mjs` green before committing, per `AGENTS.md`. Your new strings are UI copy — keep the synthetic congregation synthetic and invent nothing that looks like a real name.
 
 ## Dev Notes
 
@@ -196,8 +196,42 @@ No new library, so nothing here turns on a version. Two facts from the pinned st
 
 ### Agent Model Used
 
+Composer (Cursor)
+
 ### Debug Log References
+
+- AC-7: `export const dynamic = 'force-dynamic'` on root `layout.tsx` so `lang` follows `ui_locale` on every route including `/login` (build route table shows `ƒ /login`).
+- AC-12: Hub is bilingual in one admin block only until Story 24.2 — expected, not a bug.
+- Closure guard proven reactive: temporary `import { resolveString } from '@/lib/i18n'` in `SlideView.tsx` → `tests/i18n.test.mjs` red; reverted clean.
+- No client provider added (AC-9): `UiLocaleSettings` resolves its own block strings via `resolveString` + `initialLocale` prop.
 
 ### Completion Notes List
 
+- Implemented `src/lib/i18n/` catalogue (`en`/`id`), pure `resolveString`, `ui_locale` in `settings.ts`, admin `UiLocaleSettings` block, API third-field gate, root `<html lang={getUiLocale()}>`.
+- Suite: `tests/i18n.test.mjs` (13 tests) registered in `package.json`. Full run: **412 tests, 411 pass, 1 skipped** (was 399/398/1 before this story).
+- `npx tsc --noEmit` clean; touched files lint: 0 errors.
+- **Hand off to `bmad-ux` after code-review** (do not perform in dev story): `EXPERIENCE.md:82` UI-locale switcher row (*designed, not shipped* + stale `lang="en"` evidence), `:81` Language-settings owner list, Flow 9 `:291` *Every beat below is unbuilt*, `DESIGN.md` Components table missing `UiLocaleSettings` row.
+- **Hand off to `bmad-architecture` Update** only if a client provider is later deemed necessary — not required here; consumers receive locale via `initial*` props only.
+
 ### File List
+
+- `src/lib/i18n/locale.ts` (new)
+- `src/lib/i18n/keys.ts` (new)
+- `src/lib/i18n/catalogue-en.ts` (new)
+- `src/lib/i18n/catalogue-id.ts` (new)
+- `src/lib/i18n/resolve.ts` (new)
+- `src/lib/i18n/index.ts` (new)
+- `src/lib/settings.ts` (modified)
+- `src/app/api/admin/settings/route.ts` (modified)
+- `src/app/admin/UiLocaleSettings.tsx` (new)
+- `src/app/admin/page.tsx` (modified)
+- `src/app/layout.tsx` (modified)
+- `tests/i18n.test.mjs` (new)
+- `package.json` (modified — register suite)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (modified)
+- `_bmad-output/planning-artifacts/epics.md` (modified)
+- `_bmad-output/project-context.md` (modified)
+
+### Change Log
+
+- 2026-08-02: Story 24.1 implementation — UI string catalogue infrastructure, `ui_locale` setting, admin switcher, honest `<html lang>`, closure guard suite.

@@ -1,5 +1,11 @@
 import { getDb } from './db';
 import {
+  asUiLocale,
+  isUiLocale,
+  UI_LOCALE_ORDER,
+  type UiLocale,
+} from './i18n';
+import {
   DEFAULT_SLIDE_TRANSITION,
   isSlideTransition,
   parseSlideTransition,
@@ -11,6 +17,7 @@ const RETENTION_KEY = 'pptx_retention_days';
 const DEFAULT_RETENTION_DAYS = 60;
 
 const SLIDE_TRANSITION_KEY = 'slide_transition';
+const UI_LOCALE_KEY = 'ui_locale';
 
 export function getSetting(key: string): string | null {
   const row = getDb()
@@ -78,4 +85,33 @@ export function setSlideTransition(value: SlideTransition): void {
     );
   }
   setSetting(SLIDE_TRANSITION_KEY, value);
+}
+
+/**
+ * Hub interface language: settings table → `en`.
+ *
+ * A stored value that is not one of the known locales is coerced to the default
+ * and logged rather than thrown. A hand-edited settings row must not blank the
+ * hub.
+ */
+export function getUiLocale(): UiLocale {
+  const stored = getSetting(UI_LOCALE_KEY);
+  if (stored == null) return asUiLocale(undefined);
+
+  if (!isUiLocale(stored)) {
+    console.error(
+      `[settings] ignoring unknown ${UI_LOCALE_KEY} "${stored}"; ` +
+        `falling back to "${asUiLocale(undefined)}"`
+    );
+  }
+  return asUiLocale(stored);
+}
+
+export function setUiLocale(value: UiLocale): void {
+  if (!isUiLocale(value)) {
+    throw new Error(
+      `${UI_LOCALE_KEY} must be one of: ${UI_LOCALE_ORDER.join(', ')}`
+    );
+  }
+  setSetting(UI_LOCALE_KEY, value);
 }
