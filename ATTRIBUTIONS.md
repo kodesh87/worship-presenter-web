@@ -50,7 +50,7 @@ Scotland, the Scottish Bible Board; reproduction there is permitted under the
 patent holders' standing terms for non-commercial liturgical and devotional use,
 which is this corpus's only use here.
 
-The corpus **is** committed, at `data/bible/kjv.json`, and seeds an empty
+The corpus **is** committed, at `data/en/bible-translation/kjv.json`, and reconciles into the
 database on first boot. It carries its own licence and provenance in its
 `translation` block. A clone therefore resolves a reference offline, with no
 file handed to it and no third-party host in the boot path.

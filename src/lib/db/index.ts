@@ -4,7 +4,8 @@ import path from 'path';
 import { hashPassword } from '../auth/password';
 import {
   DEFAULT_SONG_BOOK,
-  DEFAULT_TRANSLATION,
+  bibleCorpusContentHash,
+  discoverBibleTranslationFiles,
   loadBibleCorpus,
   loadSongBookCorpus,
   type HymnSeed,
@@ -83,18 +84,57 @@ function upsertHymns(database: Database.Database) {
 }
 
 /**
- * Bible corpus seeds **from zero only**: a translation already holding verses is
- * left untouched. Nothing persisted is ever overwritten at boot, which is why
- * this path carries no transition counter while the hymn upsert above is the
- * one under architectural review.
+ * `bible_verses.translation` was renamed to `translation_code` (Story 21.2).
+ * SQLite cannot rename a column in place when the UNIQUE constraint names it,
+ * so the table is rebuilt once.
  */
-function seedBibleCorpus(database: Database.Database) {
-  const existing = database
-    .prepare(`SELECT COUNT(*) AS n FROM bible_verses WHERE translation = ?`)
-    .get(DEFAULT_TRANSLATION) as { n: number } | undefined;
-  if (existing && Number(existing.n) > 0) return;
+function migrateBibleVersesTranslationCode(database: Database.Database) {
+  const columns = database.prepare(`PRAGMA table_info(bible_verses)`).all() as {
+    name: string;
+  }[];
+  if (columns.length === 0) return;
+  if (columns.some((c) => c.name === 'translation_code')) return;
 
-  const corpus = loadBibleCorpus(DEFAULT_TRANSLATION);
+  database.exec(`
+    CREATE TABLE bible_verses_with_translation_code (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      book_id INTEGER NOT NULL,
+      chapter INTEGER NOT NULL,
+      verse INTEGER NOT NULL,
+      verse_text TEXT NOT NULL,
+      translation_code TEXT NOT NULL DEFAULT 'KJV',
+      UNIQUE(book_id, chapter, verse, translation_code),
+      FOREIGN KEY (book_id) REFERENCES bible_books(id)
+    );
+    INSERT INTO bible_verses_with_translation_code
+      (id, book_id, chapter, verse, verse_text, translation_code)
+      SELECT id, book_id, chapter, verse, verse_text, translation FROM bible_verses;
+    DROP TABLE bible_verses;
+    ALTER TABLE bible_verses_with_translation_code RENAME TO bible_verses;
+  `);
+
+  console.info(
+    '[corpus] migration: bible_verses.translation renamed to translation_code'
+  );
+}
+
+/**
+ * Bible corpus reconciles from its committed file on every boot (AD-25).
+ * Measured ~133-152 ms per reconcile on a developer machine (Story 21.2).
+ */
+function reconcileBibleCorpus(database: Database.Database) {
+  const descriptors = discoverBibleTranslationFiles();
+
+  const upsertRegistry = database.prepare(`
+    INSERT INTO bible_translations (code, name, locale, licence, provenance, content_hash)
+    VALUES (@code, @name, @locale, @licence, @provenance, @content_hash)
+    ON CONFLICT(code) DO UPDATE SET
+      name = excluded.name,
+      locale = excluded.locale,
+      licence = excluded.licence,
+      provenance = excluded.provenance,
+      content_hash = excluded.content_hash
+  `);
 
   const insertBook = database.prepare(`
     INSERT INTO bible_books (id, name, short_name)
@@ -103,39 +143,123 @@ function seedBibleCorpus(database: Database.Database) {
       name = excluded.name,
       short_name = excluded.short_name
   `);
-  const insertVerse = database.prepare(`
-    INSERT INTO bible_verses (book_id, chapter, verse, verse_text, translation)
-    VALUES (@book_id, @chapter, @verse, @verse_text, @translation)
-    ON CONFLICT(book_id, chapter, verse, translation) DO NOTHING
+
+  const upsertVerse = database.prepare(`
+    INSERT INTO bible_verses (book_id, chapter, verse, verse_text, translation_code)
+    VALUES (@book_id, @chapter, @verse, @verse_text, @translation_code)
+    ON CONFLICT(book_id, chapter, verse, translation_code) DO UPDATE SET
+      verse_text = excluded.verse_text
   `);
 
-  const tx = database.transaction(() => {
-    for (const book of corpus.books) {
-      insertBook.run({
-        id: book.id,
-        name: book.name,
-        short_name: book.shortName,
+  const deleteVerse = database.prepare(`
+    DELETE FROM bible_verses
+    WHERE translation_code = @translation_code
+      AND book_id = @book_id
+      AND chapter = @chapter
+      AND verse = @verse
+  `);
+
+  for (const descriptor of descriptors) {
+    const corpusPath = descriptor.corpusPath;
+    let corpus;
+    try {
+      corpus = loadBibleCorpus(descriptor.code);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      console.error(
+        `[corpus] bible translation ${descriptor.code} at ${corpusPath} ` +
+          `failed to load — table left unchanged: ${reason}`
+      );
+      continue;
+    }
+
+    const contentHash = bibleCorpusContentHash(corpusPath);
+    const reconcileStart = Date.now();
+
+    const reconcileOne = database.transaction(() => {
+      upsertRegistry.run({
+        code: corpus.code,
+        name: corpus.name,
+        locale: corpus.locale,
+        licence: corpus.licence,
+        provenance: corpus.provenance,
+        content_hash: contentHash,
       });
-      book.chapters.forEach((verses, chapterIndex) => {
-        verses.forEach((verse_text, verseIndex) => {
-          insertVerse.run({
-            book_id: book.id,
-            chapter: chapterIndex + 1,
-            verse: verseIndex + 1,
-            verse_text,
-            translation: corpus.code,
+
+      const fileKeys = new Set<string>();
+
+      for (const book of corpus.books) {
+        insertBook.run({
+          id: book.id,
+          name: book.name,
+          short_name: book.shortName,
+        });
+        book.chapters.forEach((verses, chapterIndex) => {
+          verses.forEach((verse_text, verseIndex) => {
+            const chapter = chapterIndex + 1;
+            const verse = verseIndex + 1;
+            fileKeys.add(`${book.id}:${chapter}:${verse}`);
+            upsertVerse.run({
+              book_id: book.id,
+              chapter,
+              verse,
+              verse_text,
+              translation_code: corpus.code,
+            });
           });
         });
-      });
-    }
-  });
+      }
 
-  tx();
+      const stored = database
+        .prepare(
+          `SELECT book_id, chapter, verse FROM bible_verses
+           WHERE translation_code = ?`
+        )
+        .all(corpus.code) as {
+        book_id: number;
+        chapter: number;
+        verse: number;
+      }[];
 
-  console.info(
-    `[corpus] seeded ${corpus.counts.verses} ${corpus.code} verses across ` +
-      `${corpus.counts.books} books`
-  );
+      for (const row of stored) {
+        const key = `${row.book_id}:${row.chapter}:${row.verse}`;
+        if (!fileKeys.has(key)) {
+          deleteVerse.run({
+            translation_code: corpus.code,
+            book_id: row.book_id,
+            chapter: row.chapter,
+            verse: row.verse,
+          });
+        }
+      }
+    });
+
+    reconcileOne();
+
+    const elapsedMs = Date.now() - reconcileStart;
+    console.info(
+      `[corpus] reconciled ${corpus.counts.verses} ${corpus.code} verses across ` +
+        `${corpus.counts.books} books (${elapsedMs} ms)`
+    );
+  }
+}
+
+/** Every installed bible translation with locale — no locale filter on the query. */
+export function listBibleTranslations() {
+  const database = getDb();
+  return database
+    .prepare(
+      `SELECT code, name, locale, licence, provenance
+       FROM bible_translations
+       ORDER BY code`
+    )
+    .all() as {
+    code: string;
+    name: string;
+    locale: string;
+    licence: string;
+    provenance: string;
+  }[];
 }
 
 export function getDb() {
@@ -221,6 +345,15 @@ export function getDb() {
         value TEXT NOT NULL
       );
 
+      CREATE TABLE IF NOT EXISTS bible_translations (
+        code TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        locale TEXT NOT NULL,
+        licence TEXT NOT NULL,
+        provenance TEXT NOT NULL,
+        content_hash TEXT
+      );
+
       CREATE TABLE IF NOT EXISTS bible_books (
         id INTEGER PRIMARY KEY,
         name TEXT NOT NULL,
@@ -233,8 +366,8 @@ export function getDb() {
         chapter INTEGER NOT NULL,
         verse INTEGER NOT NULL,
         verse_text TEXT NOT NULL,
-        translation TEXT NOT NULL DEFAULT 'KJV',
-        UNIQUE(book_id, chapter, verse, translation),
+        translation_code TEXT NOT NULL DEFAULT 'KJV',
+        UNIQUE(book_id, chapter, verse, translation_code),
         FOREIGN KEY (book_id) REFERENCES bible_books(id)
       );
 
@@ -328,8 +461,9 @@ export function getDb() {
     }
 
     migrateHymnsForSongBooks(db);
+    migrateBibleVersesTranslationCode(db);
     upsertHymns(db);
-    seedBibleCorpus(db);
+    reconcileBibleCorpus(db);
     seedArtifactRegistry(db);
     bootstrapAdminIfEmpty(db);
   }

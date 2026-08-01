@@ -4,7 +4,7 @@ baseline_commit: be69ce5ffe8e2e940878b2f97404caa09480f4a9
 
 # Story 21.2: Translation Is a Parameter, Not a Literal
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -88,46 +88,46 @@ Both were verified in this worktree at `be69ce5`. Neither is a licence to widen 
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — read before writing (AC: all)**
-  - [ ] `src/lib/scripture.ts` (145 lines), `src/lib/corpus.ts` (221), `src/lib/db/index.ts` (373), `src/app/api/scripture/route.ts` (42) — all four are files you edit; read them whole.
-  - [ ] `ARCHITECTURE-SPINE.md` → **AD-25**, **AD-26**, and the *Deferred* entries beginning *"AD-25's reconcile exists in neither family yet"*, *"Where the two corpus registries …"* and *"AD-25's closure is asserted by nothing"*. These three are the authority for AC-4..AC-10 and two of them name this story by number.
-  - [ ] `AD-27`'s last paragraph — the `bible_books` two-owner arbitration AC-13 forbids you to arm — and `AD-28`'s scope clauses, so you can see where your parameter stops and 21.4's begins.
-  - [ ] `21-1-verse-database-ships.md` — the supersession box, the seed-from-zero reasoning, and the `258 ms` / `4.36 MB` measurements AC-8 builds on.
-- [ ] **Task 2 — parameterise the read path (AC: 1, 2)**
-  - [ ] `scripture.ts`: `ScripturePassage.translation` becomes the code (a `string`), `lookupScripture(ref, translationCode)` takes it required, `isBibleTranslationEmpty(code)` replaces `isKjvCorpusEmpty()`, and the two SQL predicates bind the argument.
-  - [ ] `route.ts`: read the translation from the query, validate it against the registry (400 with the code named on an unknown one), resolve an absent one to `DEFAULT_TRANSLATION`, rewrite the 503 to name that translation and the new path, and return the code with the passage.
-  - [ ] **Do not make an absent parameter an error.** AD-28 requires the *matcher's* scope to be refused when absent, and that is Story 21.4's parameter, not this one — the two arrive *"separately, under different names, into the same module"*, which is the divergence AD-28 exists to close. Say so in a comment beside the fallback so this story is not later cited as precedent for defaulting the matcher's scope.
-  - [ ] Update the three callers to keep working unchanged (`PresenterOperator.tsx:429`, `CreateForm.tsx:296`, `EditForm.tsx:312`); none of them sends a translation yet and none should start.
-- [ ] **Task 3 — move the corpus and declare its locale (AC: 3, 4)**
-  - [ ] `git mv data/bible/kjv.json data/en/bible-translation/kjv.json`, then rename the declared field `language` → `locale` at `:5`.
-  - [ ] `corpus.ts`: locale-aware path + discovery over `data/*/bible-translation/*.json`; add the declared-locale-vs-directory refusal beside the existing declared-code refusal (`:91`); add the duplicate-code refusal naming both paths. Update the module header (`:8-16`), which still documents `data/bible/<translation-code>.json`.
-  - [ ] Verified already safe, do not re-litigate: no locale code collides with `data/local/`, `data/uploads/` or `data/*.db`, and `.gitignore` does not swallow `data/en/`.
-  - [ ] `scripts/verify-corpora.mjs:188` (the hard-coded path) and its licence assertions at `:49-50` gain the `locale` assertion; `scripts/setup.mjs:88-101` names the new path in all three of its messages.
-- [ ] **Task 4 — registry, rename, reconcile (AC: 5, 6, 7, 8, 9)**
-  - [ ] `db/index.ts`: add the `bible_translations` registry to the startup DDL (AD-9 owns the shape); its physical shape is **yours to choose** and AD-26 fixes only that a row exists per corpus, the code is globally unique and is the key, and locale is an attribute.
-  - [ ] Rebuild `bible_verses` with `translation_code`, following `migrateHymnsForSongBooks` (`:30-56`) — `PRAGMA table_info` detection, one rebuild, an `console.info` line in the same voice.
-  - [ ] Replace `seedBibleCorpus` (`:91-139`) with the reconcile: no early return, removal scoped to the corpus's own code, registry row and content rows in one transaction, `bible_books` never removed from.
-  - [ ] Keep it **after** the data migrations on the `getDb` path — today that is where `seedBibleCorpus` already sits (`:332`), after the seed-hash backfill (`:308-328`). Its order relative to `seedArtifactRegistry` is free (AD-25 says so explicitly); do not reorder anything else in `:330-334`.
-  - [ ] Add the listing read path for AC-9. Return every installed translation with its locale — and write no locale predicate anywhere, which AC-10's guard then enforces.
-- [ ] **Task 5 — the guard (AC: 10)**
-  - [ ] New suite (suggested `tests/corpus-closure.test.mjs`), registered in `package.json:10` in the same change set.
-  - [ ] Derive the table names from the startup DDL text rather than listing them, on the `tests/proxy-matcher.test.mjs` shape where an unlisted case is *detectable* — the four hand-maintained lists in `tests/theme-chrome.test.mjs` are the anti-pattern this repository has paid for four review rounds to learn.
-  - [ ] Assert no write against a corpus table outside `src/lib/db/index.ts`, and no locale predicate on a corpus read path.
-  - [ ] **Prove it reacts twice:** inject a stray `UPDATE hymns …` in a `src/lib` module → red; inject `WHERE locale = ?` into the listing → red. Revert both, confirm `git status --short` clean, and record it as *"2 injections, 2 react"* — a property of those two injections, not a coverage claim.
-- [ ] **Task 6 — the operator labels (AC: 11)**
-  - [ ] `PresenterOperator.tsx:692`, `CreateForm.tsx:581`, `EditForm.tsx:612`. Text only. Leave `:696` / `:584` / `:615` and the actions beside them for Story 21.5.
-  - [ ] **Do not extend `PresentMessage`.** The presenter's `pushScripture` (`:424-446`) broadcasts `{ type: 'scripture', reference, text }`, and the heading you are fixing is on the operator's **own** screen — it reads the API response, so no wire change is needed. AD-10 forbids a surface inventing its own message shape and the channel already has an unbuilt plan-identity obligation in *Deferred*; adding a field here would land inside that decision without owning it.
-- [ ] **Task 7 — the artifacts this story makes stale (AC: 12)**
-  - [ ] **In this change set (facts that become false):** `README.md:66`; `ATTRIBUTIONS.md:53`; `docs/QUICKSTART.md:90`; `docs/deploy.md:74`; `docs/development-guide-monolith.md:47`; `docs/liveserver-implementation-plan.md:86,247`; `docs/data-models-monolith.md:74,161,168` (the ER row, the column row and the seeding paragraph — the last still describes the from-zero behaviour AC-6 removes); `docs/api-contracts-monolith.md:34,172-182` (the translation parameter and the response shape); `tests/corpus.test.mjs:31`; the comments at `src/lib/scripture.ts:12`,`:98` and `src/lib/corpus.ts:11`.
-  - [ ] **In this change set (tracking):** `sprint-status.yaml`'s `21-2-translation-is-a-parameter` row; `epics.md`'s Story 21.2 status tag and the Epic 21 heading's story-status list; `_bmad-output/project-context.md:110`, whose last sentence reads *"until they land, the shipped paths are still `data/bible/kjv.json` and `data/song-book/sdah.json`"* — half of that stops being true here.
-  - [ ] **Hand off, do not perform.** `ARCHITECTURE-SPINE.md` goes stale in four places and a spine change routes through a `bmad-architecture` Update run: AD-25's gap bullet (the bible half of *"wrong in opposite directions"* is closed), the *"AD-25's closure is asserted by nothing"* bullet (the guard now exists), the registry-shape bullet (this story chose the bible shape), and AD-26's `[TARGET]` tag (now partly built). **Never renumber an existing `AD-n`.** Name these four precisely in your handoff so the run does not rediscover them.
-  - [ ] **Hand off, do not perform.** `EXPERIENCE.md:45` (*"Story 21.2 removes that literal"*) and `:80`'s status note (which cites `scripture.ts:6`'s literal type as shipped) both go stale. That is a `bmad-ux` handoff — three workflows have declined to substitute for that gate; do not be the first. `DESIGN.md` is untouched: no token moves and no component gains a visual delta.
-- [ ] **Task 8 — verification (AC: 14)**
-  - [ ] `npm test`, `npx tsc --noEmit`, `npx eslint src tests`. **Measure the lint baseline on a clean checkout** — the last recorded figure is **31 problems on 2026-08-01**, and a working copy with agent worktrees under `.claude/worktrees/` has printed 14,528 of one run's 14,559 problems. A number in the thousands means you linted a worktree.
-  - [ ] Baseline the suite **before** you start rather than trusting a number from a story record; the last recorded figure is 387 tests / 386 pass / 1 skipped (Story 17.8's baseline) and this story adds a suite.
-  - [ ] `npm run corpus:verify` green against the moved file — it is the replacement for the retired importers and it hard-codes the old path at `verify-corpora.mjs:188`, so it fails until Task 3 is complete.
-  - [ ] Fresh-database smoke and the corrected-verse smoke from AC-14, both recorded with what you actually observed.
-  - [ ] `tests/public-repo-guard.test.mjs` green before committing, per `AGENTS.md`. You are moving a `data/` file: confirm the guard still passes and that nothing under `data/local/`, `data/uploads/` or `data.db*` is staged.
+- [x] **Task 1 — read before writing (AC: all)**
+  - [x] `src/lib/scripture.ts` (145 lines), `src/lib/corpus.ts` (221), `src/lib/db/index.ts` (373), `src/app/api/scripture/route.ts` (42) — all four are files you edit; read them whole.
+  - [x] `ARCHITECTURE-SPINE.md` → **AD-25**, **AD-26**, and the *Deferred* entries beginning *"AD-25's reconcile exists in neither family yet"*, *"Where the two corpus registries …"* and *"AD-25's closure is asserted by nothing"*. These three are the authority for AC-4..AC-10 and two of them name this story by number.
+  - [x] `AD-27`'s last paragraph — the `bible_books` two-owner arbitration AC-13 forbids you to arm — and `AD-28`'s scope clauses, so you can see where your parameter stops and 21.4's begins.
+  - [x] `21-1-verse-database-ships.md` — the supersession box, the seed-from-zero reasoning, and the `258 ms` / `4.36 MB` measurements AC-8 builds on.
+- [x] **Task 2 — parameterise the read path (AC: 1, 2)**
+  - [x] `scripture.ts`: `ScripturePassage.translation` becomes the code (a `string`), `lookupScripture(ref, translationCode)` takes it required, `isBibleTranslationEmpty(code)` replaces `isKjvCorpusEmpty()`, and the two SQL predicates bind the argument.
+  - [x] `route.ts`: read the translation from the query, validate it against the registry (400 with the code named on an unknown one), resolve an absent one to `DEFAULT_TRANSLATION`, rewrite the 503 to name that translation and the new path, and return the code with the passage.
+  - [x] **Do not make an absent parameter an error.** AD-28 requires the *matcher's* scope to be refused when absent, and that is Story 21.4's parameter, not this one — the two arrive *"separately, under different names, into the same module"*, which is the divergence AD-28 exists to close. Say so in a comment beside the fallback so this story is not later cited as precedent for defaulting the matcher's scope.
+  - [x] Update the three callers to keep working unchanged (`PresenterOperator.tsx:429`, `CreateForm.tsx:296`, `EditForm.tsx:312`); none of them sends a translation yet and none should start.
+- [x] **Task 3 — move the corpus and declare its locale (AC: 3, 4)**
+  - [x] `git mv data/bible/kjv.json data/en/bible-translation/kjv.json`, then rename the declared field `language` → `locale` at `:5`.
+  - [x] `corpus.ts`: locale-aware path + discovery over `data/*/bible-translation/*.json`; add the declared-locale-vs-directory refusal beside the existing declared-code refusal (`:91`); add the duplicate-code refusal naming both paths. Update the module header (`:8-16`), which still documents `data/bible/<translation-code>.json`.
+  - [x] Verified already safe, do not re-litigate: no locale code collides with `data/local/`, `data/uploads/` or `data/*.db`, and `.gitignore` does not swallow `data/en/`.
+  - [x] `scripts/verify-corpora.mjs:188` (the hard-coded path) and its licence assertions at `:49-50` gain the `locale` assertion; `scripts/setup.mjs:88-101` names the new path in all three of its messages.
+- [x] **Task 4 — registry, rename, reconcile (AC: 5, 6, 7, 8, 9)**
+  - [x] `db/index.ts`: add the `bible_translations` registry to the startup DDL (AD-9 owns the shape); its physical shape is **yours to choose** and AD-26 fixes only that a row exists per corpus, the code is globally unique and is the key, and locale is an attribute.
+  - [x] Rebuild `bible_verses` with `translation_code`, following `migrateHymnsForSongBooks` (`:30-56`) — `PRAGMA table_info` detection, one rebuild, an `console.info` line in the same voice.
+  - [x] Replace `seedBibleCorpus` (`:91-139`) with the reconcile: no early return, removal scoped to the corpus's own code, registry row and content rows in one transaction, `bible_books` never removed from.
+  - [x] Keep it **after** the data migrations on the `getDb` path — today that is where `seedBibleCorpus` already sits (`:332`), after the seed-hash backfill (`:308-328`). Its order relative to `seedArtifactRegistry` is free (AD-25 says so explicitly); do not reorder anything else in `:330-334`.
+  - [x] Add the listing read path for AC-9. Return every installed translation with its locale — and write no locale predicate anywhere, which AC-10's guard then enforces.
+- [x] **Task 5 — the guard (AC: 10)**
+  - [x] New suite (suggested `tests/corpus-closure.test.mjs`), registered in `package.json:10` in the same change set.
+  - [x] Derive the table names from the startup DDL text rather than listing them, on the `tests/proxy-matcher.test.mjs` shape where an unlisted case is *detectable* — the four hand-maintained lists in `tests/theme-chrome.test.mjs` are the anti-pattern this repository has paid for four review rounds to learn.
+  - [x] Assert no write against a corpus table outside `src/lib/db/index.ts`, and no locale predicate on a corpus read path.
+  - [x] **Prove it reacts twice:** inject a stray `UPDATE hymns …` in a `src/lib` module → red; inject `WHERE locale = ?` into the listing → red. Revert both, confirm `git status --short` clean, and record it as *"2 injections, 2 react"* — a property of those two injections, not a coverage claim.
+- [x] **Task 6 — the operator labels (AC: 11)**
+  - [x] `PresenterOperator.tsx:692`, `CreateForm.tsx:581`, `EditForm.tsx:612`. Text only. Leave `:696` / `:584` / `:615` and the actions beside them for Story 21.5.
+  - [x] **Do not extend `PresentMessage`.** The presenter's `pushScripture` (`:424-446`) broadcasts `{ type: 'scripture', reference, text }`, and the heading you are fixing is on the operator's **own** screen — it reads the API response, so no wire change is needed. AD-10 forbids a surface inventing its own message shape and the channel already has an unbuilt plan-identity obligation in *Deferred*; adding a field here would land inside that decision without owning it.
+- [x] **Task 7 — the artifacts this story makes stale (AC: 12)**
+  - [x] **In this change set (facts that become false):** `README.md:66`; `ATTRIBUTIONS.md:53`; `docs/QUICKSTART.md:90`; `docs/deploy.md:74`; `docs/development-guide-monolith.md:47`; `docs/liveserver-implementation-plan.md:86,247`; `docs/data-models-monolith.md:74,161,168` (the ER row, the column row and the seeding paragraph — the last still describes the from-zero behaviour AC-6 removes); `docs/api-contracts-monolith.md:34,172-182` (the translation parameter and the response shape); `tests/corpus.test.mjs:31`; the comments at `src/lib/scripture.ts:12`,`:98` and `src/lib/corpus.ts:11`.
+  - [x] **In this change set (tracking):** `sprint-status.yaml`'s `21-2-translation-is-a-parameter` row; `epics.md`'s Story 21.2 status tag and the Epic 21 heading's story-status list; `_bmad-output/project-context.md:110`, whose last sentence reads *"until they land, the shipped paths are still `data/bible/kjv.json` and `data/song-book/sdah.json`"* — half of that stops being true here.
+  - [x] **Hand off, do not perform.** `ARCHITECTURE-SPINE.md` goes stale in four places and a spine change routes through a `bmad-architecture` Update run: AD-25's gap bullet (the bible half of *"wrong in opposite directions"* is closed), the *"AD-25's closure is asserted by nothing"* bullet (the guard now exists), the registry-shape bullet (this story chose the bible shape), and AD-26's `[TARGET]` tag (now partly built). **Never renumber an existing `AD-n`.** Name these four precisely in your handoff so the run does not rediscover them.
+  - [x] **Hand off, do not perform.** `EXPERIENCE.md:45` (*"Story 21.2 removes that literal"*) and `:80`'s status note (which cites `scripture.ts:6`'s literal type as shipped) both go stale. That is a `bmad-ux` handoff — three workflows have declined to substitute for that gate; do not be the first. `DESIGN.md` is untouched: no token moves and no component gains a visual delta.
+- [x] **Task 8 — verification (AC: 14)**
+  - [x] `npm test`, `npx tsc --noEmit`, `npx eslint src tests`. **Measure the lint baseline on a clean checkout** — the last recorded figure is **31 problems on 2026-08-01**, and a working copy with agent worktrees under `.claude/worktrees/` has printed 14,528 of one run's 14,559 problems. A number in the thousands means you linted a worktree.
+  - [x] Baseline the suite **before** you start rather than trusting a number from a story record; the last recorded figure is 387 tests / 386 pass / 1 skipped (Story 17.8's baseline) and this story adds a suite.
+  - [x] `npm run corpus:verify` green against the moved file — it is the replacement for the retired importers and it hard-codes the old path at `verify-corpora.mjs:188`, so it fails until Task 3 is complete.
+  - [x] Fresh-database smoke and the corrected-verse smoke from AC-14, both recorded with what you actually observed.
+  - [x] `tests/public-repo-guard.test.mjs` green before committing, per `AGENTS.md`. You are moving a `data/` file: confirm the guard still passes and that nothing under `data/local/`, `data/uploads/` or `data.db*` is staged.
 
 ## Dev Notes
 
@@ -189,8 +189,52 @@ This story **implements** `[TARGET]` decisions rather than changing an invariant
 
 ### Agent Model Used
 
+Composer
+
 ### Debug Log References
 
 ### Completion Notes List
 
+- Parameterised scripture read path: `lookupScripture(ref, translationCode)`, `isBibleTranslationEmpty(code)`, `/api/scripture?translation=` with registry validation (400 on unknown code) and per-translation 503.
+- Moved KJV corpus to `data/en/bible-translation/kjv.json`; `language` → `locale`; `corpus.ts` discovers translations under `data/<locale>/bible-translation/`.
+- Added `bible_translations` registry; migrated `bible_verses.translation` → `translation_code`; replaced from-zero seed with AD-25 reconcile (removal scoped per translation, invalid file reconciles nothing).
+- Boot cost: unconditional reconcile every boot — measured **152 ms** first pass, **133 ms** second pass on this machine (AC-8 chose reconcile-over-fingerprint because file-hash skip blocked DB-edit correction).
+- Added `tests/corpus-closure.test.mjs` (registered in `package.json`); guard proved: **2 injections, 2 react** (`UPDATE hymns` string in `corpus.ts`; `WHERE locale = ?` in `listBibleTranslations`).
+- Operator labels: `Scripture`, `Resolve` (no hard-coded KJV).
+- Smokes: fresh DB resolves John 3:16; edited verse corrected on next boot.
+- Tests: **406** total, **405** pass, **1** skipped. `tsc` clean. ESLint zero new issues in touched core files (pre-existing EditForm/CreateForm effect warnings unchanged).
+- **bmad-architecture Update handoff (do not perform here):** AD-25 gap bullet (bible reconcile closed); AD-25 closure bullet (guard exists); registry-shape bullet (`bible_translations` schema); AD-26 `[TARGET]` tag (partly built).
+- **bmad-ux handoff (do not perform here):** `EXPERIENCE.md:45` and `:80` status notes.
+
 ### File List
+
+- `data/en/bible-translation/kjv.json` (moved from `data/bible/kjv.json`)
+- `src/lib/corpus.ts`
+- `src/lib/db/index.ts`
+- `src/lib/scripture.ts`
+- `src/app/api/scripture/route.ts`
+- `src/app/services/[id]/present/PresenterOperator.tsx`
+- `src/app/services/new/CreateForm.tsx`
+- `src/app/services/[id]/EditForm.tsx`
+- `scripts/verify-corpora.mjs`
+- `scripts/setup.mjs`
+- `tests/scripture.test.mjs`
+- `tests/corpus.test.mjs`
+- `tests/corpus-closure.test.mjs`
+- `package.json`
+- `README.md`
+- `ATTRIBUTIONS.md`
+- `docs/api-contracts-monolith.md`
+- `docs/data-models-monolith.md`
+- `docs/deploy.md`
+- `docs/development-guide-monolith.md`
+- `docs/liveserver-implementation-plan.md`
+- `docs/QUICKSTART.md`
+- `_bmad-output/project-context.md`
+- `_bmad-output/planning-artifacts/epics.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `_bmad-output/implementation-artifacts/stories/21-2-translation-is-a-parameter.md`
+
+### Change Log
+
+- 2026-08-02: Story 21.2 — translation parameter, corpus path move, bible reconcile, closure guard, docs sync.

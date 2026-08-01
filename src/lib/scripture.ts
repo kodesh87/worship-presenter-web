@@ -3,13 +3,13 @@ import { getDb } from './db';
 export type ScripturePassage = {
   reference: string;
   text: string;
-  translation: 'KJV';
+  translation: string;
 };
 
 /**
  * Strip source markup like `@9was@7` / `@6…@5` — the export encoded the words
  * the 1611 translators supplied (printed italic in the KJV) this way. The
- * committed corpus at `data/bible/kjv.json` is already clean and
+ * committed corpus at `data/en/bible-translation/kjv.json` is already clean and
  * `npm run corpus:verify` fails if a marker reappears, so this now guards
  * verses that reached the table by some other route.
  */
@@ -94,26 +94,25 @@ function resolveBookId(bookName: string): number | null {
   return null;
 }
 
-/**
- * True when the KJV table is empty. The corpus ships at `data/bible/kjv.json`
- * and seeds on first boot, so this is no longer the normal state of a fresh
- * clone — it means the seed did not run or the table was emptied.
- */
-export function isKjvCorpusEmpty(): boolean {
+/** True when the named translation holds no verses in the table. */
+export function isBibleTranslationEmpty(translationCode: string): boolean {
   const db = getDb();
   const row = db
     .prepare(
-      `SELECT COUNT(*) AS n FROM bible_verses WHERE translation = 'KJV'`
+      `SELECT COUNT(*) AS n FROM bible_verses WHERE translation_code = ?`
     )
-    .get() as { n: number };
+    .get(translationCode) as { n: number };
   return !row || row.n === 0;
 }
 
 /**
- * Look up KJV text for a reference. For deck theme/verse slides, do NOT call this —
- * use rundown-supplied scripture only.
+ * Look up scripture text for a reference in the named translation. For deck
+ * theme/verse slides, do NOT call this — use rundown-supplied scripture only.
  */
-export function lookupScripture(ref: string): ScripturePassage | null {
+export function lookupScripture(
+  ref: string,
+  translationCode: string
+): ScripturePassage | null {
   const parsed = parseScriptureRef(ref);
   if (!parsed) return null;
 
@@ -125,10 +124,16 @@ export function lookupScripture(ref: string): ScripturePassage | null {
     .prepare(
       `SELECT verse, verse_text FROM bible_verses
        WHERE book_id = ? AND chapter = ? AND verse >= ? AND verse <= ?
-         AND translation = 'KJV'
+         AND translation_code = ?
        ORDER BY verse ASC`
     )
-    .all(bookId, parsed.chapter, parsed.verseStart, parsed.verseEnd) as {
+    .all(
+      bookId,
+      parsed.chapter,
+      parsed.verseStart,
+      parsed.verseEnd,
+      translationCode
+    ) as {
     verse: number;
     verse_text: string;
   }[];
@@ -141,5 +146,5 @@ export function lookupScripture(ref: string): ScripturePassage | null {
       ? `${parsed.book} ${parsed.chapter}:${parsed.verseStart}`
       : `${parsed.book} ${parsed.chapter}:${parsed.verseStart}-${parsed.verseEnd}`;
 
-  return { reference, text, translation: 'KJV' };
+  return { reference, text, translation: translationCode };
 }

@@ -59,6 +59,15 @@ erDiagram
         TEXT value
     }
 
+    bible_translations {
+        TEXT code PK
+        TEXT name
+        TEXT locale
+        TEXT licence
+        TEXT provenance
+        TEXT content_hash
+    }
+
     bible_books {
         INTEGER id PK
         TEXT name
@@ -71,7 +80,7 @@ erDiagram
         INTEGER chapter
         INTEGER verse
         TEXT verse_text
-        TEXT translation UK
+        TEXT translation_code UK
     }
 ```
 
@@ -139,7 +148,19 @@ Key-value pair store for system preferences (e.g., presentation duration, retent
 | `key` | `TEXT` | PRIMARY KEY | Unique setting config name. |
 | `value` | `TEXT` | NOT NULL | Config setting value. |
 
-### 6. `bible_books`
+### 6. `bible_translations`
+Registry of installed bible translation corpora, projected from each corpus file on boot.
+
+| Column Name | SQLite Type | Constraints | Description |
+|---|---|---|---|
+| `code` | `TEXT` | PRIMARY KEY | Globally unique translation code (e.g., `KJV`). |
+| `name` | `TEXT` | NOT NULL | Display name from the corpus file. |
+| `locale` | `TEXT` | NOT NULL | Data locale declared by the corpus file. |
+| `licence` | `TEXT` | NOT NULL | Licence text from the corpus file. |
+| `provenance` | `TEXT` | NOT NULL | Provenance from the corpus file. |
+| `content_hash` | `TEXT` | | SHA-256 of the corpus file bytes; skips reconcile when unchanged. |
+
+### 7. `bible_books`
 Index of the books of the Bible.
 
 | Column Name | SQLite Type | Constraints | Description |
@@ -148,7 +169,7 @@ Index of the books of the Bible.
 | `name` | `TEXT` | NOT NULL | Full name of the book. |
 | `short_name` | `TEXT` | NOT NULL | Abbreviated name (e.g., `Gen`). |
 
-### 7. `bible_verses`
+### 8. `bible_verses`
 Stores Bible scripture verses.
 
 | Column Name | SQLite Type | Constraints | Description |
@@ -158,12 +179,12 @@ Stores Bible scripture verses.
 | `chapter` | `INTEGER` | NOT NULL | Chapter number. |
 | `verse` | `INTEGER` | NOT NULL | Verse number. |
 | `verse_text` | `TEXT` | NOT NULL | Text of the verse. |
-| `translation` | `TEXT` | NOT NULL DEFAULT 'KJV' | Bible translation (Unique constraint combines book, chapter, verse, translation). |
+| `translation_code` | `TEXT` | NOT NULL DEFAULT 'KJV' | Bible translation code (Unique constraint combines book, chapter, verse, translation_code). |
 
 ---
 
 ## Seeding & Initialization
 
 1. **Song Book Data:** Loaded during system initialization from `data/song-book/sdah.json` and upserted into the `hymns` table on conflict `(book_code, number)`. Title and lyrics are re-applied from the file on every boot.
-2. **Bible Verses:** Seeded during system initialization from `data/bible/kjv.json` into `bible_books` / `bible_verses` — **only when that translation holds no verses**. A translation already populated is left untouched, so nothing persisted is overwritten at boot.
+2. **Bible Verses:** Reconciled during system initialization from `data/en/bible-translation/kjv.json` into `bible_translations`, `bible_books` / `bible_verses`. A corrected corpus reaches the table on the next boot; rows absent from the file for that translation are removed. An unreadable corpus file reconciles nothing and leaves existing rows untouched.
 3. **Bootstrap Admin:** If the `accounts` table is empty and environment variables `AUTH_BOOTSTRAP_USER` and `AUTH_BOOTSTRAP_PASSWORD` are configured, the first admin account is automatically seeded.

@@ -46,6 +46,10 @@ function verifyBible(relPath, expected) {
   const code = String(corpus.translation?.code || '');
   check(Boolean(code), `${relPath}: no translation.code`);
   check(
+    Boolean(String(corpus.translation?.locale || '').trim()),
+    `${relPath}: no translation.locale`
+  );
+  check(
     Boolean(String(corpus.translation?.licence || '').trim()),
     `${relPath}: no translation.licence — a shipped corpus states its terms`
   );
@@ -185,7 +189,7 @@ function verifySongBook(relPath, expected) {
   notes.push(`${relPath}: ${hymns.length} hymns, ${sorted[0]}–${sorted[sorted.length - 1]}`);
 }
 
-verifyBible('data/bible/kjv.json', KJV_EXPECTED);
+verifyBible('data/en/bible-translation/kjv.json', KJV_EXPECTED);
 verifySongBook('data/song-book/sdah.json', SDAH_EXPECTED);
 
 for (const note of notes) console.log(`ok   ${note}`);

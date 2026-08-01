@@ -85,10 +85,10 @@ function checkCorpora() {
     }
   }
 
-  const bible = path.join(root, 'data', 'bible', 'kjv.json');
+  const bible = path.join(root, 'data', 'en', 'bible-translation', 'kjv.json');
   if (!fs.existsSync(bible)) {
-    say('  data/bible/kjv.json is missing — it ships with the repository;');
-    say('  restore it with `git checkout -- data/bible/kjv.json`');
+    say('  data/en/bible-translation/kjv.json is missing — it ships with the repository;');
+    say('  restore it with `git checkout -- data/en/bible-translation/kjv.json`');
     ok = false;
   } else {
     try {
@@ -98,7 +98,7 @@ function checkCorpora() {
         `  bible present (${corpus.translation?.code ?? '?'}, ${books} books, ${verses} verses)`
       );
     } catch {
-      say('  data/bible/kjv.json is present but unreadable — check the file');
+      say('  data/en/bible-translation/kjv.json is present but unreadable — check the file');
       ok = false;
     }
   }

@@ -609,7 +609,7 @@ export default function EditForm({
                       onClick={() => resolveScripture()}
                       className="text-[10px] text-primary hover:underline font-bold"
                     >
-                      Resolve KJV
+                      Resolve
                     </button>
                   </div>
                   <input

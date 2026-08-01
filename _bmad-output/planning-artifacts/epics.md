@@ -487,7 +487,7 @@ Converts the export to a normalised `data/bible/kjv.json` and seeds it from zero
 
 > **Path superseded 2026-08-01, after this story closed.** FR-24 moves the corpus to **`data/en/bible-translation/kjv.json`**. This story's AC-1 and its file list name `data/bible/kjv.json`, and they are left standing as the record of what shipped — the move is Story 21.2's to perform, not a retroactive edit to a `done` story. Everything else this story asserts (the seed-from-zero channel, the structural completeness counts, the deleted export) is unaffected: only the path changes.
 
-#### Story 21.2: Translation Is a Parameter, Not a Literal *(ready-for-dev — story file 2026-08-01)*
+#### Story 21.2: Translation Is a Parameter, Not a Literal *(review — story file 2026-08-01)*
 As the system,
 I want every scripture read path to name the translation it is reading,
 So that a second corpus is an addition rather than a rewrite of six call sites.
