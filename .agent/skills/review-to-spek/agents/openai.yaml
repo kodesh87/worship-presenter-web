@@ -1,4 +1,0 @@
-interface:
-  display_name: "Review to Spec"
-  short_description: "Route accepted review evidence to final docs"
-  default_prompt: "Use /review-to-spek to send accepted review evidence to Codex for documentation finalization."

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Review to Coding"
-  short_description: "Route actionable review findings to Cursor"
-  default_prompt: "Use /review-to-coding to package BMAD findings for corrective coding in Cursor."
