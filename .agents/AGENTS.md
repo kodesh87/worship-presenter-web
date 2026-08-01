@@ -127,31 +127,5 @@ When unsure whether work is “large”: treat it as large and use the BMad path
 
 ## Sync rule for this file
 
-`CLAUDE.md` must remain `@AGENTS.md`. Keep `.agents/AGENTS.md` and `.cursorrules` **identical** to this file’s BMad gate + Next.js blocks + Inter-Agent Workflow section so Antigravity / Cursor / Codex ChatGPT load the same rules.
+`CLAUDE.md` must remain `@AGENTS.md`. Keep `.agents/AGENTS.md` and `.cursorrules` **identical** to this file’s BMad gate + Next.js blocks so Antigravity / Cursor / Codex ChatGPT load the same rules.
 <!-- END:bmad-process-gate -->
----
-
-## Inter-Agent Workflow
-
-The complete inter-agent workflow is defined by `.work/inter-agent-cooperation.md` and is mandatory for cross-host work **among the three chain hosts below**.
-
-**Claude Code works outside this chain.** It is not a chain host, it has no transition skills, and it needs neither `spek-to-coding` to begin work nor a handover envelope to end it. It may read and change product documentation, specs, planning artifacts, production code, tests and reviews in a single session: the host-boundary split below exists to stop three specific hosts from overwriting each other's work, not as a claim about which files may be touched by whom. Do not stop and ask for a handover when the user has invoked Claude Code directly.
-
-Three things still bind Claude Code without exception:
-
-- **The BMad process gate above** — Epic → Story → Spec → implement → `bmad-code-review`, and the same-change-set artifact rules for the architecture spine, `EXPERIENCE.md` and `DESIGN.md`. Being outside the chain is not being outside the gate.
-- **The public-repository rule and the commit / push audit** above.
-- **The chain's own artifacts are not Claude Code's to write.** It must not create or advance anything under `.work/inter-agent/**`, claim a workflow ID, or run a transition skill, and a chain already in flight is advanced or closed only by the host that owns that edge — otherwise the chain-integrity gate is checking a record no single host is accountable for. When Claude Code hands work to Codex ChatGPT, Cursor, or Antigravity it produces a **plain prompt or handover note**; the receiving host takes that through `spek-to-coding` if the chain is wanted.
-
-The three chain hosts:
-
-- Codex ChatGPT owns documentation, specification/design corpus, and finalization; it does not code or review.
-- Cursor owns production code, tests, and implementation configuration; it does not edit product documentation or perform review.
-- Antigravity owns `/bmad-code-review`, triage, verdict, and review handovers; it does not patch production code or rewrite product documentation.
-- All hosts may write only the operational chain artifacts under `.work/inter-agent/**` as allowed by the active skill.
-- Every work item starts with `spek-to-coding`; every transition must satisfy the SSOT chain-integrity gate, handover envelope, eligibility rules, and skill-specific exit gate.
-- Transition skills:
-  - Codex ChatGPT: `.Codex/skills/spek-to-coding/SKILL.md`, `.Codex/skills/close-spek/SKILL.md`
-  - Cursor: `.cursor/skills/coding-to-spek/SKILL.md`, `.cursor/skills/coding-to-review/SKILL.md`
-  - Antigravity: `.agent/skills/review-to-coding/SKILL.md`, `.agent/skills/review-to-spek/SKILL.md`
-- `close-spek` is the terminal transition and has no receiver.

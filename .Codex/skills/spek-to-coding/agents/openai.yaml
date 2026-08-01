@@ -1,4 +1,0 @@
-interface:
-  display_name: "Spec to Coding"
-  short_description: "Prepare verified specs and coding handovers"
-  default_prompt: "Use $spek-to-coding to complete the specification and prepare a traceable Cursor handover."

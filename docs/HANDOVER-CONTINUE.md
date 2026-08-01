@@ -17,7 +17,7 @@ You are continuing work on worship-presenter-web.
 
 ## Already done
 1. App + public docs exported to WPW; package name is `worship-presenter-web`.
-2. Agent tooling synced: `.claude/`, `.agents/`, `.cursor/`, `.Codex/`, `.agent/`, `_bmad/`, `_bmad-output/`, `.github/`, inter-agent chain under `.work/inter-agent/` (force-tracked), plus root `AGENTS.md` / `.cursorrules` / `CLAUDE.md` (public-repo preamble kept).
+2. Agent tooling synced: `.claude/`, `.agents/`, `.cursor/`, `_bmad/`, `_bmad-output/`, `.github/`, plus root `AGENTS.md` / `.cursorrules` / `CLAUDE.md` (public-repo preamble kept).
 3. Operator bootstrap (gitignored, local only):
    - `data/local/default-registry.json` — private registry override preferred by seeder
    - `data.db` — copied for continuity
@@ -41,7 +41,7 @@ Anything under `data/local/`, `data/uploads/`, `data.db*`, `.env*`, `*.pptx`, `s
    - Commit is already done for sync/redact/handover if present; push if not yet pushed
    - BEFORE setting the GitHub repo public: rewrite history so the first commit no longer contains pre-redaction secrets (orphan single clean commit or equivalent). A later redaction commit is not enough — public repos publish full history.
    - Then: `gh repo edit --visibility public` (or GitHub UI)
-4. Continue product work only in WPW under BMad / inter-agent rules.
+4. Continue product work only in WPW under BMad rules.
 
 ## Out of scope for this handover
 - Do not reopen feature work in bic-pptx-workflow.
