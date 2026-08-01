@@ -34,7 +34,7 @@ on any fresh clone, and it never has.
 
 The gap was not hidden. It has been recorded since 2026-07-19 in three places at
 once — a `Partial` on the FR Coverage Map, an entry in `deferred-work.md`, and
-two `Deferred` bullets in the architecture spine (`:364`, `:367`). What none of
+two `Deferred` bullets in the architecture spine (`:360`, `:363`). What none of
 those said is how far it went, because each described it as an *ops
 inconvenience*. Measured on 2026-08-01, it is not one.
 
@@ -64,7 +64,7 @@ contradiction Correct Course closed on Epic 14 on 2026-07-29 — where
 `in-progress` disagreed with the tracker's own definition — and the same reason
 Story 19.1 was refused a place in the closed Epic 15 on 2026-07-30.
 
-**Epic 20 is affected, favourably.** Spine `:388` records that Story 20.1's seed
+**Epic 20 is affected, favourably.** Spine `:384` records that Story 20.1's seed
 work duplicates `data/hymns.json` lyric text and *"touches the open SDAH licence
 item"*. Closing that item removes the entanglement, which is why the new epics
 are sequenced **ahead** of Epic 20 rather than behind it.
@@ -77,10 +77,10 @@ corpus was never shipped.
 | Artifact | Conflict | Disposition |
 |---|---|---|
 | **PRD** | §4.9 and the glossary locked *"developer-provided **KJV-only**"*; FR-2 was *"by SDAH Number"*; two §5 non-goals named KJV and the Hymnal Database; §11 called corpus absence *survivable* as the normal state | Amended at **8 sites** + new §4.11. §6's own practice — *"any future phase or major capability writes its go/no-go here **when the decision is taken**"* — obliged a decision-record entry, and it has one |
-| **Architecture spine** | **No AD governs a shipped reference corpus at all.** AD-11/AD-17 cover the registry seed only, while the hymnal is upserted on **every boot** (`db/index.ts:262`), overwriting `title` and `lyrics` — the boot-time value-change channel AD-17 removed for the registry and AD-21 routes through a declared transition *n*→*n+1*. Correcting 695 persisted titles is exactly AD-21's case, and spine `:374` records that **AD-21's counter does not exist and no story owns it**. Also stale: the Structural Seed tree (`:319`, `:326`) | **Routed out**, not decided here. `bmad-architecture` Update, tracked as an action item, **blocking Story 22.2** |
+| **Architecture spine** | **No AD governs a shipped reference corpus at all.** AD-11/AD-17 cover the registry seed only, while the hymnal is upserted on **every boot** (`db/index.ts:262`), overwriting `title` and `lyrics` — the boot-time value-change channel AD-17 removed for the registry and AD-21 routes through a declared transition *n*→*n+1*. Correcting 695 persisted titles is exactly AD-21's case, and spine `:370` records that **AD-21's counter does not exist and no story owns it**. Also stale: the Structural Seed tree (`:315`, `:322`) | **Routed out**, not decided here. `bmad-architecture` Update, tracked as an action item, **blocking Story 22.2** |
 | **UX (`EXPERIENCE.md`)** | `:143` states *"Lookup is unavailable when the corpus was never imported (an ops step)"* as a shipped state. Once the corpus ships, the default flips | **Routed out.** `bmad-ux` Update — one State Patterns row. No route changes, so the IA table is untouched |
 | **`project-context.md`** | `:87` **forbade** committing the KJV corpus under `data/` — precisely what Story 21.1 must do. An implementer obeying it would refuse the story | Amended: the rule is reversed and restated as *committed default seed data is a rule, not a permission*, with the public-repo rule it was confused with left intact |
-| **Docs** | 13 sites name the old paths or the `.work/` ops step | Assigned to Story 23.2 rather than swept blind now |
+| **Docs** | Eight files still tell a reader to run `import:kjv` / `import:hymnal` to obtain a corpus, or name `data/hymns.json` as the corpus path | Assigned to Story 23.2 **as a criterion, not a line list** — see §6 |
 
 ### Technical impact
 
@@ -175,7 +175,7 @@ code was written or proposed for immediate implementation.
 | Recipient | Deliverable |
 |---|---|
 | **Owner (`kodesh87`)** | The **number→title list for 695 SDAH hymns** — Story 22.2 cannot start without it, and nothing in the repository can derive a real title. Plus: authorise the two routed runs below |
-| **`bmad-architecture` Update** | The next `AD-n` governing a shipped reference corpus — never renumber. Settles whether the corpora ride the boot upsert or AD-21's counter arrives here. Same run amends the Structural Seed tree (`:319`, `:326`) and clears `Deferred` `:364` + `:367`. **Blocks Story 22.2** |
+| **`bmad-architecture` Update** | The next `AD-n` governing a shipped reference corpus — never renumber. Settles whether the corpora ride the boot upsert or AD-21's counter arrives here. Same run amends the Structural Seed tree (`:315`, `:322`) and clears `Deferred` `:360` + `:363`. **Blocks Story 22.2** |
 | **`bmad-ux` Update** | `EXPERIENCE.md:143` State Patterns row. One row; IA table untouched |
 | **`bmad-create-story`** | Story files, in this order: **21.1** (unblocked, highest value), then 21.2, 22.1, 21.3, 23.1, 23.2. **22.2** after the architecture run and the title list. **22.3** after Story 20.7 |
 | **`bmad-dev-story` → `bmad-code-review`** | Per story. Epic 21 and Epic 22.1 are safe to run in parallel worktrees; the four contact points above are the merge surface |
@@ -191,3 +191,42 @@ deleted **after** Story 21.1's completeness assertion is green — 66 books, 1,1
 chapters, 31,102 verses — and not before. It is the only copy of the source, and
 the song-book corpus is already in exactly the state that ordering exists to
 prevent.
+
+---
+
+## 6. Reconciliation With `origin/main` (added after the merge)
+
+Merged `origin/main` before pushing, at the owner's instruction. Seven commits
+landed while this pass was running, and two of them mattered to it.
+
+**`d4b726a docs(deferred-work): record hymnal title regeneration as blocked`** had
+already recorded the hymn-title finding — independently, hours earlier — and
+closed with *"the route is `bmad-correct-course` (to give it an owning epic —
+Epic 2 is `done`)"*. This pass **is** that route, so that entry's `owner:` moved
+from *no open epic owns it today* to **Story 22.2**, and its *fix at the
+generator, do not hand-patch 695 rows* instruction is carried into the story
+verbatim — with one adjustment the entry could not have known was needed, since
+the generator's source turned out to be absent. Its four consumer boundaries and
+its test-suite warning are now in Story 22.2 too; without the merge this epic
+would have shipped a title story blind to both.
+
+**`956d1d3 docs: carry AD-11..AD-19's reasoning into the spine`** moved every
+spine line this proposal cites by four. All six citations were re-measured and
+repaired (`:319`→`:315`, `:326`→`:322`, `:364`→`:360`, `:367`→`:363`,
+`:374`→`:370`, `:388`→`:384`). `EXPERIENCE.md:143` and PRD `:120` were
+re-measured and are unchanged.
+
+**One artifact was rewritten rather than repaired.** Story 23.2 had carried
+thirteen documentation line numbers. Having just watched six citations rot inside
+a single session, that list is replaced by the criterion it was standing in for —
+*no tracked document may still tell a reader to run `npm run import:kjv` or
+`npm run import:hymnal` to obtain a corpus, or name `data/hymns.json` as the
+corpus path* — with the greps that answer it and the eight files that matched on
+the day. This is the *encode the criterion, not the spelling* rule Story 17.8
+exists to enforce, applied to the artifact rather than to a test.
+
+**One conflict, in `project-context.md`.** `origin/main` rewrote the block this
+pass edited. Resolved by keeping all four of its new bullets and applying this
+pass's replacement only to the stale rule — the one forbidding the KJV corpus
+under `data/`, which Story 21.1 must do.
+
