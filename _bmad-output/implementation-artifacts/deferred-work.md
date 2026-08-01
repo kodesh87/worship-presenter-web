@@ -32,9 +32,10 @@ Historical source reviews: code review `jules main...2d87307` (2026-07-18); spec
   summary: Service EditForm still edits legacy `images_payload` while PPTX prefers Announcement List when non-empty.  
   evidence: Dual-path intentional for migration; richer FR-11 edit surface still open.
 
-- source_spec: FR-19 / Story **12.1**  
-  summary: KJV corpus is not committed under `data/`; import remains operator/ops path from `.work/`.  
-  evidence: No `data/kjv`; Presenter/import code present.
+- source_spec: FR-19 / Story **12.1**
+  owner: **Epic 21 / Story 21.1** (`21-1-verse-database-ships`) — assigned 2026-08-01 by `bmad-correct-course`
+  summary: The KJV corpus reaches no fresh clone at all.
+  evidence: Restated 2026-08-01 after measuring, because the previous wording — *"import remains an operator/ops path"* — reads as an inconvenience when it is a feature that cannot run. `bible_books` and `bible_verses` are created by the startup DDL (`src/lib/db/index.ts:156-171`) and have **no writer** outside `scripts/import-kjv.mjs`, which reads the git-ignored `.work/tp_bible_*.json`. A fresh clone therefore ships FR-19's UI, its API route and its empty-corpus message, and no corpus. The export holds 31,102 verses across 66 books — the canonical count — and normalises to ≈4.3 MB against 14.5 MB raw. Owner decision the same day: commit it at `data/bible/kjv.json` as the default seeder corpus, and delete the export only once the completeness assertion is green.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-close-audit-product-partials.md`
   summary: **Blocked on a product decision, not on code.** Part C Announcements title is gated correctly but flyer image slides still appear after standing Part C slides (not a contiguous Announcements block).
@@ -42,9 +43,10 @@ Historical source reviews: code review `jules main...2d87307` (2026-07-18); spec
 
 ### Ops / security leftovers
 
-- source_spec: `_bmad-output/implementation-artifacts/spec-phase1-hymnal-fr4-parser.md`  
-  summary: Committing SDAH lyric corpus needs explicit license/attribution review.  
-  evidence: Full 695-hymn text in `data/hymns.json`; church copyright status not documented in-repo.
+- source_spec: `_bmad-output/implementation-artifacts/spec-phase1-hymnal-fr4-parser.md`
+  owner: **Epic 22** — licence and corpus move to `22-1-song-book-ships-with-book-code`, titles to `22-2-hymn-title-is-a-title`; assigned 2026-08-01 by `bmad-correct-course`
+  summary: The SDAH corpus is unattributed, unreproducible, and its titles are lyric lines.
+  evidence: **Licence closed by owner decision 2026-08-01** — the lyrics ship with attribution to the copyright holder and a stated willingness to take them down on request, an accepted risk rather than a review outcome. Two things were found while verifying this entry that it did not record. (1) `.work/lirik-lagu.json`, the only source `scripts/import-hymnal.mjs` can read, **does not exist anywhere under the project root**, so the committed output is the last surviving copy and `npm run import:hymnal` cannot run at all. (2) `deriveTitle()` (`import-hymnal.mjs:23`) stores the first lyric line after a `Verse` header — by design, per `:115` of this same spec, because the dump carried no title column. SDAH #522 is stored as *"My hope is built on nothing less"* rather than *"The Solid Rock"*; 40 of 695 titles exceed 45 characters. That matters beyond tidiness: PRD `:120` makes the resolved-title readback the only defence against a valid-but-wrong SDAH number, and a readback echoing a lyric line is not a check a human can fail. The owner will supply the number→title list (tracked in `sprint-status.yaml` action items). **For the title half, the fuller record is the 2026-08-01 section at the end of this file** — it enumerates the four consumer boundaries and the test impact, and is owned by the same Story 22.2; this entry keeps the licence and the missing-source halves, which that section does not cover.
 
 - source_spec: code review jules main...2d87307  
   summary: Concurrent first-boot hymn seed UNIQUE race.  
@@ -260,9 +262,11 @@ Five findings from that run's Reviewer Gate, all in `tests/theme-chrome.test.mjs
 
 Found while answering a routing question, not by a review — so there is no source spec, only the code and the corpus. **Deferred by the owner on the day it was found: not started, and deliberately so.** It cannot start, because the missing piece is an input nobody in the repository can produce. Recorded here rather than as a story for exactly that reason: a story would have to state a testable AC for *"the title is correct"*, and there is nothing yet to compare a title against.
 
-- source_spec: FR-2 / Epic **2** (`2-2-rundown-parser-and-hymnal-db-integration`) — the corpus that epic delivered; no open epic owns it today
-  owner: **kodesh87** — blocked on an owner-supplied input, not on code, not on a decision
+- source_spec: FR-2 / Epic **2** (`2-2-rundown-parser-and-hymnal-db-integration`) — the corpus that epic delivered
+  owner: **Epic 22 / Story 22.2** (`22-2-hymn-title-is-a-title`) — assigned 2026-08-01 by `bmad-correct-course`, which is the route this entry itself named. Still blocked on an owner-supplied input, not on code and not on a decision; what changed is that the block now has a key rather than sitting under *no open epic owns it*
   summary: All 695 titles in `data/hymns.json` are the hymn's **first lyric line**, not its title. The source dump `.work/lirik-lagu.json` carries no title field at all, so `deriveTitle()` was written to fall back to the lyrics — the corpus is faithful to its source and the source is insufficient. Regeneration is therefore blocked until a replacement source carrying an authoritative number→title index exists. **Fix at the generator and re-run the import; do not hand-patch 695 rows** (AGENTS.md, *prefer not producing the value to blocking it afterwards* — same shape as the `evidenceFor` filter in `extract-pptx-assets.mjs`).
   evidence: `scripts/import-hymnal.mjs:23` `deriveTitle()` returns the first non-label line after a `Verse` header, final fallback `SDAH {n}` (`:54`), applied at `:105`; source path `.work/lirik-lagu.json` (`:7`), **absent from this machine**. Observed in the shipped corpus: `#83` = `"O worship the King, all-glorious above"` while `epics.md:369` states the intended title slide as `"O Worship the King · SDAH #83"` — the artefact and the data already disagree in writing; `#1` = `"Praise to the Lord, the Almighty, the King of creation!"`; `#100` = `"Great is Thy faithfulness, O God my Father"`. The value is **payload, not internal**: it reaches the song title slide (`src/lib/slide-plan.ts:158`, `songTitle: hymn.title`, FR-5), the group label (`:192`), the number+title autocomplete (Story 14.6) and picoclaw's `resolvedHymns` readback (Story 6.5). `tests/pptx-content.test.mjs` asserts title text, so regeneration moves the suite.
 
 When the source exists, the route is `bmad-correct-course` (to give it an owning epic — Epic 2 is `done`) → `bmad-create-story` → `bmad-dev-story` → `bmad-code-review`. Not `bmad-quick-dev`: three consumer boundaries and a moving test suite put it past *bugfix tightly scoped to existing behavior*.
+
+**First leg done, 2026-08-01 (`sprint-change-proposal-2026-08-01.md`).** The Correct Course ran and the owning epic exists: **Epic 22**, *The song book is a choice, and its titles are real*, with this finding as **Story 22.2**. Two things that entry could not know when it was written, both measured by the same pass: the corpus is not only un-regenerable in principle — `.work/lirik-lagu.json` is **absent**, so `npm run import:hymnal` cannot run at all and the committed output is the last copy; and `hymns.number` is globally `UNIQUE`, so the same file move carries a per-book key (Story 22.1) rather than being a rename. The *fix at the generator* instruction above is carried into Story 22.2 verbatim, with one adjustment forced by the missing source: the generator now reads the committed corpus plus the owner-supplied index. Story 22.2 additionally waits on a `bmad-architecture` Update — correcting 695 already-persisted titles is AD-21's case and its counter does not exist.

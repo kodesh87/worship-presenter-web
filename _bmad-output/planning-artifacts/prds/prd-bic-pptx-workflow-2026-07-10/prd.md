@@ -44,7 +44,7 @@ The bet is deliberately modest — and deliberately narrow. Phase 1 ships the sm
 ### 2.3 Key User Journeys
 
 - **UJ-1. Sari from the events department sends the week's rundown and the service assembles itself.** *(Phase 1)*
-  Sari coordinates the week's program. On Wednesday she types the rundown into the events Telegram chat as she always has — sections, timings, roles by name, songs as `SDAH #159`, "Special Song: -" when there's none — and attaches the finished poster images. She never opens presentation software. picoclaw reads the messages and calls the API; the app validates each hymn number against the Hymnal Database, resolves the lyrics, applies her announcement instructions to the persistent announcement list, and assembles the deck. Minutes later a new dated **Service** exists in the web hub. **Edge case:** if a song number isn't valid in the Hymnal Database, the Service is still created but that Song Block is flagged as incomplete, and picoclaw can tell Sari which number failed.
+  Sari coordinates the week's program. On Wednesday she types the rundown into the events Telegram chat as she always has — sections, timings, roles by name, songs as `SDAH #159`, "Special Song: -" when there's none — and attaches the finished poster images. She never opens presentation software. picoclaw reads the messages and calls the API; the app validates each hymn number against the Song Book, resolves the lyrics, applies her announcement instructions to the persistent announcement list, and assembles the deck. Minutes later a new dated **Service** exists in the web hub. **Edge case:** if a song number isn't valid in the Song Book, the Service is still created but that Song Block is flagged as incomplete, and picoclaw can tell Sari which number failed.
 
 - **UJ-2. Bimo reviews Friday and fixes a wrong song in the web app.** *(Phase 1)*
   Bimo, who used to spend an hour building the deck, now opens the web hub on Friday, signs in with his account, and picks this Sabbath's Service. In under ten minutes he checks the Run-Sheet and the Service's data — participants, songs, posters — against what events sent, and downloads the PPTX for a spot-check. He spots that the closing song is wrong. He edits the song number in the web form, clicks regenerate, and the deck rebuilds in place. He downloads the fresh offline PPTX to the presentation laptop ahead of Sabbath. **Resolution:** the Service is correct; the offline artifact is on the machine that will present it.
@@ -72,9 +72,9 @@ The bet is deliberately modest — and deliberately narrow. Phase 1 ships the sm
 - **Deck Blueprint** — The mapping of every slide position in BIC's established deck to fixed-vs-payload status and its Slide Type (§4.2; full annotated map in this PRD's `addendum.md`). It is authoritative for **what the deck was and what the Registry ships as its starting point** — and it is what FR-4 and FR-6 are tested against. It is not a standing prohibition on change: once FR-21 lands, an Admin may deliberately author a structure that departs from it, and that departure is a decision the product permits rather than a defect. What the Blueprint stops being is a *silent* authority; a divergence is chosen, not drifted into.
 - **Slide Type** — A templated slide category the generator can emit: welcome, agenda/Sequence, divider, song-title, lyric, scripture, sermon, offering, family/youth, announcement-image, closing. This is a **semantic** vocabulary — what a slide *is* in the service — and it is what the Deck Blueprint is written in. It is **not** the same axis as Slide Kind below, and the two are not synonyms: a Slide Type says what a slide means to the congregation, a Slide Kind says what an Admin is allowed to author on it.
 - **Song Block** — One song rendered as 1 song-title slide + K lyric slides. Each verse starts a new slide and each Reff starts a new slide; text too long for one slide splits across additional slides for readability. K = f(verse count, Reff availability, readability splits). Some songs have no Reff. **"Reff" is BIC's own label for the refrain, as printed on the deck** — the two words name the same structure, and *Reff* is used wherever the deck's own label is meant.
-- **Hymn** — A song identified by its SDAH Number, whose lyrics come from the Hymnal Database.
-- **SDAH Number** — SDA Hymnal number (e.g., `SDAH #159` or bare `#671`), the key used to validate and resolve a Hymn.
-- **Hymnal Database** — The SDA Hymnal lyrics data source (title + structured verses/refrain, keyed by SDAH Number), provided by the developer. An input dependency, not built in this project.
+- **Hymn** — A song identified by its number within a Song Book — SDAH by default — whose lyrics come from that Song Book.
+- **SDAH Number** — SDA Hymnal number (e.g., `SDAH #159` or bare `#671`), the key used to validate and resolve a Hymn **within the SDA Hymnal Song Book**. Since FR-23 (§4.11) a Hymn is keyed by number *within a named Song Book*; the term is kept because SDAH numbering is what every rundown this product reads actually cites.
+- **Song Book** *(renamed from **Hymnal Database** on 2026-08-01, when FR-23 made it one of several)* — A lyrics data source (title + structured verses/refrain, keyed by number within that book), provided by the developer and shipped as committed seed data at `data/song-book/<code>.json`. **The SDA Hymnal (SDAH) is the default.** An input dependency, not built in this project. *Point-in-time records that predate the rename — `.memlog.md`, `pressure-test-findings.md`, the readiness reports — keep the old term deliberately: rewriting a record makes it lie about what was said.*
 - **Announcement List** — The persistent, ordered list of Announcement Assets the app maintains across weeks: recurring items stay until replaced or removed; one-off items are added for a single Service. Managed via the API (picoclaw) and the Web Hub.
 - **Deck** — The generated slide presentation for a Service, exported as an offline-capable PPTX file.
 - **Run-Sheet** — The web view of the full Order of Service for a Service, for operators to follow during the service.
@@ -112,10 +112,10 @@ picoclaw can read the week's Telegram messages and submit a structured Weekly Da
 - A Service is keyed by its **date**: re-sending the Rundown for the same date **updates** that Service's Weekly Data Payload rather than creating a duplicate. (Phase 1 has no web-vs-Telegram concurrency guard — that is FR-13b, Phase 3 — so a re-send overwrites the current payload, including any prior web-form edits.)
 
 #### FR-2: Validate and resolve Hymns by SDAH Number in the app API
-The app's Service-input API validates each submitted SDAH Number against the Hymnal Database and resolves the Hymn's title and structured lyrics server-side, reporting validity back to the caller. Realizes UJ-1.
+The app's Service-input API validates each submitted SDAH Number against the Song Book and resolves the Hymn's title and structured lyrics server-side, reporting validity back to the caller. Realizes UJ-1.
 
 **Consequences (testable):**
-- A valid SDAH Number yields a stored title and lyrics split into verse/refrain blocks from the Hymnal Database, in the same input call — no separate resolution step for picoclaw.
+- A valid SDAH Number yields a stored title and lyrics split into verse/refrain blocks from the Song Book, in the same input call — no separate resolution step for picoclaw.
 - An invalid/unknown SDAH Number does **not** block creation of the Service: the Service is created, that Song Block is marked incomplete, and the API response identifies the failing number so picoclaw can inform the sender.
 - The API response echoes the **resolved Hymn title** for every song. A *valid-but-wrong* number (a mistyped number that resolves to a different real Hymn) is therefore catchable when picoclaw reports the saved result back to the sender (FR-1): the number is not treated as self-verifying, the resolved title is shown for human confirmation.
 - No lyric text is ever sourced from a free-text web search, by picoclaw or by the app.
@@ -346,7 +346,7 @@ Each user can sign in to the Web Hub with an individual account; unauthenticated
 
 ### 4.9 Scripture Display *(Phase 6)*
 
-**Description:** An on-demand verse display for moments when the speaker asks for a passage that isn't in the week's Deck: the operator looks it up and shows it live, **from within Presenter Mode** — not a separate app screen (realizes a distinct in-service need, not UJ-1). Backed by the developer-provided **KJV-only** Verse Database. Decoupled from the PPTX assembly workflow; it never modifies a Deck.
+**Description:** An on-demand verse display for moments when the speaker asks for a passage that isn't in the week's Deck: the operator looks it up and shows it live, **from within Presenter Mode** — not a separate app screen (realizes a distinct in-service need, not UJ-1). Backed by the developer-provided Verse Database. Decoupled from the PPTX assembly workflow; it never modifies a Deck. **Extended by FR-22 (§4.11), committed 2026-08-01:** the *KJV-only* clause is superseded — several translations, with KJV the shipped default. FR-19's text below is left as the record of what Phase 6 shipped; what changed is recorded once in §4.11 rather than as inline caveats, the same way §4.10 records FR-21's changes to FR-20.
 
 **Functional Requirements:**
 
@@ -412,10 +412,38 @@ An Admin can define **which slides the Deck contains and in what order** by edit
 - **FR-4, FR-5, FR-6 and NFR-3 continue to bind.** The shipped starting Registry produces the Deck the Blueprint describes (NFR-8), and a Registry edit that makes a lyric slide unreadable fails NFR-3 exactly as a code change would.
 - **The three fixed liturgical songs are authored entirely by hand, and their readability is the Admin's own judgement** *(decided by the owner, 2026-07-30)*. The two intercessory standing responses and the closing *"We Have This Hope"* become General entries whose lyric text, page count, and line breaks are all set manually. They do **not** pass FR-5's verse/Reff splitting, and the authoring surface carries **no** automated readability check — deliberately, on both counts. NFR-3 is met by the Admin reading the pages they just authored, on the surface that will project them. Two consequences are accepted rather than mitigated: a later correction to the hymnal corpus does not reach these three songs, and a future edit to one of these pages has the same human check and nothing else standing behind it.
 
+### 4.11 Several Translations, Several Song Books *(FR-22 and FR-23 committed 2026-08-01)*
+
+**Description:** The two reference corpora this product reads — the Verse Database (§4.9) and the Song Book (§4.1, FR-2) — were each specified as exactly one: KJV, and the SDA Hymnal. Both become *one of several*, with the original as the shipped default. Which slides a Deck contains does not change; this is about which book a lookup reads from.
+
+**Why this is a requirement rather than an assumption.** Both corpora become committed seed data under Epics 21–22 (`data/bible/kjv.json`, `data/song-book/sdah.json`), and that directory shape is only defensible if a second corpus is a decision the product has taken. It also carries a schema consequence that is cheap now and expensive later: hymn numbers are globally unique today, so a second Song Book cannot be stored at all.
+
+**Functional Requirements:**
+
+#### FR-22: Read scripture from a configurable translation, KJV by default
+An Admin sets the default Bible translation; an Operator may choose a different one at the moment of lookup in Presenter Mode. KJV ships as the default corpus.
+
+**Consequences (testable):**
+- A lookup returns the passage in the chosen translation; with no choice made, in the configured default.
+- Wherever a resolved passage is persisted, the translation it was resolved from is persisted with it — a passage saved under one default does not silently re-render under another.
+- A translation whose corpus is absent is reported absent *for that translation*; the others keep working.
+- **What FR-22 changes in FR-19, recorded once** — the pattern §4.10 uses for FR-21's changes to FR-20, so the shipped requirement stays readable: §4.9's *"developer-provided **KJV-only** Verse Database"* and FR-19's *"the KJV passage text"* become translation-parameterised. FR-19 is otherwise unchanged — same trigger, same dismissal, same guarantee that the Deck and Weekly Data Payload are unmodified.
+
+#### FR-23: Resolve hymns from a configurable Song Book, SDAH by default
+An Admin sets the default Song Book; a song in a week's data may name a different one. The SDA Hymnal ships as the default corpus.
+
+**Consequences (testable):**
+- A number resolves against the default Song Book unless that song names another, and the resolved title in the FR-2 readback names the book it came from.
+- The chosen book is persisted **beside the number, in the same single home** — never as a second copy of the same weekly value.
+- Two Song Books may use the same number without collision.
+- **What FR-23 changes in FR-2, recorded once:** *"by SDAH Number"* becomes *by number within a named Song Book*, SDAH being the default. Validation, the unmapped-input surfacing (NFR-5) and the readback obligation are unchanged.
+
+**Boundaries.** §5's non-goals stand as amended there: still not a song search engine, still no contemporary or non-hymnal song support, still not a study or reading platform. Adding a corpus is a development change — a shipped file and its attribution — never an Admin upload.
+
 ## 5. Non-Goals (Explicit)
 
 - Not a general worship-presentation product — v1 serves BIC's single established workflow, not configurable per-church workflows.
-- Not a song search engine — lyrics come only from the Hymnal Database by SDAH Number; no free-text or web lyric search; no contemporary/non-hymnal song support in v1.
+- Not a song search engine — lyrics come only from a shipped Song Book by number (SDAH by default; **FR-23** allows several, §4.11); no free-text or web lyric search; no contemporary/non-hymnal song support in v1; and no Admin-uploaded Song Book — adding one is a development change.
 - **No video handling** — announcement uploads are images only; no MP4/video upload, storage, or embedded video slides. (The occasional video-bearing weeks of the old manual deck are consciously dropped from scope.)
 - **No guest/performer decks** — a Special Song performer's own PPTX and a speaker's own sermon PPTX are presented outside this system; the app only provides the surrounding slides.
 - Not a flyer/graphic generator — Announcement Assets are uploaded finished; the app never generates flyer or announcement artwork from data.
@@ -423,7 +451,7 @@ An Admin can define **which slides the Deck contains and in what order** by edit
 - Not a full participant-roster-on-slides system — only the names the current deck already prints go on slides; extra roles live on the Run-Sheet (and, in Phase 5, the Presenter Mode participant list).
 - Not a public website — the Web Hub is closed and per-person authenticated.
 - Not a document archive — generated Decks are expendable (Phase 4 auto-expires them); the durable record is the Service's data, which regenerates the Deck on demand.
-- Scripture Display (§4.9) is not a study/reading platform — it is an on-demand KJV passage display inside Presenter Mode, nothing more.
+- Scripture Display (§4.9) is not a study/reading platform — it is an on-demand passage display inside Presenter Mode, nothing more. **FR-22** widens which translation it reads, not what it is.
 
 ## 6. Delivery Phases
 
@@ -433,7 +461,7 @@ An Admin can define **which slides the Deck contains and in what order** by edit
 
 Five go/no-go gates on the load-bearing dependencies, each with its state:
 
-- **Hymnal Database** — acquire it and validate structure (title + clean verse/refrain blocks), coverage, and numbering; FR-5 readability splitting depends on it (§11). **Run.**
+- **Song Book** (the SDA Hymnal) — acquire it and validate structure (title + clean verse/refrain blocks), coverage, and numbering; FR-5 readability splitting depends on it (§11). **Run.**
 - **picoclaw** — confirm the openclaw-type agent can be customized to the intake/readback/image-binding spec (FR-1, §11). **Run.**
 - **Font strategy** — prove the chosen freely-licensed font either embeds cleanly headless or renders on a clean machine with the standardized font installed (FR-14, NFR-7). **Still open, and the only one** — technical, and the maintainer's.
 - **Fidelity sign-off** — generate a sample rebuilt slide set and get explicit sign-off from the church that the look is acceptable (§4.2). **Waived** 2026-07-29.
@@ -503,6 +531,13 @@ Rundown in via Telegram → correct offline deck out, editable, behind a login. 
 - Who checks a hand-authored lyric page was settled *separately* the same day (§8), and is recorded as its own decision because it is one.
 - FR-21's vocabulary change is a cheap total replacement **only until first deploy** (§9 records that no production data exists as of 2026-07-30). After that, the same change must migrate live data.
 
+**FR-22 / FR-23 are committed** *(owner, 2026-08-01)*. The two reference corpora become several, each with one configurable default: KJV for scripture, the SDA Hymnal for songs (§4.11). Recorded here on the day the decision was taken, per this section's own practice. **Not a numbered phase**, for the same reason FR-20 and FR-21 are not — it changes which book a lookup reads from rather than giving an Operator a new weekly increment. Delivered as **Epic 21** (scripture) and **Epic 22** (Song Book), cut per corpus family so the two can be built in parallel without touching the same table. **Not covered:**
+
+- **The hymn-numbering schema change is cheap only until first deploy**, exactly as recorded for FR-21's vocabulary change above. Hymn numbers are globally unique today, so a per-book key must land while no production data exists (§9 still records none as of 2026-08-01); afterwards the same change needs a migration over live rows.
+- **FR-23's per-song override is gated on FR-21's SongSet Slot work.** The override hangs off the same binding the four Slot identities own (§4.10), and those identities replace the current positional fields rather than aliasing them — so building the override first ships fields FR-21's delivery then deletes.
+- **Correcting the shipped song titles is a separate blocker of its own kind.** It changes values already persisted in every existing install; the mechanism for that is an architecture concern, tracked in `sprint-status.yaml` rather than here.
+- The font gate stays open. This commitment does not close a Phase-1 pre-requisite.
+
 **This is the practice, not just the record.** Any future phase or major capability writes its go/no-go here **when the decision is taken**, never reconstructed afterwards. The first two entries above had to be reconstructed a day late by a readiness assessment; the third was written on the day. That difference is why this heading exists.
 
 **Delivered outside the plan**, recorded for traceability: **FR-20** (§4.10), shipped 2026-07-26 as Epic 16 and specified retrospectively; **Epic 13** (LiveServer Docker/tunnel deploy, shared header/profile/dashboard search, hub-local announcement uploads), whose planning drift was reconciled by Correct Course 2026-07-19; and **Epic 15** (lyric formatting as continuous text, chorus after every verse, song-title skips in prayer flow), best read as an FR-5 refinement — with the caveat that FR-5 says a Reff *"repeats after each verse"* and Epic 15 implemented exactly that, but the behavior was decided in a SPEC rather than here.
@@ -517,7 +552,7 @@ Rundown in via Telegram → correct offline deck out, editable, behind a login. 
 - **SM-3: It sticks.** The church uses the system every week for a sustained run — at least a full quarter (~13 consecutive weeks). Validates the product as a whole, and is the gate for building Phases 2–6. **Leading gate (~week 4)** — an early continue/stop signal, not a wait-until-week-13 verdict: Friday review observed at ≤ 10 minutes, at least two distinct Operators have each run a Sabbath service unaided, and zero weeks required the manual break-glass fallback (§9). Failing the early gate triggers diagnosis, not silent continuation.
 
 **Secondary**
-- **SM-4: Errors approach zero.** No leftover-content-from-last-week incidents; lyric typos disappear (lyrics come from the Hymnal Database). Validates FR-2, FR-4, FR-5.
+- **SM-4: Errors approach zero.** No leftover-content-from-last-week incidents; lyric typos disappear (lyrics come from the Song Book). Validates FR-2, FR-4, FR-5.
 - **SM-5: Late changes become routine.** A last-minute song swap is edited, regenerated, and re-downloaded in ≤ 5 minutes. Validates FR-11, FR-13 *(Phase 1)*; FR-12 extends it to Telegram *(Phase 3)*.
 - **SM-6: The Sabbath runs offline without incident.** The presentation plays reliably regardless of venue internet. Validates FR-14 *(Phase 1)*; FR-15/FR-16 in later phases.
 - **SM-7: Storage stays bounded.** *(Phase 4)* Retention auto-cleanup keeps stored generated-PPTX volume within budget over a sustained run. Validates FR-10b.
@@ -572,8 +607,8 @@ The revision rounds resolved every substantive question from the maintainer's di
 
 *Defined in §3 and §13; listed here for what each one's absence costs.*
 
-- **Hymnal Database.** FR-2 depends on it, and its shape — title plus structured verses/refrain — is what makes FR-5's Song Block splitting possible at all. Flat lyric text would degrade FR-5 rather than break it.
-- **Verse Database.** FR-19 depends on it. Its absence is survivable: the Presenter says the corpus was never imported rather than returning empty results.
+- **Song Book.** FR-2 depends on it, and its shape — title plus structured verses/refrain — is what makes FR-5's Song Block splitting possible at all. Flat lyric text would degrade FR-5 rather than break it. **Since 2026-08-01 the default corpus (SDAH) ships with the repository as committed seed data**, so this is a dependency the product carries rather than one an installer must satisfy — and since FR-23 it is one Song Book of several.
+- **Verse Database.** FR-19 depends on it. **Since 2026-08-01 the default corpus (KJV) ships with the repository**, so *absent* stops being the state a fresh install is in — which it was, in every install, from Phase 6 until then. The survivable-absence behaviour still binds: for a translation whose corpus is not shipped (FR-22) and for a corpus file that will not parse, the Presenter says so rather than returning empty results.
 - **picoclaw agent.** Layer 1 of the three-layer system. It requires a **customized skill** — off-the-shelf will not do, which is why its customizability was a Phase-1 go/no-go gate (§6).
 - **Telegram.** The intake channel where the Events Department already coordinates; the app does not replace it.
 - **OBS (live stream).** The projector/full-screen output (PowerPoint in Phase 1; the Web Slideshow projector output in Phase 5, FR-16) must be capturable by OBS as the live-stream source.
@@ -611,5 +646,5 @@ The revision rounds resolved every substantive question from the maintainer's di
 **Feature-scoped nouns**
 
 - **Announcement Asset** *(§4.1, §4.3)* — A pre-rendered poster/flyer **image** (video is out of scope), uploaded finished (Telegram/picoclaw **or** Web Hub local upload) and inserted into the Deck as-is on its own slide. Occasional, not weekly: many weeks have none beyond recurring items.
-- **Verse Database** *(§4.9)* — A developer-provided **KJV-only** scripture data source powering the Scripture Display feature. Independent of the Hymnal Database and never used for Deck slides.
+- **Verse Database** *(§4.9, §4.11)* — Developer-provided scripture data powering the Scripture Display feature, shipped as committed seed data at `data/bible/<code>.json`. **KJV is the default and, since FR-22, no longer the only translation.** Independent of the Song Book and never used for Deck slides.
 - **Retention Policy** *(Phase 4, §4.3)* — An Admin-configured rule (default 2 months) that automatically deletes **only generated Decks (PPTX)** past the retention window. Services, participant text, posters, and all other data persist and are manual-delete only.

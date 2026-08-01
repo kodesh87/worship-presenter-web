@@ -84,7 +84,7 @@ Reference deck: `260704 - BIC Worship Presentation.pptx`. Slide counts for song 
 
 ## 4. API surface implied by the PRD (architecture input, not contract)
 
-- **Service input API** — accepts the Weekly Data Payload; **validates SDAH Numbers against the Hymnal Database and resolves lyrics server-side in the same call**; returns per-item validity so picoclaw can inform the sender (FR-2). picoclaw never resolves lyrics itself.
+- **Service input API** — accepts the Weekly Data Payload; **validates SDAH Numbers against the Song Book and resolves lyrics server-side in the same call**; returns per-item validity so picoclaw can inform the sender (FR-2). picoclaw never resolves lyrics itself.
 - **Service list/detail API, queryable by text** — lets picoclaw find and confirm a target Service for corrections (FR-8, used by FR-12 in Phase 3; default proposal = nearest upcoming Sabbath, explicit date honored, always confirm before applying).
 - **Announcement List API** — keep/replace/remove/add-one-off + ordering (FR-3).
 - **Image upload** — posters, sermon graphic, family/youth photo (FR-3/FR-6). Telegram path: images arrive as an ordered sequence plus the sender's textual description; picoclaw binds each image to its role and order from that description. Hub path: Operators may also `POST /api/upload`; stored refs are `/api/uploads/<32-hex>.<ext>` under `UPLOADS_DIR`. The save response echoes what was stored — including resolved Hymn titles — for sender verification (FR-1/FR-2).
