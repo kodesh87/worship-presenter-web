@@ -4,7 +4,7 @@ baseline_commit: acc8df04c4139fdd0f37a80b23030c15dbb124df
 
 # Story 17.1: Reachable Dark Mode
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -346,9 +346,13 @@ re-read at source by this workflow rather than taken from a single injection run
 
 **Decision needed**
 
-- [ ] [Review][Decision] **`ARCHITECTURE-SPINE.md:392` describes a closure gate that no longer exists, and no owner is filed** (medium) [_bmad-output/planning-artifacts/architecture/architecture-bic-pptx-workflow-2026-07-10/ARCHITECTURE-SPINE.md:392] — AD-24 names `tests/theme-chrome.test.mjs` as its closure gate, and the spine's ceiling bullet still states as **live** four things this change set closed: *"the queue enqueues `.tsx` only (`:432`) … which leaves fourteen modules reachable from the projected tree unwalked, `projected-shell.ts` among them"*; *"`export … from` is invisible to `moduleImports`"*; the `.ts` ceiling with `use-projected-shell.ts → projected-shell.ts` as *"the sharpest instance … never scanned"*; and sub-bullet (ii)'s citation of `tests/theme-chrome.test.mjs:511-524` and *"turns 43/43 green into two failures"* against a file that is now 47 tests. Measured against the shipped code: the walk reaches **27** modules with `projected-shell.ts` among them, and `export … from` is read. The File List records the spine as *"Not modified, deliberately… not this workflow's to touch"* — defensible under `AGENTS.md`, which routes spine changes through a `bmad-architecture` Update run — but it leaves the authority artifact for AD-24 asserting four false ceilings **with no follow-up item filed anywhere in this change set**, which is the same *artifact contradicts the code* class filed as a patch item in each of rounds 1, 2 and 3. One nuance must survive whichever option is chosen: the `exportedProps` ceiling is **not** wholly false — the named-type spelling it cites is closed, but the composed-type spelling (patch item P3 below) still restores the prop with `tsc` clean, so the replacement sentence narrows rather than deletes. **Options: (a)** route it through a `bmad-architecture` Update run before 17.1 goes to `done` — consistent with the precedent this story set in rounds 1 and 3, and with the fact that each of the three runs so far has opened fresh findings against this change set; **(b)** file it as an owned open item under **Story 17.7**, which already owns AD-24's `[ADOPTED, partial]` closure and will have to rewrite that bullet anyway when it lands the shell fix, and let 17.1 close now. This workflow will not pick: (a) is the stricter reading of `AGENTS.md` and historically productive; (b) avoids a fourth gate run on a story that is one item from done, at the cost of the spine being knowingly stale in the interim.
+- [x] [Review][Decision] **`ARCHITECTURE-SPINE.md:392` describes a closure gate that no longer exists, and no owner is filed** (medium) [_bmad-output/planning-artifacts/architecture/architecture-bic-pptx-workflow-2026-07-10/ARCHITECTURE-SPINE.md:392] — AD-24 names `tests/theme-chrome.test.mjs` as its closure gate, and the spine's ceiling bullet still states as **live** four things this change set closed: *"the queue enqueues `.tsx` only (`:432`) … which leaves fourteen modules reachable from the projected tree unwalked, `projected-shell.ts` among them"*; *"`export … from` is invisible to `moduleImports`"*; the `.ts` ceiling with `use-projected-shell.ts → projected-shell.ts` as *"the sharpest instance … never scanned"*; and sub-bullet (ii)'s citation of `tests/theme-chrome.test.mjs:511-524` and *"turns 43/43 green into two failures"* against a file that is now 47 tests. Measured against the shipped code: the walk reaches **27** modules with `projected-shell.ts` among them, and `export … from` is read. The File List records the spine as *"Not modified, deliberately… not this workflow's to touch"* — defensible under `AGENTS.md`, which routes spine changes through a `bmad-architecture` Update run — but it leaves the authority artifact for AD-24 asserting four false ceilings **with no follow-up item filed anywhere in this change set**, which is the same *artifact contradicts the code* class filed as a patch item in each of rounds 1, 2 and 3. One nuance must survive whichever option is chosen: the `exportedProps` ceiling is **not** wholly false — the named-type spelling it cites is closed, but the composed-type spelling (patch item P3 below) still restores the prop with `tsc` clean, so the replacement sentence narrows rather than deletes. **Options: (a)** route it through a `bmad-architecture` Update run before 17.1 goes to `done` — consistent with the precedent this story set in rounds 1 and 3, and with the fact that each of the three runs so far has opened fresh findings against this change set; **(b)** file it as an owned open item under **Story 17.7**, which already owns AD-24's `[ADOPTED, partial]` closure and will have to rewrite that bullet anyway when it lands the shell fix, and let 17.1 close now. This workflow will not pick: (a) is the stricter reading of `AGENTS.md` and historically productive; (b) avoids a fourth gate run on a story that is one item from done, at the cost of the spine being knowingly stale in the interim.
 
   **Owner's call (2026-08-01): (a) — route it through a `bmad-architecture` Update run, and 17.1 does not go to `done` until that run lands.** Consistent with the precedent this story set in rounds 1 and 3, when it left AD-24's checkbox open rather than satisfy it inline. **This workflow deliberately does not execute it** — `bmad-code-review` may no more substitute for the architecture gate than `bmad-dev-story` could, and that is the whole reason the precedent exists. **The run's scope**, stated so it is not rediscovered: repair the `:392` ceiling bullet to the shipped gate — the walk reaches **27** modules with `projected-shell.ts` among them, `export … from` is read, and the `.ts` enqueue ceiling is closed — while **narrowing rather than deleting** the `exportedProps` clause, because the composed-type spelling (`&` / `extends`, patch item P3 above) still restores the prop with `tsc` clean and the named-type spelling it cites does not. Also repair sub-bullet (ii)'s citation of `tests/theme-chrome.test.mjs:511-524` and its *"43/43 green into two failures"* arithmetic, both taken against a file that is now **47** tests. Carry forward the ceilings that remain genuinely live: a class name composed at runtime, a theme token arriving through a CSS file rather than a utility class, the downward-only walk, and listed-files-only — the last of which patch item P5 above shows is still a live narrowing in the focusable guard specifically. **Expect that run's Reviewer Gate to be capable of opening new findings against this change set; it has done so three times for three runs**, and the nine guard findings above are the material it will be reading.
+
+  **RESOLVED 2026-08-01 by the `bmad-architecture` Update run.** The ceiling bullet and sub-bullet (ii) are rewritten, `AD-24`'s rule clause is amended in place, and the stale `projector/page.tsx:71` citation is repaired to `:85` at both sites. Nothing renumbered, no `AD-n` added. **Three of the four things this scope note told that run to preserve had gone stale between the note being written and round 4's patches landing**, which is recorded here because a run that followed the instruction literally would have written two fresh falsehoods into the authority artifact: the `exportedProps` clause needed **retracting at the composed-type spelling**, not narrowing (P3 closed it); patch **P5 closed the focusable guard's listed-files narrowing** the same day; and (ii)'s arithmetic was wrong *in kind* rather than merely stale — `FULL_SCREEN` feeds two loops, so the measured result of adding both shells is **52 tests / 4 failures**, not two, with the extra pair coming from `exportedProps` (`:927`) refusing to read an `export default async function` at all. The run measured that rather than recomputing it, probe reverted.
+
+  **That run's Reviewer Gate then opened new findings for the fourth consecutive run — and for the second run running, the headline findings were against the amendment itself.** Three lenses converged on one: the spine had come to **forbid and mandate the same change**, its new text calling a widening of `FULL_SCREEN` *"the widening to refuse"* while `AD-24:218` records the owner's ratified design as *"`FULL_SCREEN` widened to it"*. Resolved by stating the distinction that was implicit — a route-group **segment is the encoding**, because every page under it inherits and there is no registration step to forget; what must be refused is another **leaf file**. **The gate also refuted this story's own headline.** The run had written that round 4 broke the *widen-the-list* pattern; it did not. Round 4 widened `LITERAL_OUTLINE_COLOUR` (`:697`) from four excluded spellings to nine after round 3 had explicitly offered a positive colour vocabulary as the alternative — and that widened list is **already defeated in the same direction**, reproduced against the shipped regex: `focus-visible:outline-[transparent]`, `outline-[inherit]` and `outline-[color:inherit]` are accepted, carry no token name, and so are seen by no guard at all. **Five code-owned findings are filed in `deferred-work.md` under a new 2026-08-01 heading**, not patched — an architecture Update run does not touch production code: that focus-ring bypass; the `className` guard's index-signature hole plus its `.tsx`-only call-site belt; the **edge-width guard never receiving the transitive sweep** the token and focusable guards got (`EDGE_UTILITY` consumed at `:631` and nowhere else); the four hardcoded room-facing lists where `AD-24` claimed two; and the `async` default-export ceiling. **The honest summary for the next round: the pattern this story has been fighting for four rounds is still live, and one of the two axes round 4 encoded still asserts the absence of a word rather than the closedness of a shape.**
 
 **Patch — the guard AC-4 rests on**
 
@@ -376,7 +380,7 @@ re-read at source by this workflow rather than taken from a single injection run
 
 **Deferred — pre-existing, not caused by this change set**
 
-- [x] [Review][Defer] **`DARK_VARIANT` misses `dark:!…` and `dark:<digit>…`** [tests/theme-chrome.test.mjs:436] — deferred, pre-existing. `/(?<![\w:])dark:[a-z[-]/` requires a lowercase letter, `[` or `-` after the colon, so Tailwind's important suffix and a stacked breakpoint both escape. Reproduced in `SlideView.tsx`: `dark:!bg-zinc-900` → **47/47 green**, `dark:2xl:bg-zinc-900` → **47/47 green**, `dark:bg-zinc-900` → **fails**. Token-named classes are still caught by `TOKEN_UTILITY` (`dark:!bg-card` does react), so the live hole is a `dark:` variant painting a **literal** colour in the projected tree — one of the *"exactly three routes in"* the file's own doc claims to close. Not in this change set's diff (the constant is unchanged since round 2's remediation), which is why it is deferred rather than patched — but note the adjacency: the `!` terminator is precisely what **this** change set added to `EDGE_END`, one guard over.
+- [x] [Review][Defer] **`DARK_VARIANT` misses `dark:!…` and `dark:<digit>…`** [tests/theme-chrome.test.mjs:533] — deferred, pre-existing. `/(?<![\w:])dark:[a-z[-]/` requires a lowercase letter, `[` or `-` after the colon, so Tailwind's important suffix and a stacked breakpoint both escape. Reproduced in `SlideView.tsx`: `dark:!bg-zinc-900` → **47/47 green**, `dark:2xl:bg-zinc-900` → **47/47 green**, `dark:bg-zinc-900` → **fails**. Token-named classes are still caught by `TOKEN_UTILITY` (`dark:!bg-card` does react), so the live hole is a `dark:` variant painting a **literal** colour in the projected tree — one of the *"exactly three routes in"* the file's own doc claims to close. Not in this change set's diff (the constant is unchanged since round 2's remediation), which is why it is deferred rather than patched — but note the adjacency: the `!` terminator is precisely what **this** change set added to `EDGE_END`, one guard over.
 
 **Dismissed as noise (2):** a second `document` claiming while another claim is open is never blacked out, and the shared `restore` closure is bound to the first claimant's document — this is **verbatim** round 3's deferred item (*"`claimProjectedShell` silently ignores its `doc` argument after the first claim"*), already filed and owned by Story 17.7, and still unreachable from app code because both callers pass the same `document` and the projector runs in a separate realm; the new detail the layer added — that `tests/theme-chrome.test.mjs:1000-1035` is the first caller to pass two documents into the module — is a test doing so deliberately and does not change the owner. A layer reporting another process writing to the working tree mid-review — that was the sibling review layers' own inject-and-revert runs; the tree was verified byte-identical to the reviewed diff before and after triage, and every mechanism filed above was re-read at source by this workflow rather than taken from a single injection run.
 
@@ -584,9 +588,9 @@ further than its line.**
 
 **One was resolved by inverting the polarity instead of widening anything.** The badge guard's rule
 is now universal over every `.tsx` and `.ts` under `src/`, per class value and per site, across every
-chromatic hue at any shade — and its **20** exceptions are a pinned multiset, each with a line
+chromatic hue at any shade — and its **18** exceptions are a pinned multiset, each with a line
 citation and an owning key, compared in both directions so an unlisted offender fails *and* a fixed
-entry left behind fails. Each of the 20 was checked against its source line rather than read off the
+entry left behind fails. Each of the 18 was checked against its source line rather than read off the
 failure output; the counts the first probe produced were wrong (it mishandled template literals) and
 `PresenterOperator` has four amber sites, not three.
 
@@ -658,7 +662,7 @@ count is off, and the guard now publishes the number it enforces.
   themes deliberately. This sentence previously read *"All seven AC are satisfied"* beside a
   Review Findings section that said the shell guarantee did not hold; both statements cannot be
   true, and a story at `review` carrying them was itself a review finding.
-- `tests/theme-chrome.test.mjs` is new — **43 tests from 30 declarations** (five are
+- `tests/theme-chrome.test.mjs` is new — **48 tests** as of round 4 (five declarations are
   parameterised over the guarded file sets), in **eight groups** over **six** `PROJECTED`
   files: the projected tree carries no theme token, no theme-coloured edge and no
   theme-coloured focus ring, stays transitively closed with no exempt directory, and cannot be
@@ -949,10 +953,18 @@ count is off, and the guard now publishes the number it enforces.
   *(listed because round 2 found this file omitted from the File List and the omission was not
   fully repaired then)*
 
-**Not modified, deliberately:**
-`ARCHITECTURE-SPINE.md` — its `:392` ceiling bullet is stale (round 4's open decision item), and
-repairing it is routed to a `bmad-architecture` Update run by the owner's call. `bmad-code-review`
-does not write the spine, for the same reason it refused to in rounds 1 and 3.
+**Not modified by `bmad-code-review`, deliberately — and modified later the same day by the run it was routed to:**
+`ARCHITECTURE-SPINE.md` — its `:392` ceiling bullet was stale (round 4's decision item), and
+repairing it was routed to a `bmad-architecture` Update run by the owner's call. `bmad-code-review`
+does not write the spine, for the same reason it refused to in rounds 1 and 3. **That Update run
+landed on 2026-08-01** and rewrote the ceiling bullet and sub-bullet (ii), amended `AD-24`'s rule
+clause in place from *"two sets"* to the four hardcoded lists the gate actually has, and repaired the
+`projector/page.tsx:71` → `:85` citation at both sites. Nothing renumbered, no `AD-n` added. Recorded
+here rather than left as a silence, because this line previously read *"not this workflow's to touch"*
+with no note of who touched it.
+- `_bmad-output/implementation-artifacts/deferred-work.md` — a new *2026-08-01* heading carrying the
+  five code-owned findings that run's Reviewer Gate opened against `tests/theme-chrome.test.mjs`
+  *(added by the Update run, not by this workflow)*
 - `_bmad-output/implementation-artifacts/stories/17-1-reachable-dark-mode.md` — the drifted
   `layout.tsx:26` citation repaired to `:32`; 18 items closed with their resolutions
 
@@ -1082,7 +1094,7 @@ pointed at a header constant.
   the same question for `/` in `stripComments` and `<` in the walk); the focusables, the branch roots,
   the header row and the failure branches now ask that walk instead of each carrying its own narrower
   regex. The badge guard's **polarity is inverted**: universal over every `.tsx` and `.ts` under
-  `src/`, per class value and per site, across every chromatic hue at any shade, with **20** pinned
+  `src/`, per class value and per site, across every chromatic hue at any shade, with **18** pinned
   exceptions each carrying a line citation and an owning key, compared as a multiset in both
   directions so an unlisted offender fails *and* a fixed entry left behind fails. The closure walk
   enqueues every extension, reads `export … from` and bare side-effect imports, and asserts a floor
@@ -1109,3 +1121,37 @@ pointed at a header constant.
   projector failure branch, both behind the session gate, the latter also needing a forced registry
   failure — so the two measurements above are of the CSS against the real compiled stylesheet, not of
   the rendered pages.
+
+- 2026-08-01, later: **`bmad-architecture` Update run closed the round-4 decision item, and the story
+  moves to `review`.** `ARCHITECTURE-SPINE.md`'s AD-24 closure-gate ceiling bullet and sub-bullet (ii)
+  rewritten against the shipped gate; AD-24's rule clause amended in place from *"two sets that must
+  both be maintained"* to the **four** hardcoded lists the gate actually has; the
+  `projector/page.tsx:71` citation repaired to `:85` at both sites. Nothing renumbered, no `AD-n`
+  added — 24 AD headings before and after. `lint_spine` 0 findings, `theme-chrome` 48/48,
+  `public-repo-guard` 4/4, working tree clean (one measurement probe applied and reverted, verified).
+  **Three of the four things the owner's scope note asked that run to preserve had gone stale** in the
+  hours between the note and round 4's patches — recorded in the decision item above rather than
+  quietly corrected, because a run that obeyed the note literally would have introduced two fresh
+  falsehoods. **The run's Reviewer Gate opened new findings for the fourth consecutive time**, and for
+  the second run running its headline findings were against the amendment itself: three lenses
+  converged on the spine having come to forbid and mandate the same change, and the gate refuted the
+  run's claim that round 4 had broken the *widen-the-list* pattern — `LITERAL_OUTLINE_COLOUR` went
+  from four excluded spellings to nine, and its arbitrary-value form is accepted by the shipped regex.
+  **Five code-owned findings filed in `deferred-work.md`, none patched** (an architecture Update run
+  does not touch production code); three are live narrowings of AC-4's own guard, all latent. The
+  `done` call is explicitly left to the owner.
+
+- 2026-08-01, close: **Status → `done` by the owner.** The condition was not that no latent
+  narrowing remains in `tests/theme-chrome.test.mjs` — four rounds established that a fifth round
+  would find a fifth spelling — but that **every finding has an owner**. It now does: the two shell-
+  shaped findings belong to Story 17.7, and the four guard narrownesses (the focus-ring subtraction
+  list and its arbitrary-value bypass, the `className` guard's index-signature hole plus its
+  `.tsx`-only call-site belt, the edge-width guard's missing transitive sweep, and `DARK_VARIANT`'s
+  `dark:!…` / `dark:2xl:…` / `dark:*:…` gap) are **Story 17.8**, registered `ready-for-dev` the same
+  day. `deferred-work.md` carries no `owner: unassigned` entry. Also repaired at close, both found by
+  a fresh-context review of this file: a round-4 item marked resolved with the claim that the pinned
+  exception count was corrected *"in all three places"* while `:591`, `:593` and `:1097` still said
+  **20** — the shipped `UNPAIRED_CHROMATIC_TEXT` list has **18**, verified; and the Completion Notes'
+  *"43 tests"* against a file at **48**. Round 4's deferred entry also cited `DARK_VARIANT` at
+  `:436`, which is inside `walkJsx()`; the constant is at `:533`, and that citation had already
+  propagated into `deferred-work.md` and into Story 17.8's first draft before being caught.

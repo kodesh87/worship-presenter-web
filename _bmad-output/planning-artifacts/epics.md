@@ -263,13 +263,13 @@ So that layouts can be extended without a code change.
 
 **Note:** seeded element IDs and any element marked `required` stay immutable — the save API rejects their removal or rename (400) and read-only base types (FullScreenImage, SongSet, Announcement) expose no add/delete affordances at all. Only elements authored in the editor may be deleted.
 
-### Epic 17: An operator surface that is readable and honest *(in-progress — Story 17.1 at review)*
+### Epic 17: An operator surface that is readable and honest *(in-progress — Story 17.1 done; 17.8 ready-for-dev; 17.2–17.7 backlog)*
 
 Created 2026-07-29 from the implementation-readiness assessment's product defects, via the epic route rather than inline patching — the point of Correct Course that day was that inline is how the drift happened. Titled around what an operator gets, per the C5-1 remediation: the value standard applies to new epics from here.
 
 **Requirement ancestry — a recorded decision, not an omission.** These stories change the *operator chrome's* visual identity and self-presentation. Per the authority map in `AGENTS.md`, that is governed by `DESIGN.md`, not by a PRD FR. Unlike Epic 16 — which changed how every slide is produced and needed FR-20 — nothing here alters a Deck, a Slide Type, or any payload contract. **Constraint that keeps that true:** whatever an operator's theme, the projected output (`slide-surface`, PPTX, projector window) must be byte-identical. The congregation never sees operator chrome.
 
-#### Story 17.1: Reachable Dark Mode *(in-progress — code-review round 4's 15 patch items closed 2026-08-01; ONE decision item open, routed by the owner through a `bmad-architecture` Update run, and 17.1 does not go to `done` until it lands. Rounds 1–3 closed; AC-4 scoped to the token guarantee, its shell half spun out to Story 17.7)*
+#### Story 17.1: Reachable Dark Mode *(done — closed by the owner 2026-08-01. Four review rounds; round 4's 15 patch items and its one blocking decision item both closed that day, the latter by the `bmad-architecture` Update run that repaired AD-24's closure-gate ceiling bullet. AC-4 scoped in writing to the **token** guarantee, its shell half owned by Story 17.7. Closed on the condition that the debt be **owned, not absent**: the five code-owned findings that Update run's Reviewer Gate opened against `tests/theme-chrome.test.mjs` are all latent and all filed — two to Story 17.7, four to the new Story 17.8 — leaving no unassigned entry in `deferred-work.md`)*
 As an operator running a service in a dim sanctuary,
 I want the hub to follow a dark theme I can choose,
 So that a full-brightness white screen in my hands does not light up the room.
@@ -333,6 +333,17 @@ So that a theme switch in the back row cannot change what is projected, mid-serv
 **Owner's decision on the shape (2026-07-31): one route-group layout owning every room-facing URL**, with `FULL_SCREEN` widened to it. Four point-fixes close the first three and leave the fourth open; the layout closes all four, including the shell nobody has written yet. The architecture spine's *Deferred* records the three candidates and names this one for that reason.
 
 **This story is what takes AD-24 from `[ADOPTED, partial]` to `[ADOPTED]`.** Two same-change-set obligations follow from `AGENTS.md` and are part of the story, not follow-ups: a new route surface updates the IA table in `EXPERIENCE.md`, and the spine amendment goes through a `bmad-architecture` Update run rather than an inline edit. A third consumer is already waiting — `deferred-work.md` records that `PresenterOperator` pins `dark` on its own wrapper and not on the shell, so a light-theme operator gets a white canvas framing the dark Presenter.
+
+**Two findings from the 2026-08-01 Update run's Reviewer Gate are filed against this story specifically**, both in `tests/theme-chrome.test.mjs`: the gate keeps **four** hardcoded room-facing lists where one derivation would do (`PROJECTED`, `ROUTE_SHELLS`, `FULL_SCREEN`, and an inline pair — `AD-24` claimed two until that run corrected it), and `exportedProps` cannot read an `export default async function`, which is the shape of every Server Component this story adds. The route segment this story creates is the first real value the roots could be **derived from** rather than listed — which is what would make the spine's *encode the criterion* instruction satisfiable here instead of merely correct. Related but deliberately **not** this story's: the four guard narrownesses in Story 17.8.
+
+#### Story 17.8: The Guard Encodes Its Criteria, Not Its Spellings *(ready-for-dev)*
+As the maintainer of the one test `AD-24` names as its closure gate,
+I want each of that gate's four remaining narrownesses closed by stating the rule rather than by adding the next spelling to a list,
+So that the guarantee AC-4 rests on stops needing a fifth review round to discover a fifth spelling.
+
+**Registered 2026-08-01, after the `bmad-architecture` Update run that closed Story 17.1's decision item.** Four rounds of review on 17.1 produced one recurring finding, now promoted to spine altitude: *a rule applied too narrowly keeps being closed by widening the list rather than by encoding the rule.* This story is that instruction executed, and it collects the four findings that left round 4 and that Update run with **no owner** — the focus-ring guard's subtraction list (its arbitrary-value forms `outline-[transparent]` / `outline-[inherit]` are accepted today, reproduced against the shipped regex); the `className` props guard, defeated by an inline index signature and blind to a `.ts` call site; the edge-width guard, which never received the transitive sweep its two sibling guards have; and `DARK_VARIANT`, which misses `dark:!…` and `dark:2xl:…`.
+
+**All four are latent** — no shipped code uses any of these spellings, and both projected components declare closed inline props today. This is not a bug fix; it closes the gap between what the guard asserts and what it reads as asserting. Kept out of Story 17.7 on purpose: 17.7 owns the shell closure and the two findings above that belong to it, and folding pure guard-hardening in would grow that story and mix two unrelated pieces of work. Test-only by construction, so no `DESIGN.md` or `EXPERIENCE.md` obligation follows — but closing it makes the spine's *Deferred* ceiling entry stale, and that amendment routes through a `bmad-architecture` Update run rather than an inline edit.
 
 ### Epic 18: Member data stays gated even when the perimeter moves *(backlog)*
 
