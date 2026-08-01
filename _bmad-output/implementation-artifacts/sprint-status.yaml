@@ -260,11 +260,31 @@ development_status:
   # append-shaped contact point with Story 22.3 — one const + getter/setter each.
   21-3-default-translation-and-presenter-choice: backlog
   # NEW 2026-08-01 (FR-24). Book names ship inside each translation's corpus.
-  # Input generous (Kejadian or Genesis resolve across all installed translations
-  # to one canonical book identity), output exact (the chosen translation's own
-  # name). Retires BOOK_ALIASES (scripture.ts:65, English-only, two books).
+  # SUPERSEDED THE SAME DAY by the input-model Correct Course (third run of the
+  # day): input is NOT generous. Search is scoped to the CHOSEN translation on
+  # operator surfaces; only the rundown matches all installed translations,
+  # because a Telegram sender picks none. ONE matcher, scope as a parameter.
+  # Longest-prefix match over corpus-supplied names replaces the regex, so the
+  # two-word cap and the hyphen stop being concepts rather than being widened.
+  # BOOK_ALIASES is REPLACED, not deleted: non-prefix aliases (Jn, Mt) live in
+  # the matcher and BELONG TO A TRANSLATION, so Kej must not resolve under KJV.
+  # shortName dropped - 6 sites, measured. Crosses an epic boundary:
+  # parser.ts:152/:162 carry a second copy of scripture.ts:42's regex, and one
+  # rule may not have two implementations (spine Boundaries convention).
   # The canonical-identity SHAPE is the bmad-architecture Update's, not this story's.
   21-4-book-names-belong-to-the-translation: backlog
+  # NEW 2026-08-01 (FR-24), the operator half of 21.4 - client only, so the two
+  # run in separate worktrees over an append-shaped contact point (the matcher's
+  # suggestion endpoint). One field with inline autocomplete, NOT a book picker
+  # plus chapter/verse fields: the owner chose this over the recommendation, and
+  # it is why paste survives and why the rundown needs no second mechanism.
+  # Accepting a suggestion leaves the FULL corpus name in the field, which is
+  # what pays for dropping shortName. Precedent HymnNumberAutocomplete.tsx
+  # (4 mounts in CreateForm.tsx, 4 in EditForm.tsx) - copy its debounce, settled
+  # cache and in-flight dedup, not merely its shape. No proxy.ts change:
+  # /api/scripture and /api/hymns carry no exclusion, so a sibling suggestion
+  # endpoint is gated by default and proxy-matcher.test.mjs is untouched.
+  21-5-one-field-inline-autocomplete: backlog
   epic-21-retrospective: optional
 
   # --- Epic 22: The song book is a choice, and its titles are real ---
@@ -505,6 +525,12 @@ action_items:
     owner: "Developer"
     status: done # 2026-08-01, same run as the epic-22 item above. AD-26 [TARGET] — a corpus is a REGISTERED ENTITY: one row per corpus in bible_translations or song_books carrying code, name, locale, licence and provenance. The corpus CODE is globally unique across locales and is the cross-boundary key (AD-19's class); LOCALE IS AN ATTRIBUTE, never part of a key and never a predicate — which is what makes FR-24's never-filter rule STRUCTURAL rather than disciplinary, since no key holds a locale so no read path can need one. The file declares and the path merely locates: the loader already refuses a declared code disagreeing with the loaded code (corpus.ts:91, :176) and refuses a declared locale disagreeing with its directory on the same terms; two files declaring one code refuse the boot; a default_* naming an uninstalled corpus is INERT, not an error, and is not rewritten. All three renames carried, and under AD-25 they are rebuilds rather than migrations because the tables are projections. AD-27 [TARGET] — book identity is canonical, translation-independent and carries NO display text; every name belongs to a translation; a corpus MAPS onto the identity and a book outside the canon is refused with the book named. SPELLING SETTLED (owner): the declared field is `locale`, not `language` — both committed files ship `language` today and are corrected in the same change set. Story 21.4 is unblocked and cites AD-27. FOUND WHILE SIZING IT, filed in the spine's Deferred rather than fixed here (an architecture run does not patch production code): the SHIPPED DEFAULT CORPUS MISNAMES A BOOK, and the alias map is what caught it. BOOK_ALIASES targets "Song of Solomon" for book 22 while data/bible/kjv.json says "Song of Songs", so three entries resolve to nothing — but the KJV's own title IS "Song of Solomon" (verified against Project Gutenberg's KJV: the book heading reads Song of Solomon, and "the song of songs" is a phrase inside verse 1). "Song of Songs" is the Hebrew-derived title other translations use and it came in through the SQL export the corpus was normalised from. So the CORPUS is wrong, it is a live AD-27 output-is-exact violation on the default translation, and it is a one-word data fix; checked across all 66 books, exactly one mismatch. The parser is the harder half and the corpus fix does not reach it: parseScriptureRef caps a book name at two words and ASCII, so "Song of Solomon 2:1" is rejected exactly as "Song of Songs 2:1" is — book 22 is the only book whose name exceeds two words, which is why the cap hid this long — and "Kisah Para Rasul 1:8" is what FR-24's generous input walks into
   - epic: 24
-    action: "bmad-ux Update — EXPERIENCE.md is now stale in TWO ways and one run should close both. (1) The pre-existing item: the State Patterns row at EXPERIENCE.md:143 states, as a shipped state, that lookup is unavailable when the corpus was never imported (an ops step). The corpus now ships, so the default flips and that message survives only as the unreadable-file path. (2) NEW 2026-08-01: FR-24 adds a corpus picker with an always-present control for browsing locales outside the default, and FR-25 adds a locale switcher — both are UX surfaces no artifact describes. The never-filter rule is what the picker must make visible: an Operator has to be able to SEE that other locales are reachable, or a default that only filters the view will read to them as one that filters the data. Whether either adds a route determines if the IA table moves; the pre-existing item alone did not"
+    action: "bmad-ux Update — EXPERIENCE.md is now stale in TWO ways and one run should close both. (1) The pre-existing item: the State Patterns row at EXPERIENCE.md:143 states, as a shipped state, that lookup is unavailable when the corpus was never imported (an ops step). The corpus now ships, so the default flips and that message survives only as the unreadable-file path. (2) NEW 2026-08-01: FR-24 adds a corpus picker with an always-present control for browsing locales outside the default, and FR-25 adds a locale switcher — both are UX surfaces no artifact describes. The never-filter rule is what the picker must make visible: an Operator has to be able to SEE that other locales are reachable, or a default that only filters the view will read to them as one that filters the data. Whether either adds a route determines if the IA table moves; the pre-existing item alone did not. (3) NEW 2026-08-01, from the input-model Correct Course, and it lands in the SAME file so the same run should take it: the scripture reference input becomes ONE FIELD WITH INLINE AUTOCOMPLETE serving every operator surface (Presenter Mode lookup plus the create/edit service forms), on the HymnNumberAutocomplete precedent. That is a component-inventory row beside HymnNumberAutocomplete at EXPERIENCE.md:97, not a route — so on its own it leaves the IA table alone. Worth stating in the row because the choice is load-bearing rather than cosmetic: a book PICKER was recommended and the owner chose the single field, which is what keeps paste working and what lets the rundown reuse the same matcher instead of needing a second one"
+    owner: "Developer"
+    status: open
+
+  # --- Added 2026-08-01 by the input-model Correct Course (third run of the day) ---
+  - epic: 21
+    action: "bmad-architecture Update — the owner direction REVERSES a clause AD-27 shipped hours earlier, so it needs a NEW AD rather than an edit to that one. NEVER RENUMBER: add AD-28. What it must settle. (1) AD-27's 'input tolerance is the matcher's concern, never the corpus's' SURVIVES, but its 'one SHARED server-side matcher' does not: the matcher is one implementation carrying a SCOPE — the chosen translation on operator surfaces, all installed translations on the rundown, because a Telegram sender picks none. (2) AD-27 enumerates tolerance as 'case, punctuation, abbreviation, singular against plural' and treats the four as uniform across translations. THREE OF THEM ARE; ABBREVIATION IS NOT. 'Jn' is English tolerance, so an unscoped alias list reintroduces exactly the cross-language input this direction removes — through the matcher rather than through a corpus file, which is the door AD-27 was watching. Aliases therefore BELONG TO A TRANSLATION while the comparison rules do not, and the enumeration has to be split rather than kept as one list. (3) A tolerance collision between two translations in rundown scope is surfaced as unmapped input (NFR-5) and NEVER guessed — the fail-closed posture AD-5, AD-8 and AD-17 already take. (4) shortName leaves AD-27's Rule and the bible_books column; under AD-25 that is a rebuild rather than a migration, because the table is a projection. (5) The Boundaries convention is ALREADY violated on shipped code — scripture.ts:42 and parser.ts:152/:162 carry the same regex — and the one-matcher rule is what closes it, which also means Story 21.4 legitimately reaches into Epic 2/5 code. What SURVIVES of AD-27 and must not be re-litigated: the canonical translation-independent identity, names owned by the translation, output exact, and refusal with the book named"
     owner: "Developer"
     status: open
