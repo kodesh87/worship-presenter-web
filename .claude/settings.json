@@ -1,0 +1,33 @@
+{
+  "worktree": {
+    "baseRef": "fresh",
+    "bgIsolation": "worktree",
+    "symlinkDirectories": ["node_modules"]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "EnterWorktree",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "git fetch origin main --quiet || true",
+            "timeout": 30,
+            "statusMessage": "Refreshing origin/main before branching the worktree..."
+          }
+        ]
+      },
+      {
+        "matcher": "ExitWorktree",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/exit-worktree-remove.mjs\"",
+            "timeout": 15,
+            "statusMessage": "Forcing worktree removal on exit..."
+          }
+        ]
+      }
+    ]
+  }
+}
