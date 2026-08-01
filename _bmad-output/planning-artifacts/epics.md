@@ -80,7 +80,7 @@ UX-DR1: High-contrast UI on Tailwind / Shadcn defaults (as-built hub/run-sheet).
 | FR-4 | Epic 3 + Epic 6 + Epic 7 | Done (Part A/B/C + Intercessory standing `#671`/`#684` pair) |
 | FR-5 | Epic 3 | Done (verse/Reff splitter) |
 | FR-6 | Epic 3 + Epic 6 + Epic 7 | Done (optional sermon/family graphic slots) |
-| FR-7 | Epic 3 + `spec-transitions-and-blank-screen` | Done (configurable transition, PPTX + web from one table) |
+| FR-7 | Epic 3, then architecture AD-23 | Done (configurable transition, PPTX + web from one table — `src/lib/transitions.ts`) |
 | FR-8 | Epic 4 + Epic 6 + Epic 7 | Done (`GET /api/services?q=`) |
 | FR-9 | Epic 8 | Done (slideshow preview) |
 | FR-10 | Epic 5 | Done |
@@ -240,7 +240,7 @@ So that the generated PPTX flow is more seamless and lyric slides are easier to 
 
 Rearchitect the slide plan from a flat `SlideKind` enum into a template-based Artifact model with placeholder resolution, including a canvas editor for layout definitions.
 
-Delivered across Stories 16.1–16.5. Specs: `../specs/spec-slide-artifact-model/SPEC.md` (contract), `../implementation-artifacts/spec-16-2-artifact-pipeline-completion.md` (Stories 16.2–16.5). `epics-parallel-delivery-analysis.md`, which proposed an alternative 16.2–16.8 decomposition, is **superseded** — its AR19 reconciliation never happened, so this three-story breakdown remained authoritative.
+Delivered across Stories 16.1–16.5. Specs: `../specs/spec-slide-artifact-model/SPEC.md` (contract), `../implementation-artifacts/spec-16-2-artifact-pipeline-completion.md` (Stories 16.2–16.5). An alternative 16.2–16.8 decomposition was proposed while the three-host inter-agent chain was still in use, and never adopted: its own AR19 required reconciliation into this file, the SPEC companions and sprint status *before* any 16.2 handover, and that reconciliation never happened — so this three-story breakdown remained authoritative. It was recorded in `epics-parallel-delivery-analysis.md`, **deleted 2026-08-01** at the owner's direction along with the chain the whole proposal depended on. Run records dated before then still cite it by name; that is deliberate, and this sentence is what resolves them.
 
 **Realizes FR-20** (§4.10 of the PRD), added 2026-07-29. Until then this epic — a runtime-editable template system that changes how every slide is produced — had no FR ancestry at all, in a document that declares PRD FR numbers authoritative.
 

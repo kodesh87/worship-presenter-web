@@ -287,4 +287,10 @@ Dev profile: separate service or same service with different `target` / command 
 
 ## 9. Handover prompt
 
-Copy-paste the prompt in [`docs/liveserver-handover-prompt.md`](./liveserver-handover-prompt.md) into Antigravity (or any implementer agent).
+Removed 2026-08-01. The prompt this section pointed at was written to hand WP1–WP8 to an
+implementer agent; all of them shipped with Story 13.1, so it survived only as an instruction
+to redo finished work — while still naming the frozen `bic-pptx-workflow` repo and a
+`README-deployment.md` that has never existed in this repository.
+
+The delivered state is the authority now: `Dockerfile`, `docker-compose.yml`, `.dockerignore`,
+`docs/cloudflare-tunnel.md`, `docs/deploy.md`, and `.github/workflows/test.yml`.
