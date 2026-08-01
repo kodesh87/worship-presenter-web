@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import LogoutButton from './LogoutButton';
 import ThemeToggle from './ThemeToggle';
-import { headerLinkClass } from './header-chrome';
+import { headerLinkClass, HEADER_CONTROL_BOX_BASE } from './header-chrome';
 
 interface HeaderProps {
   username?: string;
@@ -114,10 +114,14 @@ export default function Header({ isAdmin = false, username = 'Operator' }: Heade
 
         {/* Profile Dropdown Menu */}
         <div className="relative">
-          <button 
+          {/* The box comes from `header-chrome`, the tone stays here: this
+              trigger rests at `text-foreground` where the pills and the toggle
+              rest at `text-muted-foreground`. It used to state the whole box
+              inline — the third copy of it, after the other two were closed. */}
+          <button
             type="button"
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="flex items-center gap-2 text-xs font-semibold px-3 py-2.5 rounded-xl border border-border bg-card/50 hover:bg-card transition-all text-foreground shadow-sm cursor-pointer"
+            className={`flex items-center gap-2 text-xs font-semibold px-3 py-2.5 text-foreground ${HEADER_CONTROL_BOX_BASE}`}
           >
             <div className="w-4 h-4 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-bold text-[10px]">
               {username[0]?.toUpperCase()}

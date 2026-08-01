@@ -67,11 +67,27 @@ let claims = 0;
 let restore: (() => void) | null = null;
 
 /**
+ * Bumped by every reset, and captured by each release closure.
+ *
+ * Without it, `resetProjectedShellForTest()` zeroed the counter while leaving
+ * already-issued releases live, and a stale one then took `claims` to **-1** —
+ * after which every later claim skipped the whole `claims === 0` block and the
+ * shell kept `background: white` and `scrollbar-gutter: stable` for the rest of
+ * the process. Driven against the real module, that is exactly what happened.
+ * Unreachable from app code, where each closure decrements once behind its own
+ * `released` flag; the live exposure was a future test that claims without
+ * releasing and silently wedges every test after it — in the module AD-24 names
+ * as the room-facing surface's closure mechanism.
+ */
+let generation = 0;
+
+/**
  * Claim the shell. Returns the release function; call it exactly once per
  * claim. Safe to nest and to interleave — React's StrictMode double-invoke in
  * development is one such interleaving.
  */
 export function claimProjectedShell(doc: ShellDocument): () => void {
+  const era = generation;
   if (claims === 0) {
     const previous = CLAIMED.map(
       ([element, property]) => doc[element].style[property] ?? ''
@@ -89,9 +105,19 @@ export function claimProjectedShell(doc: ShellDocument): () => void {
 
   let released = false;
   return () => {
-    if (released) return;
+    // A release from before a reset belongs to a shell that no longer exists.
+    if (released || era !== generation) return;
     released = true;
-    claims -= 1;
+    // Floored so the counter cannot go negative and permanently disable the
+    // `claims === 0` block — the state in which a projected surface stops
+    // blacking out the shell at all.
+    //
+    // Belt to the generation token's braces, and stated as such: with `era`
+    // checked above there is no longer a public path that reaches a negative
+    // count, so removing this line alone keeps the suite green. It is kept
+    // because the class of bug is one where the symptom appears in a later,
+    // unrelated test and the cause is invisible from there.
+    claims = Math.max(0, claims - 1);
     if (claims === 0 && restore) {
       restore();
       restore = null;
@@ -99,8 +125,20 @@ export function claimProjectedShell(doc: ShellDocument): () => void {
   };
 }
 
-/** Test seam: the counter is module state, so a test must be able to zero it. */
+/**
+ * Test seam: the counter is module state, so a test must be able to zero it.
+ *
+ * It hands the shell back first. Dropping `restore` without calling it left the
+ * document black, so the next claim took the `claims === 0` path and snapshotted
+ * `#000000` / `hidden` / `auto` as the state to return to — and the final release
+ * then *restored black*. That is the same failure the `generation` token was
+ * added for, reached the other way round: the token stops a stale release from
+ * miscounting, and this stops a dropped one from poisoning the snapshot. Without
+ * it the header comment above still described a reachable state.
+ */
 export function resetProjectedShellForTest(): void {
+  restore?.();
   claims = 0;
   restore = null;
+  generation += 1;
 }
