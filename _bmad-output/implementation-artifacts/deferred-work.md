@@ -32,9 +32,10 @@ Historical source reviews: code review `jules main...2d87307` (2026-07-18); spec
   summary: Service EditForm still edits legacy `images_payload` while PPTX prefers Announcement List when non-empty.  
   evidence: Dual-path intentional for migration; richer FR-11 edit surface still open.
 
-- source_spec: FR-19 / Story **12.1**  
-  summary: KJV corpus is not committed under `data/`; import remains operator/ops path from `.work/`.  
-  evidence: No `data/kjv`; Presenter/import code present.
+- source_spec: FR-19 / Story **12.1**
+  owner: **Epic 21 / Story 21.1** (`21-1-verse-database-ships`) — assigned 2026-08-01 by `bmad-correct-course`
+  summary: The KJV corpus reaches no fresh clone at all.
+  evidence: Restated 2026-08-01 after measuring, because the previous wording — *"import remains an operator/ops path"* — reads as an inconvenience when it is a feature that cannot run. `bible_books` and `bible_verses` are created by the startup DDL (`src/lib/db/index.ts:156-171`) and have **no writer** outside `scripts/import-kjv.mjs`, which reads the git-ignored `.work/tp_bible_*.json`. A fresh clone therefore ships FR-19's UI, its API route and its empty-corpus message, and no corpus. The export holds 31,102 verses across 66 books — the canonical count — and normalises to ≈4.3 MB against 14.5 MB raw. Owner decision the same day: commit it at `data/bible/kjv.json` as the default seeder corpus, and delete the export only once the completeness assertion is green.
 
 - source_spec: `_bmad-output/implementation-artifacts/spec-close-audit-product-partials.md`
   summary: **Blocked on a product decision, not on code.** Part C Announcements title is gated correctly but flyer image slides still appear after standing Part C slides (not a contiguous Announcements block).
@@ -42,9 +43,10 @@ Historical source reviews: code review `jules main...2d87307` (2026-07-18); spec
 
 ### Ops / security leftovers
 
-- source_spec: `_bmad-output/implementation-artifacts/spec-phase1-hymnal-fr4-parser.md`  
-  summary: Committing SDAH lyric corpus needs explicit license/attribution review.  
-  evidence: Full 695-hymn text in `data/hymns.json`; church copyright status not documented in-repo.
+- source_spec: `_bmad-output/implementation-artifacts/spec-phase1-hymnal-fr4-parser.md`
+  owner: **Epic 22** — licence and corpus move to `22-1-song-book-ships-with-book-code`, titles to `22-2-hymn-title-is-a-title`; assigned 2026-08-01 by `bmad-correct-course`
+  summary: The SDAH corpus is unattributed, unreproducible, and its titles are lyric lines.
+  evidence: **Licence closed by owner decision 2026-08-01** — the lyrics ship with attribution to the copyright holder and a stated willingness to take them down on request, an accepted risk rather than a review outcome. Two things were found while verifying this entry that it did not record. (1) `.work/lirik-lagu.json`, the only source `scripts/import-hymnal.mjs` can read, **does not exist anywhere under the project root**, so the committed output is the last surviving copy and `npm run import:hymnal` cannot run at all. (2) `deriveTitle()` (`import-hymnal.mjs:23`) stores the first lyric line after a `Verse` header — by design, per `:115` of this same spec, because the dump carried no title column. SDAH #522 is stored as *"My hope is built on nothing less"* rather than *"The Solid Rock"*; 40 of 695 titles exceed 45 characters. That matters beyond tidiness: PRD `:120` makes the resolved-title readback the only defence against a valid-but-wrong SDAH number, and a readback echoing a lyric line is not a check a human can fail. The owner will supply the number→title list (tracked in `sprint-status.yaml` action items).
 
 - source_spec: code review jules main...2d87307  
   summary: Concurrent first-boot hymn seed UNIQUE race.  
