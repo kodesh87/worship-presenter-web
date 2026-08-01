@@ -1,5 +1,7 @@
 # generated: 2026-07-10
-# last_updated: 2026-08-01 (second Correct Course of the day — locale axis; see
+# last_updated: 2026-08-01 (bmad-create-story, two runs in one session: 21.2 and
+#   24.1 written, both backlog -> ready-for-dev; epic-24 backlog -> in-progress as
+#   its first story. Prior the same day: second Correct Course — locale axis; see
 #   planning-artifacts/sprint-change-proposal-2026-08-01-locale.md)
 # project: BIC Worship Presentation Automation
 # project_key: NOKEY
@@ -253,7 +255,16 @@ development_status:
   # isBibleTranslationEmpty(code). Never-filter rule binds: listing endpoints return
   # every installed translation with its locale; no WHERE locale = <default> reaches
   # the database. 'KJV' literal survives at scripture.ts :6 :106 :128 :144 (measured).
-  21-2-translation-is-a-parameter: backlog
+  # STORY FILE 2026-08-01: stories/21-2-translation-is-a-parameter.md. Two things the
+  # epic text understates and the story now owns, both assigned by the spine's
+  # Deferred by story number: the AD-25 RECONCILE for the bible family (the
+  # seed's early return goes, removal arrives, a bad file reconciles nothing) and
+  # the GUARD that AD-25's closure and AD-26's never-filter rule both rest on.
+  # Two corrections against measurement: the 503 clause the epic asks for was
+  # already done by 21.1, and three operator-facing KJV labels were uncounted
+  # (PresenterOperator.tsx:692 is assigned to this story by EXPERIENCE.md:45;
+  # CreateForm.tsx:581 / EditForm.tsx:612 are a recorded scope call).
+  21-2-translation-is-a-parameter: ready-for-dev
   # AMENDED 2026-08-01 (FR-24): owns default_bible_translation AND the shared
   # default_data_locale. The translation control opens on the default locale and
   # carries an always-present way to browse the others. settings.ts is the
@@ -355,12 +366,23 @@ development_status:
   # src/app/layout.tsx:31 is the entirety of it. 39 .tsx, 26 client components,
   # ~55 JSX/attribute literals + ~158 src/lib and src/app/api messages (many
   # dev-facing). Estimate 100-150 real translatable strings.
-  epic-24: backlog
+  # in-progress 2026-08-01: first story of the epic written (bmad-create-story).
+  epic-24: in-progress
   # Infrastructure half: string catalogue, ui_locale setting on the shipped
   # per-concern pattern, switcher, <html lang> following the setting. An
   # UNRESOLVED KEY MUST BE VISIBLE AS A DEFECT, never rendered blank. ui_locale is
   # the fourth of FR-24's four settings keys and the only one this epic owns.
-  24-1-string-catalogue-switcher-and-lang: backlog
+  # STORY FILE 2026-08-01: stories/24-1-string-catalogue-switcher-and-lang.md.
+  # Four mechanism decisions 24.2 inherits 100-150 times, so they are ACs: the
+  # catalogue is CODE not database rows (AD-25 excludes it from the corpus channel
+  # by name); NO second root-level client provider (server-read state travels as an
+  # initial* prop, and AD-24's Deferred already holds that question open for Story
+  # 17.6); a missing key never falls back to English, with key-set parity asserted
+  # so the sweep adds keys in pairs; and the UI-locale vocabulary is NOT the
+  # data-locale vocabulary — catalogues ship with the build, corpora are installed.
+  # Own component, not a shared language card: EXPERIENCE.md:73 says per-concern,
+  # and a shared card is a file Stories 21.3/22.3 would each have to rewrite.
+  24-1-string-catalogue-switcher-and-lang: ready-for-dev
   # The sweep. Includes the slide-plan.ts operator-facing labels ('Welcome',
   # 'Opening Song', 'Congregation, please stand', 'Prayer Partners', 'Break Time')
   # — verified 2026-08-01 they populate LegacyProjection (slide-plan.ts:76), read
