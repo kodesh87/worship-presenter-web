@@ -1,8 +1,8 @@
 ---
-stepsCompleted: [step-01-validate-prerequisites, step-02-design-epics, step-03-create-stories, step-04-post-merge-realign, step-05-audit-hygiene-2026-07-19, step-06-correct-course-2026-07-29, step-07-correct-course-2026-08-01]
+stepsCompleted: [step-01-validate-prerequisites, step-02-design-epics, step-03-create-stories, step-04-post-merge-realign, step-05-audit-hygiene-2026-07-19, step-06-correct-course-2026-07-29, step-07-correct-course-2026-08-01, step-08-correct-course-2026-08-01-locale]
 inputDocuments: ['_bmad-output/planning-artifacts/prds/prd-bic-pptx-workflow-2026-07-10/prd.md', '_bmad-output/planning-artifacts/architecture/architecture-bic-pptx-workflow-2026-07-10/ARCHITECTURE-SPINE.md', '_bmad-output/planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/DESIGN.md', '_bmad-output/planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/EXPERIENCE.md']
 last_realigned: '2026-08-01'
-note: 'Realigned by Correct Course 2026-08-01: Epics 21-23 opened for the shipped-corpus gap, cut per data family so each epic owns its feature AND its data and no table is touched twice -- 21 scripture (data/bible/kjv.json), 22 song book (data/song-book/sdah.json), 23 fresh clone. FR-21 backfilled into the inventory and coverage map (committed to the PRD 2026-07-30, absent here since); FR-22 and FR-23 added for several Bible translations and several song books, each with one configurable default whose shipped corpus is committed seed data. FR-2 moved Done to Partial on measurement, not regression. Two obligations route out of this pass: a bmad-architecture Update (no AD governs a shipped reference corpus; blocks Story 22.2) and a bmad-ux Update (EXPERIENCE.md:143). PRIOR, 2026-07-29 (sprint-change-proposal-2026-07-29.md): FR-11b and FR-20 added to the inventory and coverage map; NFRs given the stable ids PRD S10 now carries; coverage map refreshed past Epics 14-16 (FR-11 Partial to Done); Epic 14 closed; Epic 16 story-file reality stated. See ../implementation-artifacts/deferred-work.md.'
+note: 'SECOND Correct Course of 2026-08-01 (sprint-change-proposal-2026-08-01-locale.md), run hours after the first: language becomes two explicit axes. FR-24 (Data Locale as a browsable axis; the default filters the view, never the query) and FR-25 (UI Locale) added to the PRD as new section 4.12; a third projection_locale was proposed and REJECTED. FR-22 and FR-23 amended for the locale axis rather than rewritten. The corpus paths move to data/<locale>/bible-translation/<code>.json and data/<locale>/song-book/<code>.json, superseding IN WRITING the paths done Stories 21.1 and 22.1 assert. FR-24 is delivered by AMENDING Epics 21 and 22 rather than by a new epic -- each corpus family already owns its own table and code, and a separate locale epic would touch both, which is exactly what the per-family cut below exists to prevent. Only Epic 24 (UI Locale) is new. Target schema routed to bmad-architecture, not decided here. PRIOR, first pass of the same day: Epics 21-23 opened for the shipped-corpus gap, cut per data family so each epic owns its feature AND its data and no table is touched twice -- 21 scripture, 22 song book, 23 fresh clone. FR-21 backfilled into the inventory and coverage map (committed to the PRD 2026-07-30, absent here since); FR-22 and FR-23 added for several Bible translations and several song books, each with one configurable default whose shipped corpus is committed seed data. FR-2 moved Done to Partial on measurement, not regression. Two obligations route out of this pass: a bmad-architecture Update (no AD governs a shipped reference corpus; blocks Story 22.2) and a bmad-ux Update (EXPERIENCE.md:143). PRIOR, 2026-07-29 (sprint-change-proposal-2026-07-29.md): FR-11b and FR-20 added to the inventory and coverage map; NFRs given the stable ids PRD S10 now carries; coverage map refreshed past Epics 14-16 (FR-11 Partial to Done); Epic 14 closed; Epic 16 story-file reality stated. See ../implementation-artifacts/deferred-work.md.'
 ---
 
 # BIC Worship Presentation Automation - Epic Breakdown
@@ -41,8 +41,10 @@ Epic/story breakdown for BIC Worship Presentation Automation. **PRD FR numbers a
 | FR-19 | On-demand Scripture Display (KJV) | 6 |
 | FR-20 | Runtime-editable Artifact Registry + canvas template authoring (Admin) | post-Phase-1 (delivered 2026-07-26) |
 | FR-21 | Author the Deck's ordered structure in the Artifact Registry | post-Phase-1 (committed 2026-07-30) |
-| FR-22 | Several Bible translations, one configurable default (KJV shipped) | post-Phase-1 (committed 2026-08-01) |
-| FR-23 | Several song books, one configurable default (SDAH shipped) | post-Phase-1 (committed 2026-08-01) |
+| FR-22 | Several Bible translations, one configurable default (KJV shipped) | post-Phase-1 (committed 2026-08-01; amended same day for the locale axis) |
+| FR-23 | Several song books, one configurable default (SDAH shipped) | post-Phase-1 (committed 2026-08-01; amended same day for the locale axis) |
+| FR-24 | Data Locale as a browsable axis — every corpus carries its language; the default filters the view, never the query | post-Phase-1 (committed 2026-08-01) |
+| FR-25 | UI Locale — the operator interface in the operator's language | post-Phase-1 (committed 2026-08-01) |
 
 > **FR-21 was missing from this table, not new.** PRD §4.10 committed it on 2026-07-30 and Epic 20 realizes it, but this inventory — in a document declaring PRD FR numbers authoritative — stopped at FR-20. Same defect Correct Course 2026-07-29 fixed for FR-11b and FR-20; backfilled 2026-08-01.
 
@@ -98,10 +100,12 @@ UX-DR1: High-contrast UI on Tailwind / Shadcn defaults (as-built hub/run-sheet).
 | FR-19 | Epic 12 + Epic 21 | Done (Story 21.1, 2026-08-01: `data/bible/kjv.json` ships and seeds an empty database on first boot — 66 books, 1,189 chapters, 31,102 verses, asserted structurally in `tests/corpus.test.mjs`. A fresh clone resolves a reference with no file handed to it. FR-22's several-translations work remains open in Stories 21.2/21.3) |
 | FR-20 | Epic 16 | Done (Artifact Registry + canvas editor; contract in `../specs/spec-slide-artifact-model/` and `../implementation-artifacts/spec-16-2-artifact-pipeline-completion.md`) |
 | FR-21 | Epic 20 | Backlog (specified before any of its code exists — PRD §4.10; `AD-16`..`AD-22` all `[TARGET]`) |
-| FR-22 | Epic 21 | Backlog |
-| FR-23 | Epic 22 | Backlog |
+| FR-22 | Epic 21 | Backlog — **amended 2026-08-01** for the locale axis; realized by Stories 21.2 and 21.3 |
+| FR-23 | Epic 22 | Backlog — **amended 2026-08-01** for the locale axis; realized by Story 22.3 |
+| FR-24 | Epic 21 **+** Epic 22 | Backlog — the one FR deliberately delivered by **amending two epics rather than opening a third**. Each corpus family already owns its own table, file and read paths; a separate locale epic would have had to touch `bible_verses` *and* `hymns`, which is precisely what the per-family cut of 2026-08-01 exists to prevent. The shared surface is `settings.ts` plus one admin component each — append-shaped, the same contact point the first cut accepted |
+| FR-25 | Epic 24 | Backlog — **no i18n infrastructure exists.** Measured 2026-08-01: `lang="en"` hard-coded in `src/app/layout.tsx` is the entirety of it |
 
-> **FR-2 moved from `Done` to `Partial` on 2026-08-01.** Not a regression: the measurement that day found the resolved-title readback PRD `:120` relies on echoes lyric lines, and the corpus behind it cannot be rebuilt. `Done` was recorded against "695 hymns resolve", which is still true and was never the whole requirement.
+> **FR-2 went `Done` → `Partial` → `Done` inside 2026-08-01, and the row above is the end state.** The morning's measurement moved it to `Partial` — not a regression: the resolved-title readback PRD `:120` relies on was echoing lyric lines, and the corpus behind it could not be rebuilt. `Done` had been recorded against "695 hymns resolve", which was still true and was never the whole requirement. Stories 22.1 and 22.2 then shipped that same day and closed exactly that gap, returning it to `Done`. *This paragraph previously stated only the downgrade, which contradicted the table directly above it from the moment 22.2 landed; repaired by the second Correct Course of the day.*
 
 ## Epic List
 
@@ -450,9 +454,17 @@ As an administrator, I want four predefined SongSet slots — Bible Talk open/cl
 As an operator, I want a service to hold its own snapshot of the registry, and a **Sync Artifact** action to refresh it. Live registry edits must not reach an existing service until Sync. **Still blocked, but on one item rather than two** — `AD-16` was recorded on 2026-07-30, so what remains is the `EXPERIENCE.md` reconciliation above. Two `AD-16` clauses the story must implement rather than re-decide: Sync carries the service's `updated_at` precondition (`AD-6`, which the spine had been silent on — a different decision, not a typo), and Sync is permitted on **any** service including one already presented — because the freeze event is service **creation**, and what a service holds against the registry is its supporting data entry, not a reproducible deck. Announcement membership is deliberately **not** frozen, and a later structural change need not keep an old snapshot renderable. It is last for a reason: every story above defines what gets cloned.
 
 
-### Epic 21: Scripture is on hand, in the translation being read *(backlog)*
+### Epic 21: Scripture is on hand, in the translation being read *(in-progress — Story 21.1 done 2026-08-01; 21.2 and 21.3 backlog)*
 
-**FRs addressed:** FR-19 (on-demand Scripture Display — the last product `Partial` on the coverage map above), **FR-22** (several translations, one default) — added to the PRD by the same Correct Course that opened this epic.
+**FRs addressed:** FR-19 (on-demand Scripture Display — the last product `Partial` on the coverage map above), **FR-22** (several translations, one default) — added to the PRD by the same Correct Course that opened this epic — and, since the second Correct Course of 2026-08-01, **FR-24** (Data Locale) for the scripture half.
+
+**Amended 2026-08-01 by the second Correct Course of the day — read this before Story 21.2.** Language became a first-class dimension hours after this epic opened, and it lands *here* rather than in an epic of its own **on purpose**: this epic already owns `bible_books`, `bible_verses` and every scripture read path, and a separate locale epic would have had to reach into them alongside Epic 22's `hymns`. That is the collision the per-family cut exists to prevent. Three things change for the stories below:
+
+- **The corpus path moves to `data/<locale>/bible-translation/<code>.json`** — e.g. `data/en/bible-translation/kjv.json`. This **supersedes the `data/bible/kjv.json` that Story 21.1 shipped and asserts in its acceptance criteria**; that story is `done` and its AC is superseded in writing in the story file rather than quietly rewritten. Verified 2026-08-01: no locale code collides with `data/local/`, `data/uploads/` or `data/*.db`, and `.gitignore` does not swallow `data/en/`. The move itself is small — `src/lib/corpus.ts` is the single owner of both corpus paths (`bibleCorpusPath`, `songBookCorpusPath`), so this is two functions and their documented header, not a scattered edit.
+- **`bible-translation` is the standard term, not `bible`.** In paths, in tables, in prose.
+- **Book names belong to the translation** and ship inside its corpus file. Input is generous — typing `Kejadian` or `Genesis` searches names across every installed translation and resolves to one canonical book identity — and output is exact: the screen shows the chosen translation's own name. `BOOK_ALIASES` (`src/lib/scripture.ts:65`, verified 2026-08-01 — the citation the handoff brief carried had already rotted by one line) is a hard-coded English-only alias map covering two books, and it is what this replaces.
+
+**The target schema is not this epic's to decide.** Per-translation book names, a canonical `bible_books` identity, a `bible_translations` registry carrying `locale`, and the rename `bible_verses.translation` → `translation_code` are routed to a `bmad-architecture` Update run. Stories below name what must be true, not the DDL.
 
 Created 2026-08-01 by Correct Course. Not a story on Epic 12: that epic is `done`, and reopening a closed epic is the contradiction Correct Course closed on Epic 14 (2026-07-29) and avoided again when Story 19.1 was refused a place in the closed Epic 15.
 
@@ -471,29 +483,58 @@ So that FR-19 is a feature of the product rather than of one maintainer's disk.
 
 Converts the export to a normalised `data/bible/kjv.json` and seeds it from zero on first boot. Provenance and licence are recorded beside it — KJV is public domain, with the UK Crown copyright exception stated rather than glossed. Completeness is asserted **structurally** (66 books, 1,189 chapters, 31,102 verses), not sampled. `.work/tp_bible_*.json` is deleted only once that assertion is green.
 
+> **Path superseded 2026-08-01, after this story closed.** FR-24 moves the corpus to **`data/en/bible-translation/kjv.json`**. This story's AC-1 and its file list name `data/bible/kjv.json`, and they are left standing as the record of what shipped — the move is Story 21.2's to perform, not a retroactive edit to a `done` story. Everything else this story asserts (the seed-from-zero channel, the structural completeness counts, the deleted export) is unaffected: only the path changes.
+
 #### Story 21.2: Translation Is a Parameter, Not a Literal *(backlog)*
 As the system,
 I want every scripture read path to name the translation it is reading,
 So that a second corpus is an addition rather than a rewrite of six call sites.
 
-`lookupScripture(ref, translation)`, a translation parameter on `/api/scripture`, and an emptiness check that answers per translation instead of for `'KJV'` alone. The 503 message stops naming `.work/` and `npm run import:kjv`, which will no longer be how a corpus arrives.
+`lookupScripture(ref, translation)`, a translation parameter on `/api/scripture`, and an emptiness check that answers per translation instead of for `'KJV'` alone — `isKjvCorpusEmpty()` becomes `isBibleTranslationEmpty(code)`. The 503 message stops naming `.work/` and `npm run import:kjv`, which will no longer be how a corpus arrives.
+
+**Measured 2026-08-01, so the story knows its own size.** The `'KJV'` literal survives at four sites in `src/lib/scripture.ts` — the type at `:6`, the emptiness count at `:106`, the lookup predicate at `:128` and the returned value at `:144` — plus the two importers in `src/app/api/scripture/route.ts`. That is the whole surface; the epic preamble's older "six call sites" and this list agree.
+
+**Amended 2026-08-01 (FR-24).** This story also performs the **path move to `data/<locale>/bible-translation/<code>.json`** that supersedes Story 21.1's shipped path, and it is where `translation` becomes `translation_code`. Two rules bind every read path it touches: a listing endpoint returns **every** installed translation with its locale — **no `WHERE locale = …` reaches the database** — and a resolved reference displays the **chosen translation's own book name**, never a name from a setting or from another translation.
 
 #### Story 21.3: A Default Translation, and the Presenter May Choose Another *(backlog)*
 As an operator whose speaker is reading from a translation the hub does not default to,
 I want to pick the translation at the moment of lookup,
 So that what the congregation sees matches what is being read aloud.
 
-A default-translation setting following the shipped per-concern pattern (`RetentionSettings.tsx`, `TransitionSettings.tsx`, with its key pair in `src/lib/settings.ts`), a translation control in the Presenter panel, and — the part that is easy to miss — **a resolved passage records which translation it came from wherever it is persisted**, so a passage saved under one default does not silently re-render under another.
+A default-translation setting following the shipped per-concern pattern (`RetentionSettings.tsx`, `TransitionSettings.tsx`, with its key pair in `src/lib/settings.ts` — verified 2026-08-01: `RETENTION_KEY` and `SLIDE_TRANSITION_KEY` are the two existing precedents), a translation control in the Presenter panel, and — the part that is easy to miss — **a resolved passage records which translation it came from wherever it is persisted**, so a passage saved under one default does not silently re-render under another.
 
-### Epic 22: The song book is a choice, and its titles are real *(backlog)*
+**Amended 2026-08-01 (FR-24).** This story owns **two** of the four settings — `default_bible_translation` and the shared `default_data_locale` — and it is where the never-filter rule becomes visible to an Operator. The translation control opens on the default locale's translations and carries an **always-present** way to reach the others; it is not a preference the Operator has to go and change. `default_data_locale` is a contact point with Story 22.3, which owns `default_song_book` and reads the same locale key: **append-shaped**, one `const` and its getter/setter each, exactly like the two precedents above. `ui_locale`, the fourth key, belongs to Epic 24 and is not this story's.
 
-**FRs addressed:** FR-2 (validate/resolve Hymns by number — the corpus it resolves against becomes reproducible, correctly titled and licensed in writing), **FR-23** (several song books, one default) — added to the PRD by the same Correct Course.
+#### Story 21.4: Book Names Belong to the Translation *(backlog)* — FR-24
+
+As an operator whose speaker reads from an Indonesian Bible,
+I want to type `Kejadian` and see `Kejadian` come back,
+So that the reference on the screen matches the one being read aloud.
+
+Book names ship **inside** each translation's corpus file, so a new translation brings its own names in the same file and there is never a second place to edit. Two behaviours that are easy to collapse into one and must not be:
+
+- **Input is generous.** `Kejadian` and `Genesis` both resolve, because lookup searches book names across **every** installed translation and lands on one canonical book identity. An Operator does not have to know which language they are typing in.
+- **Output is exact.** What renders is the chosen translation's own name for that book and nothing else. Pick TB, look up Kejadian 1:1, and the screen reads *"Kejadian 1:1"* — following the translation, never a setting.
+
+The canonical book identity is what makes *"same passage, another translation"* a single query, so it is a schema property rather than a display convenience. **Its shape is the `bmad-architecture` Update run's to settle, not this story's** — what this story owes is the two behaviours above and the retirement of `BOOK_ALIASES` (`src/lib/scripture.ts:65`), the hard-coded English-only two-book alias map they replace.
+
+### Epic 22: The song book is a choice, and its titles are real *(in-progress — Stories 22.1 and 22.2 done 2026-08-01; 22.3 backlog)*
+
+**FRs addressed:** FR-2 (validate/resolve Hymns by number — the corpus it resolves against becomes reproducible, correctly titled and licensed in writing), **FR-23** (several song books, one default) — added to the PRD by the same Correct Course — and, since the second Correct Course of 2026-08-01, **FR-24** (Data Locale) for the song-book half.
+
+**Amended 2026-08-01 by the second Correct Course of the day — read this before Story 22.3.** The locale axis lands in this epic rather than in one of its own for the same reason it lands in Epic 21: this epic already owns `hymns`, the corpus file and every hymn read path, and a separate locale epic would have had to reach into them alongside Epic 21's `bible_verses`. Three things change:
+
+- **The corpus path moves to `data/<locale>/song-book/<code>.json`** — e.g. `data/en/song-book/sdah.json`. This **supersedes the `data/song-book/sdah.json` that Story 22.1 shipped and asserts in its acceptance criteria**; that story is `done`, and its AC is superseded in writing in the story file rather than quietly rewritten.
+- **`hymns.book_code` becomes `song_book_code`**, and a `song_books` registry carries each book's `locale`, name, attribution and licence.
+- **`song-book` is the container term; `hymn` stays the entry term.** Recorded as a decision, because it is the one place the vocabulary deliberately stops: the **`hymns` table keeps its name**, so does **`/api/hymns`**, and so do the **`resolvedHymns` / `failedHymnNumbers`** webhook fields — that last pair is an external contract an outside Telegram bot consumes (`src/app/api/webhook/route.ts`), and renaming it would break a caller this product does not own.
+
+**The target schema is not this epic's to decide** — the `song_books` registry shape is routed to the same `bmad-architecture` Update run that already blocks Story 22.2's successor question.
 
 **What is broken, and it is worse than `deferred-work.md` records.** `data/hymns.json` is committed but **cannot be regenerated at all**: `scripts/import-hymnal.mjs` reads `.work/lirik-lagu.json`, which does not exist on this machine or anywhere under the project root. The committed output is the only surviving copy — found 2026-08-01 while verifying the entry that said only that the corpus was un-reviewed for licence.
 
 **Titles are first lyric lines, and that is by design rather than a bug.** The source dump carried no title column, so `deriveTitle()` (`scripts/import-hymnal.mjs:23`) takes the first line after a `Verse` header, exactly as `spec-phase1-hymnal-fr4-parser.md:115` instructs. SDAH #522 is stored as *"My hope is built on nothing less"*; its title is *"The Solid Rock"*. 40 of the 695 stored titles run past 45 characters. This matters beyond tidiness: PRD `:120` makes the resolved-title readback the product's **only** defence against a valid-but-wrong SDAH number, and a readback that echoes a lyric line is not a check a human can fail.
 
-**A second song book cannot be stored today — this is schema, not configuration.** `hymns.number` is `NOT NULL UNIQUE` (`src/lib/db/index.ts:106`), globally unique, and every hymnal has a #1. Seven read sites query `hymns` with no book qualifier (`api/hymns/route.ts` ×4, `services/[id]/page.tsx:126`, `lyrics.ts` ×2, `parser.ts:240`) and all become ambiguous the moment a second book exists. `book_code` and `UNIQUE(book_code, number)` therefore land in Story 22.1, beside the file move, so the table is touched once — the spine's own argument for the Epic 20 `base_type` collapse (*"cheap only while no production system exists"*, with no deployment confirmed 2026-07-29) applies unchanged.
+**A second song book cannot be stored today — this is schema, not configuration.** `hymns.number` is `NOT NULL UNIQUE` (`src/lib/db/index.ts:106`), globally unique, and every hymnal has a #1. **Eight** read sites query `hymns` with no book qualifier (`api/hymns/route.ts` ×4, `services/[id]/page.tsx:126`, `lyrics.ts` ×2, `parser.ts:240`) and all become ambiguous the moment a second book exists. *(Corrected 2026-08-01: this sentence said "Seven" and then listed eight. Re-counted against `src/` the same day — the list was right and only the word was wrong. There are now **nine** `FROM hymns` in `src/`, and the ninth is deliberately **not** in this list: `db/index.ts:47` is the one-time `INSERT…SELECT` boot migration Story 22.1 introduced to stamp existing rows, not a read path a second book makes ambiguous.)* `book_code` and `UNIQUE(book_code, number)` therefore land in Story 22.1, beside the file move, so the table is touched once — the spine's own argument for the Epic 20 `base_type` collapse (*"cheap only while no production system exists"*, with no deployment confirmed 2026-07-29) applies unchanged.
 
 **Owner decision on licence, 2026-08-01: an accepted risk, not a review.** The SDAH lyrics ship with attribution to the copyright holder and a stated willingness to take them down on request. This is the owner's standing decision and it closes the spine's `Deferred` bullet at `:363` — the one Story 20.1's seed work was told it would touch.
 
@@ -508,6 +549,8 @@ I want the corpus at `data/song-book/sdah.json`, carrying its own book code and 
 So that the last undocumented corpus stops being unreproducible, unattributed and unable to have a sibling.
 
 Moves the file, adds `hymns.book_code` (default `'SDAH'`) with `UNIQUE(book_code, number)`, writes the attribution and takedown statement, and updates the loader. **It must also decide what `npm run import:hymnal` now means** — its source is gone, so the committed corpus becomes the source of record and the script is repointed or retired. It does not stay in `package.json` pointing at a file nobody has.
+
+> **Path and column superseded 2026-08-01, after this story closed.** FR-24 moves the corpus to **`data/en/song-book/sdah.json`** and renames the column this story added, `book_code` → **`song_book_code`**. This story's AC-1 and its file list name `data/song-book/sdah.json`, and they are left standing as the record of what shipped — the move and the rename are Story 22.3's to perform, not a retroactive edit to a `done` story. The `UNIQUE(…, number)` constraint, the attribution and the retired importer are unaffected.
 
 #### Story 22.2: A Hymn Title Is a Title *(done — 2026-08-01)*
 As an operator confirming a hymn number before it enters the run sheet,
@@ -526,6 +569,15 @@ I want to say which book that song comes from,
 So that the deck resolves the hymn the worship team actually meant.
 
 A default-song-book setting on the shipped per-concern pattern, a per-song override in the worship form, and the chosen book **persisted beside the number in the same single home AD-19 requires** — never as a second copy. Gated on Story 20.7.
+
+**Amended 2026-08-01 (FR-24), and the amendment is most of the story now.** This is where the song-book half of the locale axis lands, because the override and the locale browse are the same control seen twice:
+
+- Owns **`default_song_book`** and reads the shared **`default_data_locale`** — the contact point with Story 21.3, append-shaped, one `const` plus getter/setter each on the `RETENTION_KEY` / `SLIDE_TRANSITION_KEY` precedent in `src/lib/settings.ts`.
+- Performs the **path move to `data/<locale>/song-book/<code>.json`** and the **`book_code` → `song_book_code`** rename that supersede Story 22.1.
+- **The never-filter rule, stated as the case that must work: an Indonesian service that sings one English hymn.** Picking that hymn changes no setting, and the next song still defaults to the Indonesian book. The listing API returns **every** installed song book with its locale; `default_data_locale` decides only what the picker shows first, and **no `WHERE locale = …` reaches the database**.
+- Eight unqualified `FROM hymns` read sites (listed in this epic's preamble) become book-aware here. The ninth, the boot migration, is not one of them.
+
+Still gated on Story 20.7 — the per-song override hangs off the four `songset-*` slot identities `AD-19` governs, and those replace `song1Number..song4Number` rather than aliasing them.
 
 ### Epic 23: A fresh clone runs *(backlog)*
 
@@ -548,3 +600,40 @@ I want the clone-to-working-deck path exercised by the suite,
 So that the next corpus to quietly stop shipping is caught here instead of by a volunteer on a Sabbath morning.
 
 `npm install` → `npm run setup` → `npm run seed:demo` yields a resolvable scripture reference, resolved hymn titles and a generated deck. Carries the documentation sweep the corpus moves leave behind. **Stated as a criterion rather than a line list, deliberately** — line numbers in this repository rot within days, and one merge moved six spine citations while this proposal was being written. The criterion: **no tracked document may still tell a reader to run `npm run import:kjv` or `npm run import:hymnal` to obtain a corpus, or name `data/hymns.json` as the corpus path.** Grep for `import:kjv`, `import:hymnal` and `data/hymns.json` across `docs/` and `README.md`; eight files matched on 2026-08-01 (`deploy.md`, `development-guide-monolith.md`, `index.md`, `QUICKSTART.md`, `data-models-monolith.md`, `liveserver-implementation-plan.md`, `source-tree-analysis.md`, `README.md`). This is the story that would have caught the FR-19 gap in 2026-07-19.
+
+> **Amended 2026-08-01 (FR-24).** The corpus paths move again, to `data/<locale>/bible-translation/<code>.json` and `data/<locale>/song-book/<code>.json`. This story's criterion is written as a rule rather than a line list precisely so an amendment like this does not invalidate it — but the **rule itself widens**: no tracked document may name `data/hymns.json`, **`data/bible/`** or **`data/song-book/`** as a corpus path, nor tell a reader to run `npm run import:kjv` or `npm run import:hymnal`. The two middle spellings are new, and they are ones this repository's own documentation started using *this morning*, which is the argument for the criterion form restated in miniature.
+
+### Epic 24: The interface speaks the operator's language *(backlog)*
+
+**FRs addressed:** **FR-25** (UI Locale) — added to the PRD by the second Correct Course of 2026-08-01, as new §4.12.
+
+Created 2026-08-01. **Deliberately not folded into Epic 21 or 22**, which carry the *data* half of the same day's locale work. The two halves share a word and nothing else — no table, no module, no test, no file. FR-24 is a data-layer capability over two corpus registries; this epic is an interface-wide string refactor. Bundling a UI-wide refactor into a data-layer epic is exactly the drift pattern `AGENTS.md` names after Epic 14, and separating them is also what keeps the two worktrees from colliding: this epic touches no corpus file and no corpus table, and Epics 21–22 touch no `.tsx` string.
+
+**Requirement ancestry is FR-25, not `DESIGN.md`** — recorded because Epic 17 sets the opposite precedent. Epic 17's stories change the operator chrome's *visual identity*, which the `AGENTS.md` authority map assigns to `DESIGN.md` rather than to a PRD FR. This epic changes what the product *says*, in every surface, driven by a stored setting — a product capability, so it gets an FR. The distinction is the same one that gave Epic 16 FR-20 and left Epic 17 without one.
+
+**What exists today, measured 2026-08-01 rather than estimated.** **No i18n infrastructure of any kind.** `lang="en"` hard-coded at `src/app/layout.tsx:31` is the entirety of it. The surface is small and that is the point — 39 `.tsx` files, 26 client components, roughly 55 user-facing literals in JSX and attributes, plus about 158 message strings under `src/lib` and `src/app/api`, many of them developer-facing and not translatable. **Estimate 100–150 real strings.**
+
+**Two boundaries, both load-bearing:**
+
+- **Projected slide text is already data and is out of scope.** The 28 templates in `data/default-registry.json` hold their text in element `content` fields, Admin-editable via FR-20 / Epic 16. Whatever an Admin types is what projects. There is deliberately **no `projection_locale`** (PRD §4.12), so nothing this epic builds may reach a room-facing surface — which is Epic 17's *"the congregation never sees operator chrome"* constraint read in the other direction.
+- **The planner's legacy labels are in scope, and this is the one non-obvious inclusion.** `src/lib/slide-plan.ts` hard-codes English headings — *Welcome*, *Opening Song*, *Congregation, please stand*, *Prayer Partners*, *Break Time*. Verified 2026-08-01: they populate the plan's `LegacyProjection` field (`slide-plan.ts:76`), read **only** by `src/app/services/[id]/present/presenter-model.ts` and `src/components/SlidePreviewList.tsx`. **`pptx.ts` does not read it and neither does the projector** — grepped, zero hits. They are operator chrome, so they belong here. *The handoff brief scoped these to `slide-plan.ts:260-360`; re-measured, the literals run from `:260` to at least `:662` — 36 `title:` / `subtitle:` literals in the file — so the range in that brief understates the work and the story should not inherit it.*
+
+**Noted, and explicitly out of scope:** `src/lib/slide-plan.ts:261` hard-codes `'Bandung International Community'` — a church name living in code rather than configuration. Story 24.2 passes directly over this line and will be tempted to fix it. It should not: a church name is not a translatable string, and moving it to configuration is a different capability with a different owner. Recorded here so the temptation is a decision rather than a drive-by.
+
+#### Story 24.1: A String Catalogue, a Switcher, and an Honest `lang` *(backlog)*
+
+As an operator who reads Indonesian more comfortably than English,
+I want to set the hub's language and have the page say which language it is in,
+So that the interface meets me where I am and a screen reader is not lied to.
+
+The infrastructure half: a string catalogue, the `ui_locale` setting on the shipped per-concern pattern (`RetentionSettings.tsx` / `TransitionSettings.tsx`, key pair in `src/lib/settings.ts`), a switcher, and `<html lang>` following the setting instead of the hard-coded `"en"`. **An unresolved key must be visible as a defect, not rendered blank** — a missing translation that fails silently is how half a UI ships in the wrong language without anyone noticing.
+
+`ui_locale` is the fourth of FR-24's four settings keys and the only one this epic owns; `default_data_locale`, `default_song_book` and `default_bible_translation` belong to Epics 21 and 22. **The contact point is `src/lib/settings.ts` and one admin component** — append-shaped, one `const` plus getter/setter, the same merge surface the 2026-08-01 cut already accepted between Epics 21 and 22.
+
+#### Story 24.2: The Strings Move *(backlog)*
+
+As a maintainer,
+I want every user-facing literal resolved from the catalogue rather than typed inline,
+So that adding a language is a data change and not another sweep of 39 files.
+
+The 100–150 strings, including the `slide-plan.ts` operator-facing labels above. Mechanical by construction, which is why it is separate from 24.1: the infrastructure decision is small and worth reviewing on its own, and the sweep is large and worth reviewing as a sweep. **The two boundaries in this epic's preamble are the acceptance surface** — nothing this story touches may reach the PPTX or the projector, and the church name at `slide-plan.ts:261` stays where it is.

@@ -4,7 +4,36 @@ baseline_commit: a66de81e3762b8cd0d33e8b589245fdf4f7a926d
 
 # Story 22.1: The Song Book Ships as One of Several, and Says Whose It Is
 
-Status: done
+Status: done — **two acceptance criteria superseded 2026-08-01, see below**
+
+> ## ⚠ AC-1's corpus path and AC-2's column name are superseded
+>
+> **Superseded 2026-08-01** by **FR-24** (PRD §4.12), hours after this story
+> closed, by the second Correct Course of that day:
+> `_bmad-output/planning-artifacts/sprint-change-proposal-2026-08-01-locale.md`.
+>
+> | Asserted by this story | Superseded by FR-24 |
+> | --- | --- |
+> | `data/song-book/sdah.json` (AC-1) | **`data/en/song-book/sdah.json`** |
+> | `book_code` (AC-2, AC-3) | **`song_book_code`** |
+>
+> The corpus gained a **Data Locale**, and the column this story introduced is
+> renamed to match the vocabulary FR-24 fixes: *song-book* is the container term.
+> **The `hymns` table itself keeps its name**, and so do `/api/hymns` and the
+> `resolvedHymns` / `failedHymnNumbers` webhook fields — *hymn* remains the entry
+> term, and that last pair is an external contract an outside Telegram bot
+> consumes.
+>
+> **AC-1, AC-2 and AC-3 are left standing unedited**, deliberately: they are the
+> record of what actually shipped on 2026-08-01, and a `done` story's criteria are
+> superseded in writing rather than rewritten to match a decision taken after it
+> closed.
+>
+> **What is unaffected:** the `UNIQUE(…, number)` key itself (AC-2's substance —
+> only the column *name* moves), the one-time rebuild preserving every row (AC-3),
+> the attribution and takedown statement travelling inside the corpus (AC-4), the
+> retired `import:hymnal` (AC-5) and the 695-hymn verification (AC-6). **Story
+> 22.3 performs both the move and the rename** — not a retroactive edit here.
 
 ## Story
 

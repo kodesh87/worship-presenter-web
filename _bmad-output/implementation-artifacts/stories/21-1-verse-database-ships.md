@@ -4,7 +4,31 @@ baseline_commit: a66de81e3762b8cd0d33e8b589245fdf4f7a926d
 
 # Story 21.1: The Verse Database Ships With the Repository
 
-Status: done
+Status: done — **one acceptance criterion superseded 2026-08-01, see below**
+
+> ## ⚠ AC-1's corpus path is superseded
+>
+> **Superseded 2026-08-01** by **FR-24** (PRD §4.12), hours after this story
+> closed, by the second Correct Course of that day:
+> `_bmad-output/planning-artifacts/sprint-change-proposal-2026-08-01-locale.md`.
+>
+> | Asserted by this story | Superseded by FR-24 |
+> | --- | --- |
+> | `data/bible/kjv.json` | **`data/en/bible-translation/kjv.json`** |
+>
+> The corpus gained a **Data Locale** and `bible-translation` became the standard
+> term in place of `bible`. **AC-1 and the file list below are left standing
+> unedited**, deliberately: they are the record of what actually shipped on
+> 2026-08-01, and a `done` story's criteria are superseded in writing rather than
+> rewritten to match a decision taken after it closed. Re-reading this story to
+> understand the *current* state is the mistake this box exists to prevent.
+>
+> **Everything else this story asserts is unaffected** — AC-2 (66 books / 1,189
+> chapters / 31,102 verses, counted not sampled), AC-3 (seed-from-zero, so AD-21
+> does not reach it), AC-4 (licence and provenance), AC-5 (export deleted only
+> after AC-2 was green) and AC-6 (byte-for-byte round-trip) all still hold at the
+> new path. **Only the path changes**, and **Story 21.2 performs the move** — not
+> a retroactive edit here.
 
 ## Story
 
