@@ -36,16 +36,15 @@ Follow these steps to set up the development environment from scratch:
    - `WEBHOOK_SECRET`: Secret token utilized for webhook authentication checks.
    - `AUTH_BOOTSTRAP_USER` & `AUTH_BOOTSTRAP_PASSWORD`: Initial credentials used to seed the first admin account when the database boots.
 
-4. **Seed the Databases (Hymnal & Bible Verses):**
-   Run the following scripts to seed the Seventh-day Adventist Hymnal (SDAH) lyrics and King James Version (KJV) scripture verses.
+4. **Corpora (nothing to import):**
+   The Seventh-day Adventist Hymnal (SDAH) lyrics and the King James Version (KJV)
+   scripture text are committed to the repository and seed themselves the first
+   time the app starts. There is no import step.
    ```powershell
-   # Import SDAH hymns corpus
-   npm run import:hymnal
-   
-   # Import KJV Bible translations corpus
-   npm run import:kjv
+   # Optional: assert both shipped corpora are whole
+   npm run corpus:verify
    ```
-   *Note: Seeding creates the SQLite database `data.db` in the root of the project with initial data.*
+   *Note: the first boot creates the SQLite database `data.db` in the root of the project and fills it from `data/song-book/sdah.json` and `data/bible/kjv.json`.*
 
 ---
 

@@ -5,8 +5,10 @@ not cover the content below, which belongs to others.
 
 ## Seventh-day Adventist Hymnal
 
-`data/hymns.json` contains the hymn texts of *The Seventh-day Adventist Hymnal*
-(1985), indexed by its hymn numbering.
+`data/song-book/sdah.json` contains the hymn texts of *The Seventh-day Adventist
+Hymnal* (1985), indexed by its hymn numbering. The same statement is carried
+inside the file itself, in its `book.attribution` and `book.licence` fields, so
+it travels with the corpus rather than only with the repository.
 
 **Copyright holder:** the General Conference of Seventh-day Adventists, and
 Review and Herald Publishing Association. Individual hymn texts and tunes carry
@@ -34,16 +36,24 @@ an issue at <https://github.com/kodesh87/worship-presenter-web/issues> or
 contact the maintainer through the profile at <https://github.com/kodesh87>.
 Requests will be honoured promptly and without argument.
 
-Anyone adapting this project for another tradition should replace
-`data/hymns.json` with their own corpus.
+Anyone adapting this project for another tradition should add their own corpus
+at `data/song-book/<book-code>.json` in the same shape, and set it as the
+default song book. Hymns are keyed by `(book_code, number)`, so a second book
+sits alongside this one rather than replacing it.
 
 ## King James Version
 
 Scripture lookup uses the King James Version, which is in the public domain in
 most jurisdictions. In the United Kingdom it remains under perpetual Crown
-copyright, administered by the Crown's patentee. The KJV corpus is **not**
-committed to this repository; it is imported at runtime from a corpus the
-operator supplies (`npm run import:kjv`).
+copyright, exercised under Letters Patent by Cambridge University Press and, in
+Scotland, the Scottish Bible Board; reproduction there is permitted under the
+patent holders' standing terms for non-commercial liturgical and devotional use,
+which is this corpus's only use here.
+
+The corpus **is** committed, at `data/bible/kjv.json`, and seeds an empty
+database on first boot. It carries its own licence and provenance in its
+`translation` block. A clone therefore resolves a reference offline, with no
+file handed to it and no third-party host in the boot path.
 
 ## Slide background images
 

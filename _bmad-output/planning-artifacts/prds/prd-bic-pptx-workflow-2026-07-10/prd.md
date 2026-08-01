@@ -2,7 +2,7 @@
 title: BIC Worship Presentation Automation
 status: final
 created: 2026-07-10
-updated: 2026-07-30
+updated: 2026-08-01
 ---
 
 # PRD: BIC Worship Presentation Automation
@@ -74,7 +74,7 @@ The bet is deliberately modest — and deliberately narrow. Phase 1 ships the sm
 - **Song Block** — One song rendered as 1 song-title slide + K lyric slides. Each verse starts a new slide and each Reff starts a new slide; text too long for one slide splits across additional slides for readability. K = f(verse count, Reff availability, readability splits). Some songs have no Reff. **"Reff" is BIC's own label for the refrain, as printed on the deck** — the two words name the same structure, and *Reff* is used wherever the deck's own label is meant.
 - **Hymn** — A song identified by its number within a Song Book — SDAH by default — whose lyrics come from that Song Book.
 - **SDAH Number** — SDA Hymnal number (e.g., `SDAH #159` or bare `#671`), the key used to validate and resolve a Hymn **within the SDA Hymnal Song Book**. Since FR-23 (§4.11) a Hymn is keyed by number *within a named Song Book*; the term is kept because SDAH numbering is what every rundown this product reads actually cites.
-- **Song Book** *(renamed from **Hymnal Database** on 2026-08-01, when FR-23 made it one of several)* — A lyrics data source (title + structured verses/refrain, keyed by number within that book), provided by the developer and shipped as committed seed data at `data/song-book/<code>.json`. **The SDA Hymnal (SDAH) is the default.** An input dependency, not built in this project. *Point-in-time records that predate the rename — `.memlog.md`, `pressure-test-findings.md`, the readiness reports — keep the old term deliberately: rewriting a record makes it lie about what was said.*
+- **Song Book** *(renamed from **Hymnal Database** on 2026-08-01, when FR-23 made it one of several)* — A lyrics data source (title + structured verses/refrain, keyed by number within that book), provided by the developer and shipped as committed seed data at `data/<locale>/song-book/<code>.json` *(path amended by FR-24, 2026-08-01; it shipped at `data/song-book/<code>.json` under Story 22.1 the same day)*. **The SDA Hymnal (SDAH) is the default**, and every Song Book carries a **Data Locale**. An input dependency, not built in this project. *Point-in-time records that predate the rename — `.memlog.md`, `pressure-test-findings.md`, the readiness reports — keep the old term deliberately: rewriting a record makes it lie about what was said.*
 - **Announcement List** — The persistent, ordered list of Announcement Assets the app maintains across weeks: recurring items stay until replaced or removed; one-off items are added for a single Service. Managed via the API (picoclaw) and the Web Hub.
 - **Deck** — The generated slide presentation for a Service, exported as an offline-capable PPTX file.
 - **Run-Sheet** — The web view of the full Order of Service for a Service, for operators to follow during the service.
@@ -412,11 +412,13 @@ An Admin can define **which slides the Deck contains and in what order** by edit
 - **FR-4, FR-5, FR-6 and NFR-3 continue to bind.** The shipped starting Registry produces the Deck the Blueprint describes (NFR-8), and a Registry edit that makes a lyric slide unreadable fails NFR-3 exactly as a code change would.
 - **The three fixed liturgical songs are authored entirely by hand, and their readability is the Admin's own judgement** *(decided by the owner, 2026-07-30)*. The two intercessory standing responses and the closing *"We Have This Hope"* become General entries whose lyric text, page count, and line breaks are all set manually. They do **not** pass FR-5's verse/Reff splitting, and the authoring surface carries **no** automated readability check — deliberately, on both counts. NFR-3 is met by the Admin reading the pages they just authored, on the surface that will project them. Two consequences are accepted rather than mitigated: a later correction to the hymnal corpus does not reach these three songs, and a future edit to one of these pages has the same human check and nothing else standing behind it.
 
-### 4.11 Several Translations, Several Song Books *(FR-22 and FR-23 committed 2026-08-01)*
+### 4.11 Several Translations, Several Song Books *(FR-22 and FR-23 committed 2026-08-01; both amended for the locale axis the same day — see §4.12)*
 
 **Description:** The two reference corpora this product reads — the Verse Database (§4.9) and the Song Book (§4.1, FR-2) — were each specified as exactly one: KJV, and the SDA Hymnal. Both become *one of several*, with the original as the shipped default. Which slides a Deck contains does not change; this is about which book a lookup reads from.
 
-**Why this is a requirement rather than an assumption.** Both corpora become committed seed data under Epics 21–22 (`data/bible/kjv.json`, `data/song-book/sdah.json`), and that directory shape is only defensible if a second corpus is a decision the product has taken. It also carries a schema consequence that is cheap now and expensive later: hymn numbers are globally unique today, so a second Song Book cannot be stored at all.
+**Why this is a requirement rather than an assumption.** Both corpora become committed seed data under Epics 21–22, and that directory shape is only defensible if a second corpus is a decision the product has taken. It also carries a schema consequence that is cheap now and expensive later: hymn numbers are globally unique today, so a second Song Book cannot be stored at all.
+
+**Amended 2026-08-01, hours after commitment, by the Correct Course that added FR-24.** *Several* turned out to be the smaller half of the requirement. The corpora that would actually be installed alongside KJV and SDAH are **in another language**, and a set of translations with no language attribute is a list an Operator has to already know their way around. FR-24 makes **Data Locale** an attribute every corpus carries and an axis a picker can browse; FR-22 and FR-23 are amended below rather than rewritten, because what they require is unchanged and what they gained is one dimension. The committed paths moved in the same pass — `data/<locale>/bible-translation/<code>.json` and `data/<locale>/song-book/<code>.json` — which supersedes the paths Stories 21.1 and 22.1 shipped under (§4.12).
 
 **Functional Requirements:**
 
@@ -427,6 +429,8 @@ An Admin sets the default Bible translation; an Operator may choose a different 
 - A lookup returns the passage in the chosen translation; with no choice made, in the configured default.
 - Wherever a resolved passage is persisted, the translation it was resolved from is persisted with it — a passage saved under one default does not silently re-render under another.
 - A translation whose corpus is absent is reported absent *for that translation*; the others keep working.
+- *(Amended 2026-08-01, FR-24.)* Every installed translation carries a **Data Locale**, and every API that lists translations returns **all** of them with their locale. `default_data_locale` chooses which ones a picker shows first; it never becomes a `WHERE` clause. An Operator can always reach a translation outside the default locale.
+- *(Amended 2026-08-01, FR-24.)* **Book names belong to the translation**, ship inside its corpus, and are what the surface displays: an Operator who picks TB and looks up Kejadian 1:1 reads *"Kejadian 1:1"* back. The displayed name follows the chosen translation, never a setting. Input is separately generous — see FR-24.
 - **What FR-22 changes in FR-19, recorded once** — the pattern §4.10 uses for FR-21's changes to FR-20, so the shipped requirement stays readable: §4.9's *"developer-provided **KJV-only** Verse Database"* and FR-19's *"the KJV passage text"* become translation-parameterised. FR-19 is otherwise unchanged — same trigger, same dismissal, same guarantee that the Deck and Weekly Data Payload are unmodified.
 
 #### FR-23: Resolve hymns from a configurable Song Book, SDAH by default
@@ -436,9 +440,48 @@ An Admin sets the default Song Book; a song in a week's data may name a differen
 - A number resolves against the default Song Book unless that song names another, and the resolved title in the FR-2 readback names the book it came from.
 - The chosen book is persisted **beside the number, in the same single home** — never as a second copy of the same weekly value.
 - Two Song Books may use the same number without collision.
+- *(Amended 2026-08-01, FR-24.)* Every installed Song Book carries a **Data Locale**, and every API that lists Song Books returns **all** of them with their locale. `default_data_locale` chooses which ones a picker shows first; it never becomes a `WHERE` clause. **The case that must work: an Indonesian service that sings one English hymn** — reaching that hymn requires no setting change.
 - **What FR-23 changes in FR-2, recorded once:** *"by SDAH Number"* becomes *by number within a named Song Book*, SDAH being the default. Validation, the unmapped-input surfacing (NFR-5) and the readback obligation are unchanged.
 
 **Boundaries.** §5's non-goals stand as amended there: still not a song search engine, still no contemporary or non-hymnal song support, still not a study or reading platform. Adding a corpus is a development change — a shipped file and its attribution — never an Admin upload.
+
+### 4.12 Language Is Two Axes, Not One *(FR-24 and FR-25 committed 2026-08-01)*
+
+**Description:** Language enters this product at exactly **two** independent places, and conflating them is the failure this section exists to prevent. **Data Locale** is the language of a *corpus* — which Bible translation, which song book. **UI Locale** is the language of the *operator interface* — buttons, labels, the messages an Operator reads while preparing a service. They move independently: an Indonesian-speaking Operator may prepare a service that reads KJV, and an English-speaking Operator may prepare one that sings from an Indonesian song book.
+
+**There is no third axis, and its absence is a decision.** A `projection_locale` was proposed and **rejected** (owner, 2026-08-01). What the congregation sees is whatever an Admin composed on the Artifact Registry canvas (FR-20, FR-21) — if the canvas says *"Lagu Buka"*, that is what projects. Slide text is authored data, not rendered from a locale, and no setting reaches the room-facing output. This keeps the guarantee §4.10 and Epic 17 already carry: the projected surface is not downstream of anything an Operator chose about their own screen.
+
+**Why two FRs rather than one.** They share a word and nothing else — no table, no module, no test. FR-24 is a data-layer capability over two corpus registries; FR-25 is an interface-wide string refactor. Bundling them would produce exactly the mixed epic `AGENTS.md` warns about after Epic 14.
+
+**Functional Requirements:**
+
+#### FR-24: Browse the installed corpora by language, with a default that filters the view and never the data
+Every installed corpus — Bible translation or Song Book — carries a **Data Locale**. An Admin sets `default_data_locale`, which decides what a picker shows *first*; every corpus stays reachable from every picker, always.
+
+**Consequences (testable):**
+- **Filter in the interface, never in the query.** Every API that lists corpora returns **every installed corpus with its locale**. No `WHERE locale = <default>` reaches the database. This is the requirement, not an implementation note: a default that reaches the query is a constraint, and this one must never become one.
+- The picker opens on the default locale's corpora and carries an **always-present** control to browse the others — not a preference to change, not a submenu to discover.
+- **The case that must work:** an Indonesian service that sings one English hymn. Choosing that hymn changes no setting and leaves the default untouched for the next song.
+- **Input is generous, output is exact.** Typing `Kejadian` or `Genesis` searches book names across **all** installed translations and resolves to one canonical book identity; what the surface then *displays* is the chosen translation's own name for that book, and nothing else.
+- Book names ship **inside** the translation's corpus file, so adding a translation adds its names in the same file — never a second place to edit.
+- The same passage in another translation is one lookup away, because a verse's book identity is canonical and does not vary by translation.
+- Four settings govern this and are named here so no surface invents a fifth: `ui_locale`, `default_data_locale`, `default_song_book`, `default_bible_translation`. The last three are Data Locale's; the first is FR-25's.
+- **Corpus paths carry the locale:** `data/<locale>/bible-translation/<code>.json` and `data/<locale>/song-book/<code>.json`. **This supersedes `data/bible/kjv.json` and `data/song-book/sdah.json`**, the paths Stories 21.1 and 22.1 shipped under on 2026-08-01 — superseded in writing rather than moved silently, because two `done` stories assert them.
+- **Terminology is fixed:** *song-book* and *bible-translation* are the standard terms, in paths, tables and prose. *Bible* alone is not one. **`hymn` remains the entry term** — a Song Book is the container, a Hymn is what it holds — which is why the `hymns` table, `/api/hymns`, and the `resolvedHymns` / `failedHymnNumbers` webhook fields keep their names. That last pair is an external contract an outside Telegram bot consumes; renaming it would break a caller this product does not own.
+
+**Accepted trade, recorded rather than left open.** `artifact_templates.id` is a global primary key, so exactly one template set exists. It follows from rejecting `projection_locale` that switching the congregation's projected language means editing all 28 canvases in place, and that a ready-made Indonesian template pack cannot ship without a per-locale template identity. Both are accepted (owner, 2026-08-01) — this is what the product costs for having no locale-driven rendering, not an item awaiting work.
+
+#### FR-25: Present the operator interface in the operator's language
+An Operator can read the Web Hub in their own language. An Admin sets `ui_locale`; the interface follows it, and so does the document language browsers and screen readers are told about.
+
+**Consequences (testable):**
+- User-facing interface text is resolved from a string catalogue rather than written inline, and the language is switchable without a deploy.
+- The document's `lang` attribute follows `ui_locale`. Today `src/app/layout.tsx` hard-codes `lang="en"`, which is the entirety of this product's internationalisation.
+- **The planner's operator-facing labels are in scope.** `src/lib/slide-plan.ts` hard-codes English headings — *Welcome*, *Opening Song*, *Congregation, please stand*, *Prayer Partners*, *Break Time*. Measured 2026-08-01, these populate the plan's `LegacyProjection` field, which is read **only** by the Presenter model and the slide preview list. **Neither the PPTX nor the projector reads it.** They are operator chrome, they belong to `ui_locale`, and they are the one place where this requirement reaches beyond `.tsx` files.
+- **Projected slide text is out of scope, by construction.** Slide content lives in the Artifact Registry as authored data (FR-20, FR-21) and is already Admin-editable without a deploy. `ui_locale` never reaches a room-facing surface — the constraint Epic 17 states as *the congregation never sees operator chrome*, read in the other direction.
+- An unresolved string is visible as a defect rather than rendering blank.
+
+**Scope, measured 2026-08-01 so the estimate is not folklore:** 39 `.tsx` files, 26 client components, roughly 55 user-facing literals in JSX and attributes, plus about 158 message strings under `src/lib` and `src/app/api` of which many are developer-facing and not translatable. **Estimate 100–150 real strings** — small enough to do in one epic, large enough that doing it inside a data-layer epic would be the Epic 14 pattern repeating.
 
 ## 5. Non-Goals (Explicit)
 
@@ -452,6 +495,8 @@ An Admin sets the default Song Book; a song in a week's data may name a differen
 - Not a public website — the Web Hub is closed and per-person authenticated.
 - Not a document archive — generated Decks are expendable (Phase 4 auto-expires them); the durable record is the Service's data, which regenerates the Deck on demand.
 - Scripture Display (§4.9) is not a study/reading platform — it is an on-demand passage display inside Presenter Mode, nothing more. **FR-22** widens which translation it reads, not what it is.
+- **Not locale-driven slide rendering** *(FR-24, §4.12)* — no setting changes what the congregation sees. Projected text is authored on the Registry canvas and projects exactly as authored, in whatever language an Admin typed. The product has **two** locales, for corpora and for the operator interface, and neither reaches a room-facing surface.
+- **Not a multi-congregation language product.** Translating the interface (FR-25) does not widen §5's first non-goal: this still serves BIC's single established workflow. One congregation, in whichever language its Operators read.
 
 ## 6. Delivery Phases
 
@@ -536,6 +581,13 @@ Rundown in via Telegram → correct offline deck out, editable, behind a login. 
 - **The hymn-numbering schema change is cheap only until first deploy**, exactly as recorded for FR-21's vocabulary change above. Hymn numbers are globally unique today, so a per-book key must land while no production data exists (§9 still records none as of 2026-08-01); afterwards the same change needs a migration over live rows.
 - **FR-23's per-song override is gated on FR-21's SongSet Slot work.** The override hangs off the same binding the four Slot identities own (§4.10), and those identities replace the current positional fields rather than aliasing them — so building the override first ships fields FR-21's delivery then deletes.
 - **Correcting the shipped song titles is a separate blocker of its own kind.** It changes values already persisted in every existing install; the mechanism for that is an architecture concern, tracked in `sprint-status.yaml` rather than here.
+- The font gate stays open. This commitment does not close a Phase-1 pre-requisite.
+
+**FR-24 / FR-25 are committed** *(owner, 2026-08-01, hours after FR-22 / FR-23 and by the second Correct Course of the same day)*. Language becomes two explicit axes — **Data Locale** for corpora, **UI Locale** for the operator interface — and a third, `projection_locale`, is **rejected** rather than deferred (§4.12). Recorded on the day, per this section's own practice. **Not a numbered phase**, for the same reason FR-20, FR-21, FR-22 and FR-23 are not. Delivered as amendments to **Epics 21 and 22** for the data axis — each corpus family already owns its own data and code, so the axis rides the epic that owns the table — and as new **Epic 24** for the interface. **Not covered:**
+
+- **The committed corpus paths move**, to `data/<locale>/bible-translation/<code>.json` and `data/<locale>/song-book/<code>.json`. Stories 21.1 and 22.1 are `done` and their acceptance criteria name the old paths; those criteria are **superseded in writing** in the story files themselves, not silently overwritten.
+- **The target schema is not decided here.** Per-translation book names, a canonical book identity, two corpus registries carrying `locale`, and the implied renames (`translation` → `translation_code`, `book_code` → `song_book_code`) are routed to a `bmad-architecture` Update run, which also still owes the shipped-reference-corpus channel decision that already blocks Story 22.2.
+- **One template set remains a global one.** Rejecting `projection_locale` means a congregation changing its projected language edits all 28 canvases by hand, and a ready-made template pack in another language needs a per-locale template identity that does not exist. Accepted, not open (§4.12).
 - The font gate stays open. This commitment does not close a Phase-1 pre-requisite.
 
 **This is the practice, not just the record.** Any future phase or major capability writes its go/no-go here **when the decision is taken**, never reconstructed afterwards. The first two entries above had to be reconstructed a day late by a readiness assessment; the third was written on the day. That difference is why this heading exists.
@@ -646,5 +698,7 @@ The revision rounds resolved every substantive question from the maintainer's di
 **Feature-scoped nouns**
 
 - **Announcement Asset** *(§4.1, §4.3)* — A pre-rendered poster/flyer **image** (video is out of scope), uploaded finished (Telegram/picoclaw **or** Web Hub local upload) and inserted into the Deck as-is on its own slide. Occasional, not weekly: many weeks have none beyond recurring items.
-- **Verse Database** *(§4.9, §4.11)* — Developer-provided scripture data powering the Scripture Display feature, shipped as committed seed data at `data/bible/<code>.json`. **KJV is the default and, since FR-22, no longer the only translation.** Independent of the Song Book and never used for Deck slides.
+- **Verse Database** *(§4.9, §4.11, §4.12)* — Developer-provided scripture data powering the Scripture Display feature, shipped as committed seed data at `data/<locale>/bible-translation/<code>.json` *(path amended by FR-24, 2026-08-01; it shipped at `data/bible/<code>.json` under Story 21.1 the same day)*. **KJV is the default and, since FR-22, no longer the only translation**; since FR-24 every translation carries a **Data Locale** and its own book names. Independent of the Song Book and never used for Deck slides.
+- **Data Locale** *(§4.12 — FR-24)* — The language of a **corpus**: which Bible translation, which Song Book. An attribute every installed corpus carries, and the axis a picker browses. `default_data_locale` selects the view a picker opens on and **never filters what the data layer returns**. Distinct from UI Locale, and the two move independently.
+- **UI Locale** *(§4.12 — FR-25)* — The language of the **operator interface** — buttons, labels, and the messages an Operator reads while preparing a service. Set by `ui_locale`. It reaches the operator's own screen and the document `lang` attribute, and it **never** reaches a room-facing surface: projected slide text is authored Registry data (FR-21), not rendered from a locale. There is deliberately no third locale — see §4.12.
 - **Retention Policy** *(Phase 4, §4.3)* — An Admin-configured rule (default 2 months) that automatically deletes **only generated Decks (PPTX)** past the retention window. Services, participant text, posters, and all other data persist and are manual-delete only.

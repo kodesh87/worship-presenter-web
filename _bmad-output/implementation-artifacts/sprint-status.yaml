@@ -1,5 +1,6 @@
 # generated: 2026-07-10
-# last_updated: 2026-07-31
+# last_updated: 2026-08-01 (second Correct Course of the day — locale axis; see
+#   planning-artifacts/sprint-change-proposal-2026-08-01-locale.md)
 # project: BIC Worship Presentation Automation
 # project_key: NOKEY
 # tracking_system: file-system
@@ -237,10 +238,33 @@ development_status:
   # tables from zero, so AD-21 does not reach it. No Epic 20 dependency either —
   # startable immediately, in its own worktree. Realizes FR-19 (the last product
   # Partial) and the new FR-22.
-  epic-21: backlog
-  21-1-verse-database-ships: backlog
+  epic-21: in-progress
+  # done 2026-08-01: data/bible/kjv.json committed (4.36 MB) and seeded from zero
+  # on first boot. Completeness asserted structurally in tests/corpus.test.mjs —
+  # 66 books / 1,189 chapters / 31,102 verses — not sampled. The .work/tp_bible_*
+  # export was deleted only after that assertion was green, in that order.
+  # PATH SUPERSEDED 2026-08-01 by FR-24, after this story closed: the corpus moves
+  # to data/en/bible-translation/kjv.json. This story's AC names data/bible/kjv.json
+  # and is left standing as the record of what shipped — Story 21.2 performs the
+  # move. Superseded in writing (story file + epics.md), never silently rewritten.
+  21-1-verse-database-ships: done
+  # AMENDED 2026-08-01 (FR-24): also performs the data/<locale>/bible-translation/
+  # path move, the translation -> translation_code rename, and isKjvCorpusEmpty() ->
+  # isBibleTranslationEmpty(code). Never-filter rule binds: listing endpoints return
+  # every installed translation with its locale; no WHERE locale = <default> reaches
+  # the database. 'KJV' literal survives at scripture.ts :6 :106 :128 :144 (measured).
   21-2-translation-is-a-parameter: backlog
+  # AMENDED 2026-08-01 (FR-24): owns default_bible_translation AND the shared
+  # default_data_locale. The translation control opens on the default locale and
+  # carries an always-present way to browse the others. settings.ts is the
+  # append-shaped contact point with Story 22.3 — one const + getter/setter each.
   21-3-default-translation-and-presenter-choice: backlog
+  # NEW 2026-08-01 (FR-24). Book names ship inside each translation's corpus.
+  # Input generous (Kejadian or Genesis resolve across all installed translations
+  # to one canonical book identity), output exact (the chosen translation's own
+  # name). Retires BOOK_ALIASES (scripture.ts:65, English-only, two books).
+  # The canonical-identity SHAPE is the bmad-architecture Update's, not this story's.
+  21-4-book-names-belong-to-the-translation: backlog
   epic-21-retrospective: optional
 
   # --- Epic 22: The song book is a choice, and its titles are real ---
@@ -251,19 +275,81 @@ development_status:
   # 22-3 is GATED on Story 20.7: a per-song book qualifier hangs off the binding
   # AD-19 governs, and AD-19 DELETES song1Number..song4Number rather than
   # aliasing them, so building it earlier ships four fields Epic 20 then removes.
-  epic-22: backlog
-  22-1-song-book-ships-with-book-code: backlog
-  22-2-hymn-title-is-a-title: backlog
+  epic-22: in-progress
+  # done 2026-08-01: corpus moved to data/song-book/sdah.json carrying book.code,
+  # book.attribution and the takedown statement; hymns rebuilt as
+  # UNIQUE(book_code, number) with a one-time boot migration recording existing
+  # rows as SDAH; import:hymnal RETIRED (its .work/lirik-lagu.json source does not
+  # exist), replaced by corpus:verify. The committed file is now the source of record.
+  # PATH + COLUMN SUPERSEDED 2026-08-01 by FR-24, after this story closed: corpus
+  # moves to data/en/song-book/sdah.json and book_code is renamed song_book_code.
+  # This story's AC names the old spellings and is left standing as the record of
+  # what shipped — Story 22.3 performs both. The UNIQUE(..., number) constraint,
+  # the attribution and the retired importer are unaffected.
+  22-1-song-book-ships-with-book-code: done
+  # done 2026-08-01: all 695 titles replaced from the owner-supplied index, which
+  # arrived the same day and cleared the blocker action_items recorded. Fixed in
+  # the corpus, not hand-patched per row.
+  #
+  # The architecture gate was NOT bypassed and is NOT closed. Story 22.2 shipped
+  # without an AD because it introduced no channel: upsertHymns already overwrote
+  # title and lyrics from the corpus on every boot, so corrected titles propagate
+  # through the path that was already there. What the bmad-architecture Update
+  # still owes is whether that every-boot channel should SURVIVE for a shipped
+  # reference corpus — see action_items. If the answer is AD-21's counter, the
+  # migration target is upsertHymns, not this data.
+  22-2-hymn-title-is-a-title: done
+  # AMENDED 2026-08-01 (FR-24), and the amendment is most of the story now: owns
+  # default_song_book AND reads the shared default_data_locale; performs the
+  # data/<locale>/song-book/ path move and the book_code -> song_book_code rename
+  # superseding Story 22.1; makes the EIGHT unqualified FROM hymns read sites
+  # book-aware (the ninth, db/index.ts:47, is the boot migration, not a read site).
+  # Never-filter case that must work: an Indonesian service singing one English
+  # hymn — no setting changes. STILL GATED on Story 20.7 (AD-19 slot identities).
   22-3-default-song-book-and-per-song-override: backlog
   epic-22-retrospective: optional
 
   # --- Epic 23: A fresh clone runs ---
   # Neither corpus family owns this; kept separate so scripts/, tests/ and docs/
   # are not under two epics at once. Sequenced after 21.1 and 22.1.
-  epic-23: backlog
+  epic-23: in-progress
   23-1-opt-in-demo-seed: backlog
-  23-2-fresh-clone-verified: backlog
+  # partial 2026-08-01: the documentation criterion is delivered and enforced by
+  # tests/corpus.test.mjs — nothing under README.md, ATTRIBUTIONS.md, docs/, src/,
+  # scripts/ or package.json names a retired import command or data/hymns.json,
+  # asserted as the criterion rather than as the eight-file line list, which is
+  # the same rule Story 17.8 enforces. _bmad-output/ is deliberately out of that
+  # scope: plans and records describe the gap, they do not instruct a reader.
+  # STILL OPEN: the `npm install -> npm run setup -> npm run seed:demo` end-to-end
+  # assertion, which needs Story 23.1's demo seed to exist first.
+  23-2-fresh-clone-verified: in-progress
   epic-23-retrospective: optional
+
+  # --- Epic 24: The interface speaks the operator's language ---
+  # Created 2026-08-01 by the SECOND Correct Course of the day. Realizes FR-25
+  # (UI Locale). Deliberately separate from Epics 21/22, which carry the DATA half
+  # (FR-24) of the same day's locale work: the two halves share a word and nothing
+  # else — no table, no module, no test, no file. This epic touches no corpus file
+  # and no corpus table; Epics 21-22 touch no .tsx string. Own worktree, no gate.
+  # Measured 2026-08-01: NO i18n infrastructure exists — lang="en" hard-coded at
+  # src/app/layout.tsx:31 is the entirety of it. 39 .tsx, 26 client components,
+  # ~55 JSX/attribute literals + ~158 src/lib and src/app/api messages (many
+  # dev-facing). Estimate 100-150 real translatable strings.
+  epic-24: backlog
+  # Infrastructure half: string catalogue, ui_locale setting on the shipped
+  # per-concern pattern, switcher, <html lang> following the setting. An
+  # UNRESOLVED KEY MUST BE VISIBLE AS A DEFECT, never rendered blank. ui_locale is
+  # the fourth of FR-24's four settings keys and the only one this epic owns.
+  24-1-string-catalogue-switcher-and-lang: backlog
+  # The sweep. Includes the slide-plan.ts operator-facing labels ('Welcome',
+  # 'Opening Song', 'Congregation, please stand', 'Prayer Partners', 'Break Time')
+  # — verified 2026-08-01 they populate LegacyProjection (slide-plan.ts:76), read
+  # ONLY by present/presenter-model.ts and SlidePreviewList.tsx; pptx.ts and the
+  # projector read it zero times. OUT OF SCOPE and stated so the drive-by fix is a
+  # decision: slide-plan.ts:261 hard-codes 'Bandung International Community', a
+  # church name in code — not a translatable string, different capability.
+  24-2-the-strings-move: backlog
+  epic-24-retrospective: optional
 
 action_items:
   - epic: 14
@@ -395,7 +481,7 @@ action_items:
 
   # --- Added 2026-08-01 with Epics 21-23 (Correct Course) ---
   - epic: 22
-    action: "BLOCKS Story 22.2. bmad-architecture Update: no AD governs a SHIPPED REFERENCE CORPUS at all. AD-11 and AD-17 cover the registry seed only, while the hymnal is upserted on every boot (src/lib/db/index.ts:262), overwriting title and lyrics — the boot-time value-change channel AD-17 removed for the registry and AD-21 routes through a declared transition n to n+1. Correcting 695 persisted titles is exactly that case, and the spine records at :370 that AD-21 counter does not exist and no story owns introducing it. Add the next AD-n — never renumber — settling whether the shipped corpora ride the boot upsert or the counter arrives here. The same run amends the Structural Seed tree (:315 names data/ hymnal corpus (hymns.json); :322 the scripts list) and clears both Deferred bullets (:360 FR-19 corpus ops, :363 SDAH licence). Line numbers re-measured after merging origin/main on 2026-08-01, which moved all five by four"
+    action: "STILL OPEN, and re-scoped 2026-08-01: Story 22.2 shipped without waiting on this, which needs stating precisely so the gate is not quietly treated as closed. It shipped because it introduced NO new channel — upsertHymns already overwrote title and lyrics from the corpus on every boot, so the corrected titles reached the table through the path that was already there, and no schema or seeding channel was added for them. What this run still owes is the forward question, unchanged: SHOULD a shipped reference corpus keep an every-boot overwrite? If the answer is AD-21's counter, the migration target is upsertHymns in src/lib/db/index.ts, not the corpus data. Note the new bible seeder deliberately does NOT use that channel: seedBibleCorpus only fills a translation holding zero verses, so it never overwrites a persisted value — one precedent for the decision, not the decision itself. ORIGINAL TEXT FOLLOWS. bmad-architecture Update: no AD governs a SHIPPED REFERENCE CORPUS at all. AD-11 and AD-17 cover the registry seed only, while the hymnal is upserted on every boot (src/lib/db/index.ts:262), overwriting title and lyrics — the boot-time value-change channel AD-17 removed for the registry and AD-21 routes through a declared transition n to n+1. Correcting 695 persisted titles is exactly that case, and the spine records at :370 that AD-21 counter does not exist and no story owns introducing it. Add the next AD-n — never renumber — settling whether the shipped corpora ride the boot upsert or the counter arrives here. The same run amends the Structural Seed tree (:315 names data/ hymnal corpus (hymns.json); :322 the scripts list) and clears both Deferred bullets (:360 FR-19 corpus ops, :363 SDAH licence). Line numbers re-measured after merging origin/main on 2026-08-01, which moved all five by four"
     owner: "kodesh87"
     status: open
   - epic: 21
@@ -405,8 +491,20 @@ action_items:
   - epic: 22
     action: "Supply the number-to-title list for the 695 SDAH hymns. Story 22.2 cannot start without it: the source dump carried no title column, deriveTitle() takes the first lyric line by design, and .work/lirik-lagu.json is gone — so there is nothing in the repository to derive a real title from. Owner chose to supply the list rather than have an agent source one"
     owner: "kodesh87"
-    status: open
+    status: done # 2026-08-01 the owner supplied all 695, complete and contiguous 1..695 with no duplicates. Applied verbatim into data/song-book/sdah.json apart from whitespace collapse (two entries carried a double space). Longest title is now 39 chars, against 40 titles over 45 chars before. NOT applied: four entries the corpus lyrics contradict, left as supplied because the owner index is authoritative — see the follow-up item below
+  - epic: 22
+    action: "Decide four SDAH titles the owner index spells differently from the lyrics beneath them, left VERBATIM rather than silently corrected: #81 'Thou I Speak With Tongues' (lyric: 'Though I speak with tongues'); #231 'Bless Be the King' (lyric agrees, but the hymn is 'Blest Be the King Whose Coming' — both the index and the lyric carry it, suggesting one upstream source); #234 'Christ Is the Worlds Light' (lyric: \"Christ is the world's Light\" — missing apostrophe); #356 'All Who Love and Serve Youre City' (lyric: 'All who love and serve your city'). Each projects onto a slide as written. One TSV-shaped correction fixes all four; nothing else depends on it"
+    owner: "kodesh87"
+    status: dropped # 2026-08-01 raised to the owner and EXPLICITLY DROPPED. The owner-supplied index is authoritative and stays verbatim; all four project as written. Closed by the second Correct Course of the day. Do not re-raise — a later pass rediscovering these four spellings should read this line and stop, which is the whole reason the finding is recorded rather than deleted
   - epic: 21
     action: "Delete .work/tp_bible_book_translations_*.json and .work/tp_bible_verses_*.json from the main checkout AFTER Story 21.1 completeness assertion is green (66 books / 1,189 chapters / 31,102 verses). Not before: they are the only copy of the source, and the hymnal corpus is already in exactly the state this ordering exists to avoid"
     owner: "kodesh87"
+    status: done # 2026-08-01, in that order. The assertion went green first (tests/corpus.test.mjs + npm run corpus:verify), then a full round-trip comparison confirmed all 31,102 verses and all 66 book name/shortName pairs reproduce byte-for-byte from the committed file, and only then were both exports deleted. No tp_bible_* file remains anywhere under the project root. data/bible/kjv.json is now the only copy, which is why its completeness is asserted structurally on every test run rather than sampled
+  - epic: 21
+    action: "bmad-architecture Update — SCOPE WIDENED 2026-08-01 by the second Correct Course of the day; this EXTENDS the still-open epic-22 architecture item above rather than replacing it, and both should be settled in ONE run. What the locale axis adds to that run: a bible_translations registry and a song_books registry, each carrying locale, name, licence and provenance; per-translation book names as a first-class table; a canonical book identity stable across translations, so 'same passage, another translation' stays one query; and the renames the axis implies — bible_verses.translation to translation_code, hymns.book_code to song_book_code, isKjvCorpusEmpty() to isBibleTranslationEmpty(code). The target shape was deliberately NOT decided by Correct Course; it is named there only so the stories can cite something. Never renumber an existing AD-n — add the next one. NOT part of this run and NOT an open item: per-locale template identity on artifact_templates. Rejecting projection_locale makes one global template set a recorded accepted trade (PRD 4.12), not work awaiting a decision"
+    owner: "Developer"
+    status: open
+  - epic: 24
+    action: "bmad-ux Update — EXPERIENCE.md is now stale in TWO ways and one run should close both. (1) The pre-existing item: the State Patterns row at EXPERIENCE.md:143 states, as a shipped state, that lookup is unavailable when the corpus was never imported (an ops step). The corpus now ships, so the default flips and that message survives only as the unreadable-file path. (2) NEW 2026-08-01: FR-24 adds a corpus picker with an always-present control for browsing locales outside the default, and FR-25 adds a locale switcher — both are UX surfaces no artifact describes. The never-filter rule is what the picker must make visible: an Operator has to be able to SEE that other locales are reachable, or a default that only filters the view will read to them as one that filters the data. Whether either adds a route determines if the IA table moves; the pre-existing item alone did not"
+    owner: "Developer"
     status: open

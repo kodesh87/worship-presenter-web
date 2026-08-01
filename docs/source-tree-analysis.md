@@ -9,7 +9,7 @@ bic-pptx-workflow/
 ├── .github/                 # GitHub actions and CI workflows
 ├── _bmad/                   # BMad agent configurations and customization scripts
 ├── _bmad-output/            # Outputs from BMad execution runs (PRDs, plans, etc.)
-├── data/                    # Static seed JSON files (e.g., hymns.json)
+├── data/                    # Committed default seed corpora (bible/kjv.json, song-book/sdah.json)
 ├── docs/                    # Technical documentation, design specs, and manuals
 ├── public/                  # Public static assets (images, icons)
 ├── scripts/                 # Administration and database import/deploy scripts
@@ -75,6 +75,6 @@ Contains modular test scripts running under the Node native test runner (`node -
 
 ### `/scripts/`
 Contains administration helper scripts:
-- `import-hymnal.mjs` and `import-kjv.mjs` seed SQLite database rows.
+- `verify-corpora.mjs` asserts the committed corpora under `data/` are complete. It replaced `import-hymnal.mjs` and `import-kjv.mjs`, both retired once the corpora shipped: their source exports no longer exist, so the committed files are the source of record and seeding moved into the app's boot path.
 - `docker compose pull && docker compose up -d` pulls and restarts the production Docker stack.
 - `smoke-*.mjs` scripts execute endpoint smoke testing.

@@ -123,8 +123,9 @@ const FORBIDDEN_LITERAL_HASHES = new Set([
  *
  * Three words from this group are deliberately NOT listed, for the same reason as
  * the Bible-book name above:
- *   - one given name is a word in 182 hymns in `data/hymns.json` and in the title
- *     "Amazing Grace";
+ *   - one given name is a word in 182 hymns in the song book corpus (then at
+ *     `data/hymns.json`, since 2026-08-01 at `data/song-book/sdah.json`) and in
+ *     the title "Amazing Grace";
  *   - one is a figure in the Bible;
  *   - one is a first name in an invented brainstorming cast under `_bmad-output/`,
  *     alongside three other invented personas, and is not a congregation member.

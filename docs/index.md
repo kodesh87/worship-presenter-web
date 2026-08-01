@@ -55,9 +55,8 @@ Run these commands in the root of the project to boot local development:
 # 1. Install dependencies
 npm install
 
-# 2. Seeding SQLite tables
-npm run import:hymnal
-npm run import:kjv
+# 2. Check the shipped corpora (they seed themselves on first boot)
+npm run corpus:verify
 
 # 3. Booting local Next.js dev server
 npm run dev
