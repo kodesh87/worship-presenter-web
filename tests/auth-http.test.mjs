@@ -16,9 +16,66 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 
+/**
+ * This is the only suite that asserts against the **built** app rather than
+ * against `src/` directly, which makes it the only one that can go stale.
+ *
+ * Until 2026-08-01 the precondition below was `existsSync('.next')` — presence,
+ * not freshness. A fresh worktree has no `.next` and failed loudly, which was
+ * fine; the dangerous case was the other one. Build once, edit `src/proxy.ts`,
+ * run `npm test`, and this suite would spawn the *previous* build, prove the
+ * old gate still refuses an unauthenticated call, and pass — a green tick over
+ * code that no longer exists. Every other suite loads `src/**` through the
+ * strip-types loader and cannot drift this way.
+ *
+ * CI was never exposed (`npm ci` → `npm run build` → `npm test`, fresh runner).
+ * What was exposed is local feedback on AD-5, the gate this repo guards hardest.
+ *
+ * `BUILD_ID` is the marker because Next writes it when a build *completes*, so
+ * an interrupted build cannot leave a timestamp that reads as current. Touching
+ * a file without changing it will demand a rebuild — this errs toward failing
+ * loudly, which is the whole point of the change.
+ */
 const nextDir = path.join(root, '.next');
-if (!fs.existsSync(nextDir)) {
-  throw new Error('Run `npm run build` before auth-http tests');
+const buildId = path.join(nextDir, 'BUILD_ID');
+const REBUILD = 'Run `npm run build` before auth-http tests';
+
+if (!fs.existsSync(buildId)) {
+  throw new Error(REBUILD);
+}
+
+const builtAt = fs.statSync(buildId).mtimeMs;
+
+/** Everything whose change lands in the build output. */
+const BUILD_INPUTS = [
+  'src',
+  'next.config.ts',
+  'postcss.config.mjs',
+  'tsconfig.json',
+  'components.json',
+  'package.json',
+];
+
+function newestChange(target) {
+  const stat = fs.statSync(target);
+  if (!stat.isDirectory()) return { at: stat.mtimeMs, file: target };
+  let newest = { at: stat.mtimeMs, file: target };
+  for (const entry of fs.readdirSync(target)) {
+    const found = newestChange(path.join(target, entry));
+    if (found.at > newest.at) newest = found;
+  }
+  return newest;
+}
+
+for (const input of BUILD_INPUTS) {
+  const full = path.join(root, input);
+  if (!fs.existsSync(full)) continue;
+  const { at, file } = newestChange(full);
+  if (at > builtAt) {
+    throw new Error(
+      `${REBUILD} — ${path.relative(root, file)} changed after the build, so this suite would test the previous one`
+    );
+  }
 }
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'auth-http-test-'));

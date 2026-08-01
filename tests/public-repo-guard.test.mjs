@@ -175,6 +175,58 @@ function fingerprint(value) {
   return createHash('sha256').update(value).digest('hex').slice(0, 16);
 }
 
+/**
+ * Decode a tracked file to text before any matcher sees it.
+ *
+ * Until 2026-08-01 this guard read every file with `readFileSync(file, 'utf8')`,
+ * and that one argument was a hole wide enough to drive a name through. A
+ * UTF-16 file decoded as UTF-8 becomes each letter followed by NUL, so `WORDS`
+ * — which needs four lowercase letters in a row — cannot form a single word,
+ * and every check below passes on content it never actually read. Nothing
+ * reports it: a silent pass and a real pass are the same green tick.
+ *
+ * That is not a theoretical encoding. **This is a Windows-primary project, and
+ * PowerShell's `>` and `Out-File` write UTF-16LE by default**, so any tracked
+ * file produced by a redirect arrives in exactly the shape the matcher cannot
+ * see. `_bmad-output/review-diff.diff` was one, tracked from the initial commit
+ * until it was removed on 2026-08-01; it turned out clean, which was luck and
+ * not the guard working.
+ *
+ * A BOM-less UTF-16 file is decided by counting NULs rather than by trusting an
+ * extension: real text in this repository does not contain them, so a quarter of
+ * the leading bytes being NUL means UTF-16, and which half of each pair holds
+ * them says LE or BE.
+ */
+function decodeTracked(buffer) {
+  if (buffer.length >= 3 && buffer[0] === 0xef && buffer[1] === 0xbb && buffer[2] === 0xbf) {
+    return buffer.subarray(3).toString('utf8');
+  }
+  if (buffer.length >= 2 && buffer[0] === 0xff && buffer[1] === 0xfe) {
+    return buffer.subarray(2).toString('utf16le');
+  }
+  if (buffer.length >= 2 && buffer[0] === 0xfe && buffer[1] === 0xff) {
+    return Buffer.from(buffer.subarray(2)).swap16().toString('utf16le');
+  }
+
+  const sample = buffer.subarray(0, 1024);
+  let atOdd = 0;
+  let atEven = 0;
+  for (let i = 0; i < sample.length; i += 1) {
+    if (sample[i] !== 0) continue;
+    if (i % 2 === 0) atEven += 1;
+    else atOdd += 1;
+  }
+  if (atOdd + atEven > sample.length / 4) {
+    const even = buffer.length - (buffer.length % 2);
+    const body = buffer.subarray(0, even);
+    return atOdd >= atEven
+      ? body.toString('utf16le')
+      : Buffer.from(body).swap16().toString('utf16le');
+  }
+
+  return buffer.toString('utf8');
+}
+
 const TEXT_EXTENSIONS = new Set([
   '.ts',
   '.tsx',
@@ -259,7 +311,7 @@ test('no private literal or real name is committed', () => {
 
     let text;
     try {
-      text = fs.readFileSync(full, 'utf8');
+      text = decodeTracked(fs.readFileSync(full));
     } catch {
       // A file that cannot be read is a gap, not a pass. Say so.
       offenders.push(`${file}: unreadable, so it was not checked`);
@@ -289,5 +341,39 @@ test('no private literal or real name is committed', () => {
     offenders,
     [],
     `private data reached a tracked file:\n  ${[...new Set(offenders)].join('\n  ')}`
+  );
+});
+
+test('a name cannot hide behind an encoding', () => {
+  // Invented, and on no list here — what is under test is the encoding, not the
+  // identity. Using a real forbidden name would put one back in this file, which
+  // is the mistake the hashes above exist to undo.
+  const sentinel = 'Synthetica Testperson';
+  const le = Buffer.from(sentinel, 'utf16le');
+  const be = Buffer.from(le).swap16();
+  const bom = (...bytes) => Buffer.from(bytes);
+
+  const encodings = [
+    ['UTF-8', Buffer.from(sentinel, 'utf8')],
+    ['UTF-8 with BOM', Buffer.concat([bom(0xef, 0xbb, 0xbf), Buffer.from(sentinel, 'utf8')])],
+    ['UTF-16LE with BOM', Buffer.concat([bom(0xff, 0xfe), le])],
+    ['UTF-16BE with BOM', Buffer.concat([bom(0xfe, 0xff), be])],
+    ['UTF-16LE without a BOM', le],
+    ['UTF-16BE without a BOM', be],
+  ];
+
+  for (const [label, buffer] of encodings) {
+    assert.equal(decodeTracked(buffer), sentinel, `${label} did not decode to its own text`);
+    assert.ok(
+      (decodeTracked(buffer).match(WORDS) ?? []).includes('Synthetica'),
+      `${label} decoded, but the word matcher still could not see the name`
+    );
+  }
+
+  // The defect this replaces, stated as an assertion rather than as a comment:
+  // read the same bytes the old way and the name is simply not there to find.
+  assert.ok(
+    !(le.toString('utf8').match(WORDS) ?? []).includes('Synthetica'),
+    'UTF-16 read as UTF-8 now yields the name, so this test no longer proves anything'
   );
 });
