@@ -1,0 +1,26 @@
+# Git-ignored paths copied into each new Claude Code worktree, so a fresh
+# worktree can run the app and the test suite without re-provisioning.
+#
+# Gitignore-style patterns, matched against `git ls-files --others --ignored`.
+# Only path NAMES live here — no secrets, no congregation data. Copies land
+# under .claude/worktrees/, which stays git-ignored. See AGENTS.md.
+
+# Runtime configuration
+.env
+
+# Local SQLite database — each worktree gets its own copy, isolated from main
+data.db
+data.db-shm
+data.db-wal
+
+# Private registry preferred by the seeder over the shipped example
+data/local/
+
+# Uploaded graphics (default UPLOADS_DIR) — needed for slides to render
+data/uploads/
+
+# BMad per-user configuration
+_bmad/custom/config.user.toml
+
+# Deliberately NOT listed: node_modules/ (copied file-by-file, far slower than
+# `npm ci`), .next/, .cache/, .work/ — all rebuildable or scratch.

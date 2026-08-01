@@ -73,6 +73,13 @@ slides-new/
 *.pptx
 *.potx
 
+# Claude Code worktrees. `.worktreeinclude` copies .env, data.db, data/local/
+# and data/uploads/ into every new worktree, so these directories hold exactly
+# the categories above. Claude Code also excludes this path via
+# .git/info/exclude, but that file is per-clone and never shared — the rule has
+# to live here to survive a fresh clone or CI.
+.claude/worktrees/
+
 # Local databases and their backups.
 data/*.db
 data.db.bak-*
