@@ -263,13 +263,13 @@ So that layouts can be extended without a code change.
 
 **Note:** seeded element IDs and any element marked `required` stay immutable — the save API rejects their removal or rename (400) and read-only base types (FullScreenImage, SongSet, Announcement) expose no add/delete affordances at all. Only elements authored in the editor may be deleted.
 
-### Epic 17: An operator surface that is readable and honest *(in-progress — Story 17.1)*
+### Epic 17: An operator surface that is readable and honest *(in-progress — Story 17.1 at review)*
 
 Created 2026-07-29 from the implementation-readiness assessment's product defects, via the epic route rather than inline patching — the point of Correct Course that day was that inline is how the drift happened. Titled around what an operator gets, per the C5-1 remediation: the value standard applies to new epics from here.
 
 **Requirement ancestry — a recorded decision, not an omission.** These stories change the *operator chrome's* visual identity and self-presentation. Per the authority map in `AGENTS.md`, that is governed by `DESIGN.md`, not by a PRD FR. Unlike Epic 16 — which changed how every slide is produced and needed FR-20 — nothing here alters a Deck, a Slide Type, or any payload contract. **Constraint that keeps that true:** whatever an operator's theme, the projected output (`slide-surface`, PPTX, projector window) must be byte-identical. The congregation never sees operator chrome.
 
-#### Story 17.1: Reachable Dark Mode *(in-progress — 24 patch action items from code-review round 2; AC-4 scoped to the token guarantee, its shell half spun out to Story 17.7)*
+#### Story 17.1: Reachable Dark Mode *(in-progress — code-review round 4's 15 patch items closed 2026-08-01; ONE decision item open, routed by the owner through a `bmad-architecture` Update run, and 17.1 does not go to `done` until it lands. Rounds 1–3 closed; AC-4 scoped to the token guarantee, its shell half spun out to Story 17.7)*
 As an operator running a service in a dim sanctuary,
 I want the hub to follow a dark theme I can choose,
 So that a full-brightness white screen in my hands does not light up the room.

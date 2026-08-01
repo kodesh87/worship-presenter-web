@@ -58,9 +58,62 @@ const srcUrl = (...parts) => pathToFileURL(path.join(repoRoot, ...parts)).href;
 
 // --- source hygiene ---------------------------------------------------------
 
+/** Past the string literal opening at `at`, escapes honoured. */
+function pastString(source, at) {
+  const quote = source[at];
+  let i = at + 1;
+  while (i < source.length) {
+    if (source[i] === '\\') {
+      i += 2;
+      continue;
+    }
+    if (source[i] === quote) return i + 1;
+    i += 1;
+  }
+  return i;
+}
+
 /**
- * Comments removed, strings kept, so no assertion below can be satisfied by
- * prose and none can be broken by prose either.
+ * Identifiers that end a *value*, after which `/` divides and `<` compares. Any
+ * other identifier in the same position is a keyword, after which both are
+ * delimiters — so the question is which of the two sets the word belongs to.
+ */
+const OPERAND_KEYWORDS = new Set([
+  'return', 'typeof', 'instanceof', 'in', 'of', 'new', 'delete', 'void', 'case',
+  'do', 'else', 'yield', 'await', 'throw',
+]);
+
+/**
+ * Whether an expression may begin at `at` — the one lexical question behind
+ * both a regex literal and a JSX element, since `/` and `<` are each an
+ * operator after a value and a delimiter before one.
+ *
+ * Encoded once and shared, because both guards below had the same defect in
+ * different clothes: `stripComments` read `/\//` as a line comment, and the
+ * JSX-root walk would read `a < b` as an element. One rule answers both.
+ */
+function expressionPosition(source, at) {
+  let i = at - 1;
+  while (i >= 0 && /\s/.test(source[i])) i -= 1;
+  if (i < 0) return true;
+  // A `<` immediately before is a tag delimiter, never an operator: `</` closes
+  // an element and `<<` shifts. Neither begins an expression — and reading
+  // `</div>`'s slash as a regex opener is what let a comment on the same line as
+  // a closing tag survive `stripComments` verbatim, which is the one thing that
+  // function exists to prevent.
+  if (source[i] === '<') return false;
+  // `)` and `]` close a value; `(`, `[`, `{`, `,`, `?`, `:`, `=`, `>` and every
+  // other operator do not. A quote closes a string, which is a value.
+  if (!/[\w$)\]"'`]/.test(source[i])) return true;
+  if (!/[\w$]/.test(source[i])) return false;
+  let start = i;
+  while (start >= 0 && /[\w$]/.test(source[start])) start -= 1;
+  return OPERAND_KEYWORDS.has(source.slice(start + 1, i + 1));
+}
+
+/**
+ * Comments removed, strings and regex literals kept, so no assertion below can
+ * be satisfied by prose and none can be broken by prose either.
  *
  * This is a scanner and not a pair of regexes, because both regexes were wrong
  * in opposite directions. `/\/\*[\s\S]*?\*\//g` deletes real code whenever a
@@ -71,16 +124,121 @@ const srcUrl = (...parts) => pathToFileURL(path.join(repoRoot, ...parts)).href;
  * string, so it is passed through untouched, which is what the line-start rule
  * was a workaround for.
  *
- * Known limit: a `/*` or `//` inside a *regex literal* still reads as a comment
- * opener. No scanned file contains one, and closing it would mean deciding
- * whether `/` is division or a delimiter, which needs a real parser.
+ * **Regex literals are a third quoting form and are now scanned as one.** The
+ * character scanner treated `'`, `"` and `` ` `` as string openers
+ * unconditionally, which broke in both directions on real files in `src/`:
+ *
+ *   - a quote inside a regex opened a phantom string. `src/lib/parser.ts:130`
+ *     (`/\s+"[^"]*"\s*$/`) swallowed 454 characters and 8,619 more, and
+ *     `src/lib/lyrics.ts` did it at eight sites — after which comments in those
+ *     files were not stripped at all. Both are `.ts` modules this file feeds
+ *     through `themeReferences()` whenever a projected file imports them.
+ *   - `value.split(/\//)` was outside a string at the backslash, so the `//`
+ *     read as a line comment and **the rest of that line was deleted from the
+ *     scan** — a live theme token on it would have passed the AC-4 guard by not
+ *     being there. That is the dangerous direction, and it is the reason this is
+ *     fixed rather than documented as a limit.
+ *
+ * Comment openers are still tested *first* in JS position: neither `/*` nor `//`
+ * can begin a regex (`*` has nothing to repeat, and `//` is the empty regex,
+ * spelled `/(?:)/`), so ordering them first is exact rather than a compromise —
+ * and it keeps `foo(/*inline*&#47; x)`, where an expression may begin, a comment.
+ *
+ * **JSX children are a fourth quoting form and are now scanned as one.** That
+ * ordering argument covers regex literals and says nothing about element text,
+ * where the scanner fired the comment branch unconditionally:
+ *
+ *   - `<p>Docs: https://example.test/reset <span className="bg-card …">` — the
+ *     `//` in the URL read as a line comment and **the rest of the line was
+ *     deleted from the scan**, hiding a live `bg-card`, a `dark:` variant and a
+ *     `border-2` from four AC-4 guards at once. One URL in room-facing copy.
+ *   - `<p>ratio 3 /* 4</p>` is worse: `indexOf('*&#47;')` misses and the
+ *     **remainder of the file** is discarded.
+ *
+ * `walkJsx` already models this (`inChildren`), and `stripComments` feeds
+ * `walkJsx` — so the guard that knew the rule ran downstream of the one that did
+ * not. Attribute position is deliberately *not* children: a comment inside
+ * `className={cn('a', /* … *&#47; 'b')}` is a comment, and removing it is the
+ * whole point, so an opening tag's interior is scanned rather than skipped whole.
  */
 function stripComments(source) {
   let out = '';
   let i = 0;
+  // Elements whose children are open, and the bracket depth each opening tag was
+  // entered at. `tagStack` is a stack rather than a flag because an element can
+  // appear inside another's props (`<Foo bar={<Child/>}>`), and a flag let the
+  // inner tag's `>` close the outer one — after which children were never seen.
+  const open = [];
+  const tagStack = [];
+  let nesting = 0;
   while (i < source.length) {
     const c = source[i];
-    const next = source[i + 1];
+    const next = source[i + 1] ?? '';
+    const inAttributes =
+      tagStack.length > 0 && nesting === tagStack[tagStack.length - 1];
+    const inChildren =
+      !inAttributes &&
+      open.length > 0 &&
+      nesting === open[open.length - 1].nesting;
+
+    // Between `<Name` and its `>`: attribute values are strings, `{` opens a
+    // container and the JS rules resume inside it.
+    if (inAttributes) {
+      if (c === '>') {
+        // `<div />` self-closes; `<div>` opens children.
+        if (!/\/\s*$/.test(out)) open.push({ nesting });
+        tagStack.pop();
+        out += c;
+        i += 1;
+        continue;
+      }
+      if (c === '"' || c === "'" || c === '`') {
+        const end = pastString(source, i);
+        out += source.slice(i, end);
+        i = end;
+        continue;
+      }
+      if (c === '{') nesting += 1;
+      out += c;
+      i += 1;
+      continue;
+    }
+
+    // JSX structure, reachable from element children and from plain JS alike.
+    if (c === '<' && next === '/') {
+      const end = source.indexOf('>', i);
+      const to = end === -1 ? source.length : end + 1;
+      open.pop();
+      out += source.slice(i, to);
+      i = to;
+      continue;
+    }
+    if (c === '<' && next === '>') {
+      open.push({ nesting });
+      out += '<>';
+      i += 2;
+      continue;
+    }
+    if (
+      c === '<' &&
+      /[A-Za-z]/.test(next) &&
+      (inChildren || expressionPosition(out, out.length))
+    ) {
+      tagStack.push(nesting);
+      out += c;
+      i += 1;
+      continue;
+    }
+
+    // Element text: an apostrophe is an apostrophe, and the `//` in a URL is
+    // part of the copy the operator reads.
+    if (inChildren) {
+      if (c === '{') nesting += 1;
+      out += c;
+      i += 1;
+      continue;
+    }
+
     if (c === '/' && next === '*') {
       const end = source.indexOf('*/', i + 2);
       i = end === -1 ? source.length : end + 2;
@@ -91,15 +249,20 @@ function stripComments(source) {
       i = end === -1 ? source.length : end;
       continue;
     }
-    if (c === '"' || c === "'" || c === '`') {
+    if (c === '/' && expressionPosition(out, out.length)) {
       const start = i;
       i += 1;
+      let inClass = false;
       while (i < source.length) {
-        if (source[i] === '\\') {
+        const r = source[i];
+        if (r === '\\') {
           i += 2;
           continue;
         }
-        if (source[i] === c) {
+        if (r === '\n') break;
+        if (r === '[') inClass = true;
+        else if (r === ']') inClass = false;
+        else if (r === '/' && !inClass) {
           i += 1;
           break;
         }
@@ -108,6 +271,14 @@ function stripComments(source) {
       out += source.slice(start, i);
       continue;
     }
+    if (c === '"' || c === "'" || c === '`') {
+      const end = pastString(source, i);
+      out += source.slice(i, end);
+      i = end;
+      continue;
+    }
+    if (c === '(' || c === '[' || c === '{') nesting += 1;
+    else if (c === ')' || c === ']' || c === '}') nesting -= 1;
     out += c;
     i += 1;
   }
@@ -155,15 +326,130 @@ function balancedBlock(source, from) {
   assert.fail('unbalanced block');
 }
 
-/** Every `.tsx` under `src/`, for the checks that must not trust a file list. */
-function allTsxFiles(dir = 'src') {
+/** Every file under `src/` with one of `extensions`, for checks that must not trust a file list. */
+function allSourceFiles(extensions, dir = 'src') {
   const out = [];
   for (const entry of fs.readdirSync(path.join(repoRoot, dir), { withFileTypes: true })) {
     const rel = `${dir}/${entry.name}`;
-    if (entry.isDirectory()) out.push(...allTsxFiles(rel));
-    else if (entry.name.endsWith('.tsx')) out.push(rel);
+    if (entry.isDirectory()) out.push(...allSourceFiles(extensions, rel));
+    else if (extensions.some((ext) => entry.name.endsWith(ext))) out.push(rel);
   }
   return out;
+}
+
+const allTsxFiles = () => allSourceFiles(['.tsx']);
+const allTsFiles = () => allSourceFiles(['.ts']);
+
+// --- JSX, walked rather than pattern-matched ---------------------------------
+
+/**
+ * The whole opening tag beginning at `at`, brace- and string-aware.
+ *
+ * `/<Link\b[\s\S]*?>/g` was the previous form and it stopped at the first `>`,
+ * so an `onClick={() => …}` prop truncated the slice before its `className` and
+ * a correctly written link failed the focus-ring guard. A `>` inside a prop
+ * expression is at brace depth, not tag depth, which is the distinction the
+ * lazy regex could not make.
+ */
+function openingTag(source, at) {
+  let i = at + 1;
+  let depth = 0;
+  while (i < source.length) {
+    const c = source[i];
+    if (c === '"' || c === "'" || c === '`') {
+      i = pastString(source, i);
+      continue;
+    }
+    if (c === '{') depth += 1;
+    else if (c === '}') depth -= 1;
+    else if (c === '>' && depth === 0) return source.slice(at, i + 1);
+    i += 1;
+  }
+  return source.slice(at);
+}
+
+/**
+ * Walk `source` as JSX from `at`, reporting each element's opening tag with the
+ * depth it sits at and the stack above it, and stopping where `stop` says the
+ * statement ends.
+ *
+ * One walk, because four guards need the same three facts and each had invented
+ * its own narrower answer: which elements are at the top of a return, which tag
+ * encloses a given child, and where a `return` statement ends.
+ *
+ * Two known limits, both loud rather than silent. A `<` inside a string in a
+ * JSX expression container (`{'<div>'}`) reads as an element, and a `<`
+ * comparison inside a container is excluded by `expressionPosition` but a
+ * `foo<Bar>` type argument there is not. Either produces a spurious element and
+ * therefore a failing assertion, never a skipped one.
+ */
+function walkJsx(source, at, stop) {
+  const tags = [];
+  const open = [];
+  let nesting = 0;
+  let i = at;
+  while (i < source.length) {
+    const c = source[i];
+    const next = source[i + 1] ?? '';
+    // Inside element children a quote is an apostrophe and every `<` opens a
+    // tag; inside a container or in plain JS the lexical rules apply again.
+    const inChildren = open.length > 0 && nesting === open[open.length - 1].nesting;
+    if (stop && stop(c, nesting, open.length)) break;
+    if (!inChildren && (c === '"' || c === "'" || c === '`')) {
+      i = pastString(source, i);
+      continue;
+    }
+    if (c === '(' || c === '[' || c === '{') {
+      nesting += 1;
+      i += 1;
+      continue;
+    }
+    if (c === ')' || c === ']' || c === '}') {
+      nesting -= 1;
+      i += 1;
+      continue;
+    }
+    if (c === '<' && next === '/') {
+      const end = source.indexOf('>', i);
+      open.pop();
+      i = end === -1 ? source.length : end + 1;
+      continue;
+    }
+    if (c === '<' && next === '>') {
+      tags.push({ tag: '<>', depth: open.length, stack: [...open], index: i });
+      open.push({ tag: '<>', nesting });
+      i += 2;
+      continue;
+    }
+    if (c === '<' && /[A-Za-z]/.test(next) && (inChildren || expressionPosition(source, i))) {
+      const tag = openingTag(source, i);
+      tags.push({ tag, depth: open.length, stack: [...open], index: i });
+      if (!tag.endsWith('/>')) open.push({ tag, nesting });
+      i += tag.length;
+      continue;
+    }
+    i += 1;
+  }
+  return tags;
+}
+
+/**
+ * Every JSX element in `file`, so a guard can ask about all of them instead of
+ * about the ones a particular regex happened to spell.
+ */
+function jsxTags(source) {
+  return walkJsx(source, 0, null);
+}
+
+/** The opening tag of the innermost element enclosing the first `needle`. */
+function enclosingTag(source, needle) {
+  const at = source.indexOf(needle);
+  assert.notEqual(at, -1, `expected to find ${needle}`);
+  const inside = jsxTags(source).filter((t) => t.index === at);
+  assert.equal(inside.length, 1, `expected exactly one ${needle}`);
+  const [{ stack }] = inside;
+  assert.ok(stack.length > 0, `${needle} is not inside any element`);
+  return stack[stack.length - 1].tag;
 }
 
 // --- the palette, read from its source of truth, parsed once ----------------
@@ -310,12 +596,29 @@ const PROJECTED = [
  */
 const EDGE_WIDTH = String.raw`(?:\d+|\[[^\]\s"'\`]+\])`;
 const EDGE_SIDE = String.raw`(?:[trblxy]|s|e)`;
-const EDGE_END = String.raw`(?=["'\s\`}]|$)`;
+/**
+ * Where a utility ends inside a class value.
+ *
+ * It used to be `(?=["'\s\`}]|$)`, which is the set of things that end a
+ * *quoted* class string — and interpolated `className` is idiomatic in this
+ * codebase, so the guard whose entire subject is width utilities let a painted
+ * edge past whenever one was written that way. Run against the compiled pattern:
+ * `` `… border-2${extra} …` ``, `` `ring-1${x}` ``, `` `border-[3px]${y}` `` and
+ * `"border-2!"` were all missed, while the same strings with a space before the
+ * `${` were caught. `$` (a template interpolation opening) and `!` (Tailwind's
+ * important suffix) are delimiters too, so they are in the set.
+ */
+const EDGE_END = String.raw`(?=["'\s\`}$!]|$)`;
 const EDGE_PATTERNS = [
   // `border`, `border-2`, `border-t`, `border-t-2`, `border-[3px]`, `divide-y-4`
   String.raw`(?<![-\w])(?:border|divide)(?:-${EDGE_SIDE})?(?:-${EDGE_WIDTH})?${EDGE_END}`,
   // `ring`, `ring-1`, `outline-1`, `ring-offset-2`
   String.raw`(?<![-\w])(?:ring|outline|ring-offset|outline-offset)(?:-${EDGE_WIDTH})?${EDGE_END}`,
+  // An interpolated width — `border-${w}`, `border-t-${w}`, `ring-${n}`. The
+  // expression could resolve to a colour instead, in which case this fails and
+  // the answer is to state the literal the failure message asks for; a projected
+  // file computing its own edge classes is worth stopping to look at either way.
+  String.raw`(?<![-\w])(?:border|divide|ring|outline)(?:-${EDGE_SIDE})?-\$\{`,
   // `[border-width:2px]`, `[border-top-width:1px]`, `[outline-width:3px]`
   String.raw`\[(?:border|outline|ring)(?:-[a-z]+)*-width\s*:[^\]]*\]`,
   // `style={{ borderWidth: 1 }}`, `borderTopWidth`, `outlineWidth`
@@ -351,43 +654,144 @@ for (const file of PROJECTED) {
   });
 }
 
-test('AC-4: the projected focusables state a literal outline colour', () => {
+/**
+ * Anything the UA will give a focus ring: the interactive elements, plus
+ * anything made focusable by hand.
+ *
+ * Spelled as a rule because the previous form matched `<Link` and nothing else,
+ * in a hardcoded pair of files — so a `<button type="button">Next</button>`
+ * beside the Exit link rang from `--ring` on the room-facing screen with the
+ * suite at 43/43.
+ */
+const FOCUSABLE_TAG = /^<(?:Link|a|button|input|select|textarea|summary|Button)\b/;
+const isFocusable = (tag) => FOCUSABLE_TAG.test(tag) || /\btabIndex\s*=/.test(tag);
+
+/**
+ * A `focus-visible:outline-*` that states a colour.
+ *
+ * The assertion was `/focus-visible:outline-\w/` while its own failure message
+ * demanded a *colour* — so `none`, `hidden` and `0` all satisfied it, and the
+ * one regression it was blind to was the worst of the three: `outline-none` on
+ * the Exit link leaves the projected screen with no visible focus indicator at
+ * all (WCAG 2.4.7). Reproduced at `SlideshowClient.tsx:72` → 43/43 green.
+ * `outline-offset-*` is a distance, not a colour, and is excluded too.
+ *
+ * Excluding those four was still a list of spellings rather than the criterion,
+ * and two more walked past it at 47/47 green. There are exactly two ways to fail
+ * here and the exclusions are grouped by which:
+ *
+ *   - **invisible** — `none`, `hidden`, a `0` width, and `transparent`, which is
+ *     a colour in every sense the CSS parser cares about and removes the
+ *     indicator exactly as `outline-none` does;
+ *   - **inherited from the theme** — the CSS-wide keywords. `outline-inherit`
+ *     takes the `outline-color` that `* { @apply outline-ring/50 }` gave every
+ *     node, which *is* the leak this guard exists to stop: `--ring` is
+ *     `oklch(0.708 0 0)` light against `oklch(0.556 0 0)` dark.
+ *
+ * `outline-current` is deliberately allowed: it resolves to the element's own
+ * `color`, which on these surfaces is the literal `text-white` the root guard
+ * pins, and a theme-token `color` cannot reach here because the token guard
+ * rejects it.
+ */
+const LITERAL_OUTLINE_COLOUR =
+  /focus-visible:outline-(?!none\b|hidden\b|offset\b|transparent\b|inherit\b|initial\b|unset\b|revert\b|\d)[a-z[(]/;
+
+test('AC-4: every projected focusable states a literal outline colour', () => {
   // `* { @apply outline-ring/50 }` gives every node a theme-dependent
   // `outline-color`, and the UA supplies the width on `:focus-visible` — so a
-  // focused link on a projected surface rings in the operator's theme. The edge
-  // guard above matches width utilities and structurally cannot see this.
-  const focusables = [
-    'src/app/services/[id]/slideshow/SlideshowClient.tsx',
-    'src/app/services/[id]/slideshow/page.tsx',
-  ];
-  for (const file of focusables) {
-    const source = read(file);
-    const links = [...source.matchAll(/<Link\b[\s\S]*?>/g)].map((m) => m[0]);
-    assert.ok(links.length > 0, `${file} is listed as carrying a projected focusable`);
-    for (const link of links) {
-      assert.match(
-        link,
-        /focus-visible:outline-\w/,
-        `a focusable on a projected surface must state its own outline colour, ` +
-          `or the focus ring paints from \`--ring\` — 0.708 light against 0.556 ` +
-          `dark. State a literal (\`focus-visible:outline-white\`); do NOT add a ` +
-          `width utility, which the edge guard will reject and should. In: ${link}`
-      );
+  // focused control on a projected surface rings in the operator's theme. The
+  // edge guard above matches width utilities and structurally cannot see this.
+  //
+  // Swept over PROJECTED rather than a hand-kept pair. `ProjectorClient` and
+  // `projector/page.tsx` were in PROJECTED and not in that pair, and the defence
+  // was that `ProjectorClient` has no focusable at all — true, and unenforced,
+  // which is verbatim the shape round 2 rejected for the `@/lib` exemption. It
+  // is enforced now by the sweep: a focusable added there is checked because it
+  // is a focusable, not because someone listed the file.
+  //
+  // And swept over the whole projected TREE, not the six-entry list. Widening
+  // the tags and leaving the files a list was the same narrowing one axis over:
+  // a focusable in a component a projected client imports was unchecked, and it
+  // escaped the token guard too because a literal `text-white/70` is not a token.
+  const offenders = [];
+  let found = 0;
+  for (const { file } of projectedTree()) {
+    if (!file.endsWith('.tsx')) continue;
+    for (const { tag } of jsxTags(read(file))) {
+      if (!isFocusable(tag)) continue;
+      found += 1;
+      if (!LITERAL_OUTLINE_COLOUR.test(tag)) offenders.push(`${file}: ${tag.trim()}`);
     }
+  }
+  assert.ok(found > 0, 'the projected surfaces carry focusables; this guard found none');
+  assert.deepEqual(
+    offenders,
+    [],
+    `a focusable on a projected surface must state its own outline COLOUR, or ` +
+      `the focus ring paints from \`--ring\` — 0.708 light against 0.556 dark. ` +
+      `State a literal (\`focus-visible:outline-white\`); \`outline-none\` is ` +
+      `not an answer, it removes the indicator entirely. Do NOT add a width ` +
+      `utility, which the edge guard will reject and should. Found: ` +
+      `${offenders.join(' | ')}`
+  );
+});
+
+/** The two room-facing route shells: the `buildSlidePlan` failure branches. */
+const ROUTE_SHELLS = [
+  'src/app/services/[id]/present/projector/page.tsx',
+  'src/app/services/[id]/slideshow/page.tsx',
+];
+
+test('the room-facing failure branches can both be scrolled', () => {
+  // Not a theme assertion. It lives here because this is the file that knows
+  // which surfaces are room-facing, and because the two branches diverged
+  // immediately after a change set declared them one failure: the slideshow's was
+  // rewritten to `overflow-y-auto` with a `min-h-full` inner column, the
+  // projector's stayed `fixed inset-0 … justify-center` with no overflow
+  // handling, and a `fixed` element cannot be scrolled. An
+  // `ArtifactHydrationError` carries up to five `key=value` scope pairs at
+  // `text-xl font-mono`, so on a short projector the detail clipped at both ends
+  // on the one screen whose job is telling the operator how to recover.
+  for (const file of ROUTE_SHELLS) {
+    const source = read(file);
+    const covering = jsxTags(source).filter(({ tag }) =>
+      /(?:^|\s)fixed inset-0(?:$|\s)/.test(classNameValues(tag)[0] ?? '')
+    );
+    assert.equal(covering.length, 1, `${file} should have one full-screen branch`);
+    const [value] = classNameValues(covering[0].tag);
+    assert.match(
+      value,
+      /(?:^|\s)overflow-(?:y-)?auto(?:$|\s)/,
+      `${file} covers the viewport with \`fixed inset-0\`, which cannot scroll. ` +
+        `A registry failure renders up to five scope pairs at \`text-xl ` +
+        `font-mono\` here, and it clips with nothing able to reach it. Both ` +
+        `room-facing branches state the same recovery: this is one failure at ` +
+        `two URLs. Found: ${value}`
+    );
   }
 });
 
 /**
  * Every module a projected file pulls in, however the specifier is written, with
- * `import type` dropped because types erase and can contribute no markup.
+ * `import type` / `export type` dropped because types erase and can contribute
+ * no markup.
+ *
+ * `export … from` was invisible to this — a re-export is a module edge like any
+ * other, and the spelling is already live in this codebase at
+ * `src/lib/parsed-fields.ts:432`, so a barrel re-exporting a token-carrying
+ * module joined the projected tree unwalked.
  */
 function moduleImports(file) {
   const source = read(file);
   const specifiers = [
-    ...[...source.matchAll(/\bimport\s+(?!type\b)[\s\S]*?\bfrom\s+["']([^"']+)["']/g)].map(
-      (m) => m[1]
-    ),
+    ...[
+      ...source.matchAll(
+        /\b(?:import|export)\s+(?!type\b)[\s\S]*?\bfrom\s+["']([^"']+)["']/g
+      ),
+    ].map((m) => m[1]),
     ...[...source.matchAll(/\bimport\s*\(\s*["']([^"']+)["']\s*\)/g)].map((m) => m[1]),
+    // A bare side-effect import carries no `from` clause at all.
+    ...[...source.matchAll(/\bimport\s+["']([^"']+)["']/g)].map((m) => m[1]),
   ];
   const inRepo = specifiers.filter((s) => s.startsWith('.') || s.startsWith('@/'));
   return inRepo.flatMap((specifier) => {
@@ -400,6 +804,42 @@ function moduleImports(file) {
     return resolved ? [{ specifier, resolved }] : [];
   });
 }
+
+/**
+ * The projected tree: every module reachable from `PROJECTED`, the roots
+ * included, each with the edge it was reached through.
+ *
+ * One walk, shared, because two guards had answered "what is projected?"
+ * differently and the narrower one was silently narrower. The closure guard
+ * walked the module graph transitively; the focus-ring guard iterated the
+ * six-entry `PROJECTED` list, so a focusable in a component a projected client
+ * imports was never checked — an `ExitBar.tsx` rendered inside the slideshow's
+ * `fixed inset-0` root was 47/47 green while ringing from `--ring` in front of
+ * the congregation. It escaped the closure guard too, correctly: `text-white/70`
+ * is a literal, so nothing looked at it at all.
+ *
+ * The defence was that no `.tsx` is reachable from the projected tree today —
+ * true (all 27 walked modules are `.ts`) and unenforced, which is verbatim the
+ * shape round 2 rejected for the `@/lib` exemption.
+ */
+const projectedTree = (() => {
+  let cached = null;
+  return () => {
+    if (cached) return cached;
+    const seen = new Map(PROJECTED.map((file) => [file, null]));
+    const queue = [...PROJECTED];
+    while (queue.length > 0) {
+      const file = queue.shift();
+      for (const { specifier, resolved } of moduleImports(file)) {
+        if (seen.has(resolved)) continue;
+        seen.set(resolved, `${file} -> ${specifier}`);
+        queue.push(resolved);
+      }
+    }
+    cached = [...seen].map(([file, via]) => ({ file, via }));
+    return cached;
+  };
+})();
 
 test('AC-4: the projected tree stays closed, transitively and with no exempt directory', () => {
   // Two earlier versions of this were narrower than they read. The first walked
@@ -415,26 +855,35 @@ test('AC-4: the projected tree stays closed, transitively and with no exempt dir
   // It walks DOWNWARD only. What renders ABOVE a projected route — the root
   // layout, a `not-found.tsx`, a `template.tsx` at the same URL — is Story
   // 17.7's contract, and is deliberately not asserted here.
-  const seen = new Set(PROJECTED);
-  const queue = [...PROJECTED];
+  //
+  // The third narrowing was the walk itself: it enqueued `.tsx` only, so the
+  // directory exemption it had just removed came straight back as an extension
+  // exemption over the same directory. A `.ts` module was scanned for tokens,
+  // but nothing it imported was ever reached — 12 modules scanned against the 27
+  // actually reachable, `src/lib/projected-shell.ts` among the missing.
+  // Reproduced both ways at 43/43 green: a class-name constant one `.ts` hop
+  // past `use-projected-shell.ts`, and a `.ts` barrel re-exporting a `.tsx` that
+  // paints `bg-card`. Every module is walked now, whatever its extension.
+  const walked = projectedTree().filter(({ via }) => via !== null);
   const offenders = [];
-
-  while (queue.length > 0) {
-    const file = queue.shift();
-    for (const { specifier, resolved } of moduleImports(file)) {
-      if (PROJECTED.includes(resolved)) continue;
-      const found = themeReferences(read(resolved));
-      if (found.length > 0) {
-        offenders.push(
-          `${file} -> ${specifier} (${resolved}) carries ${found.join(', ')}`
-        );
-      }
-      if (resolved.endsWith('.tsx') && !seen.has(resolved)) {
-        seen.add(resolved);
-        queue.push(resolved);
-      }
+  for (const { file, via } of walked) {
+    const found = themeReferences(read(file));
+    if (found.length > 0) {
+      offenders.push(`${via} (${file}) carries ${found.join(', ')}`);
     }
   }
+
+  // A floor on the reach, so the walk cannot quietly stop early again: the
+  // `.tsx`-only enqueue scanned 12 modules where following every extension
+  // reaches 27. A refactor that drops it back to one hop fails here rather than
+  // reporting an empty offender list — which is the only reason the earlier
+  // narrowing survived two rounds.
+  assert.ok(
+    walked.length >= 27,
+    `the closure walk reached only ${walked.length} modules; it used to stop at ` +
+      `the first \`.ts\` hop and that is the shape of this regression. Reached: ` +
+      `${walked.map(({ file }) => file).sort().join(', ')}`
+  );
 
   assert.deepEqual(
     offenders,
@@ -450,11 +899,18 @@ test('AC-4: no caller can style the projected wrapper from outside', () => {
   // congregation sees, and `SlideView` forwarded one straight through. Neither
   // accepts one now, so TypeScript rejects the call — this is the belt to that
   // braces, and it also covers the shapes `tsc` would not flag at a glance.
+  //
+  // Read through `openingTag`, not `/<(SlideView|ArtifactSlide)\b([^>]*)>/`.
+  // That form stopped at the first `>`, so a `>` inside a prop expression cut
+  // the slice before `className` ever appeared in it:
+  // `<SlideView slide={i > 0 ? a : b} className="bg-card" />` was green. It is
+  // the same truncation `openingTag` was written for one guard over — the fix
+  // existed in this file and was not called here.
   const offenders = [];
   for (const file of allTsxFiles()) {
-    const source = read(file);
-    for (const m of source.matchAll(/<(SlideView|ArtifactSlide)\b([^>]*)>/g)) {
-      if (/\bclassName\s*=|\{\s*\.\.\./.test(m[2])) offenders.push(`${file}: ${m[0].trim()}`);
+    for (const { tag } of jsxTags(read(file))) {
+      if (!/^<(SlideView|ArtifactSlide)\b/.test(tag)) continue;
+      if (/\bclassName\s*=|\{\s*\.\.\./.test(tag)) offenders.push(`${file}: ${tag.trim()}`);
     }
   }
   assert.deepEqual(
@@ -483,6 +939,144 @@ function exportedProps(source) {
   assert.fail('unbalanced parameter list');
 }
 
+/** The type annotation on the props parameter, as source. */
+function propsAnnotation(params) {
+  const inner = params.slice(1, -1);
+  let depth = 0;
+  for (let i = 0; i < inner.length; i += 1) {
+    const c = inner[i];
+    if ('({['.includes(c)) depth += 1;
+    else if (')}]'.includes(c)) depth -= 1;
+    else if (c === ':' && depth === 0) return inner.slice(i + 1).trim();
+  }
+  return '';
+}
+
+/**
+ * A local `type` / `interface` declaration's whole right-hand side.
+ *
+ * `balancedBlock` alone returns the first `{ … }` and nothing else, which is the
+ * hole below. `<` and `>` are deliberately not counted as brackets: they are
+ * balanced in `Foo<Bar>` and unbalanced in `() => void`, and a props type is far
+ * more likely to contain the second.
+ */
+function typeDeclarationBody(source, at) {
+  if (source.startsWith('interface', at)) {
+    const block = balancedBlock(source, at);
+    return source.slice(at + 'interface'.length, source.indexOf(block, at) + block.length);
+  }
+  let i = source.indexOf('=', at) + 1;
+  const start = i;
+  let depth = 0;
+  while (i < source.length) {
+    const c = source[i];
+    if (c === '"' || c === "'" || c === '`') {
+      i = pastString(source, i);
+      continue;
+    }
+    if ('([{'.includes(c)) depth += 1;
+    else if (')]}'.includes(c)) depth -= 1;
+    else if (c === ';' && depth === 0) break;
+    i += 1;
+  }
+  return source.slice(start, i);
+}
+
+/**
+ * `text` with every balanced `{ … }` removed, so only the composition around the
+ * inline object literals is left — the `&` members and the `extends` bases.
+ */
+function withoutObjectLiterals(text) {
+  let out = '';
+  let i = 0;
+  let depth = 0;
+  while (i < text.length) {
+    const c = text[i];
+    if (c === '"' || c === "'" || c === '`') {
+      const end = pastString(text, i);
+      if (depth === 0) out += text.slice(i, end);
+      i = end;
+      continue;
+    }
+    if (c === '{') depth += 1;
+    else if (c === '}') depth = Math.max(0, depth - 1);
+    else if (depth === 0) out += c;
+    i += 1;
+  }
+  return out;
+}
+
+/** Words that appear in a type composition and name no type. */
+const TYPE_NOISE = new Set(['extends', 'type', 'interface', 'readonly', 'keyof', 'infer']);
+
+/**
+ * The props of the file's default-exported component, as source — the inline
+ * parameter list plus the whole local declaration of a named props type, and of
+ * every locally-declared type that one composes.
+ *
+ * Reading the literal parentheses alone was enough to defeat this: `Header.tsx:9`
+ * already uses the `interface HeaderProps` + `function Header(…: HeaderProps)`
+ * shape, so it is house style rather than a contrivance. The deleted parameter is
+ * what makes a spread, a `React.createElement` call and a `.ts` call site fail to
+ * compile — and that property disappears the moment props are re-declared, with
+ * this guard the only thing standing there.
+ *
+ * **Following the name and then reading only its first `{ … }` moved the wall by
+ * exactly one spelling.** `balancedBlock` returns the object literal and never
+ * the other half of an intersection or an `extends` base, so
+ * `type SlideViewProps = React.ComponentProps<'div'> & { slide: SlidePlanItem }`
+ * with `{...rest}` on the wrapper was **47/47 green and `tsc --noEmit` clean**,
+ * with `<SlideView slide={s} className="bg-card" />` compiling and landing
+ * `bg-card` on the wrapper the congregation sees. `interface … extends` behaved
+ * the same. That is house style here too — `React.ComponentProps<"div">` at
+ * `ui/card.tsx`, `ui/dialog.tsx`, `ui/popover.tsx`, and `ButtonPrimitive.Props &
+ * VariantProps<…>` at `ui/button.tsx:47`.
+ *
+ * So the rule is stated rather than the spelling: these props must be composed
+ * only of inline object literals and types declared in this same file. Anything
+ * else — an import, a namespaced type, a utility type — fails **loudly**, because
+ * a guard that cannot read the shape it asserts about must say so instead of
+ * passing. `React.ComponentProps<'div'>` is not a hypothetical member to reject:
+ * it contains `className` by definition.
+ */
+function exportedPropsShape(source, file) {
+  const params = exportedProps(source);
+  const annotation = propsAnnotation(params);
+  assert.notEqual(
+    annotation,
+    '',
+    `${file}'s exported component must annotate its props, or this guard has ` +
+      `nothing to read`
+  );
+  if (annotation.startsWith('{')) return params;
+
+  const parts = [params];
+  const seen = new Set();
+  const resolve = (name, via) => {
+    if (seen.has(name)) return;
+    seen.add(name);
+    const at = source.search(new RegExp(String.raw`\b(?:type|interface)\s+${name}\b`));
+    assert.notEqual(
+      at,
+      -1,
+      `${file}'s props ${via} \`${name}\`, which is not declared in this file. ` +
+        `AC-4 rests on these props being readable here, and a type this guard ` +
+        `cannot read is a type that can reintroduce \`className\` silently — ` +
+        `\`React.ComponentProps<'div'>\` carries one by definition. Declare the ` +
+        `shape locally rather than composing it from elsewhere.`
+    );
+    const body = typeDeclarationBody(source, at);
+    parts.push(body);
+    for (const m of withoutObjectLiterals(body).matchAll(/[A-Za-z_$][\w$]*/g)) {
+      if (m[0] === name || TYPE_NOISE.has(m[0])) continue;
+      resolve(m[0], 'compose');
+    }
+  };
+
+  resolve(annotation.replace(/[^\w$].*$/s, ''), 'are annotated as');
+  return parts.join('\n');
+}
+
 test('AC-4: neither projected component accepts a className at all', () => {
   // The invariant above as a type signature rather than a regex, which is what
   // makes a `{...props}` spread, a `React.createElement(ArtifactSlide, …)`, a
@@ -492,7 +1086,7 @@ test('AC-4: neither projected component accepts a className at all', () => {
   // do is let a caller supply one.
   for (const file of ['src/components/SlideView.tsx', 'src/components/artifacts/ArtifactSlide.tsx']) {
     assert.doesNotMatch(
-      exportedProps(read(file)),
+      exportedPropsShape(read(file), file),
       /\bclassName\b/,
       `${file} must not accept a className. It lands on the wrapper the ` +
         `congregation sees, so styling a projected slide from the outside is ` +
@@ -525,22 +1119,42 @@ for (const file of FULL_SCREEN) {
 }
 
 for (const file of FULL_SCREEN) {
-  test(`AC-4: ${file} sets its own text colour on the full-screen root`, () => {
+  test(`AC-4: ${file} sets its own text colour on every full-screen surface`, () => {
     // Checked on the ROOT element, not anywhere in the file. Both of these
     // surfaces carry `text-white/70` and `hover:text-white` on inner chrome, so
     // a file-wide `/\btext-white\b/` was green with the root stripped bare —
     // negative-testing caught it, which is the same substring-satisfiable defect
     // this file was rewritten to remove.
-    const [root] = classNameValues(jsxReturnBranches(read(file))[0] ?? '');
-    assert.ok(root !== undefined, `${file} renders no classed root`);
-    assert.match(
-      root,
-      /(?:^|\s)text-white(?:$|\s)/,
-      `\`body { @apply text-foreground }\` reaches any projected node that sets ` +
-        `no colour. Stating \`text-white\` on the full-screen root closes it ` +
-        `here rather than relying on ArtifactSlide's literal fallback. Root ` +
-        `className: ${root}`
-    );
+    //
+    // And then it read `jsxReturnBranches(…)[0]` — the first branch — which is
+    // the exact defect `jsxReturnBranches` was rewritten to remove, reintroduced
+    // at its call site. An early `return (<div className="fixed inset-0 bg-black
+    // text-white">…</div>)` above the real return satisfied this while the real
+    // root went back to inheriting `body { @apply text-foreground }`, which is
+    // the whole hazard the `text-white` patch exists for. Every branch, every
+    // root.
+    const branches = jsxReturnBranches(read(file));
+    assert.ok(branches.length > 0, `${file} renders no JSX branch`);
+    for (const root of branches.flat()) {
+      assert.ok(root !== undefined, `${file} renders a branch with no classed element`);
+      const [value] = classNameValues(root);
+      // Pinned to the element that covers the viewport, so the assertion cannot
+      // be satisfied by an inner node that happens to state a colour.
+      assert.match(
+        value,
+        /(?:^|\s)fixed inset-0(?:$|\s)/,
+        `${file} is a full-screen surface, so its outermost classed element is ` +
+          `the one that covers the viewport. Found: ${value}`
+      );
+      assert.match(
+        value,
+        /(?:^|\s)text-white(?:$|\s)/,
+        `\`body { @apply text-foreground }\` reaches any projected node that ` +
+          `sets no colour. Stating \`text-white\` on the full-screen root ` +
+          `closes it here rather than relying on ArtifactSlide's literal ` +
+          `fallback. Root className: ${value}`
+      );
+    }
   });
 }
 
@@ -617,6 +1231,75 @@ test('AC-4 behaviour: two concurrent claims do not strand the shell at black', (
   assert.equal(doc.documentElement.style.backgroundColor, 'white');
 });
 
+test('AC-4 behaviour: a release from before a reset cannot unblack a live shell', () => {
+  // `resetProjectedShellForTest()` zeroed the counter and left already-issued
+  // releases live, so a stale one decremented a claim it did not make. Driven
+  // against the real module that took `claims` to -1, after which every later
+  // claim skipped the whole `claims === 0` block and the shell kept
+  // `background: white` and `scrollbar-gutter: stable` for the rest of the
+  // process. Unreachable from app code, where each closure decrements once behind
+  // its own `released` flag; the live exposure is the next test that claims
+  // without releasing and silently wedges every test after it — in the module
+  // AD-24 names as the room-facing surface's closure gate.
+  //
+  // Asserted at its sharpest point: the stale release lands while a DIFFERENT
+  // document holds the claim, so without the generation token it does not merely
+  // miscount, it restores the shell that is still on screen.
+  resetProjectedShellForTest();
+  const first = documentStub({ body: { backgroundColor: 'white' } });
+  const staleRelease = claimProjectedShell(first);
+
+  resetProjectedShellForTest();
+  const second = documentStub({
+    root: { backgroundColor: 'white' },
+    body: { backgroundColor: 'white' },
+  });
+  const release = claimProjectedShell(second);
+
+  staleRelease();
+  assert.equal(
+    second.body.style.backgroundColor,
+    '#000000',
+    'a surface is on screen and holds the claim; a release issued before the ' +
+      'reset belongs to a shell that no longer exists and must do nothing'
+  );
+
+  release();
+  assert.equal(second.body.style.backgroundColor, 'white', 'the real release still restores');
+});
+
+test('AC-4 behaviour: a reset hands the shell back before it forgets the claim', () => {
+  // The other half of the same seam. The generation token stopped a stale
+  // release from acting; nothing stopped the reset from DROPPING the live one.
+  // `restore = null` with the document still black meant the next claim took the
+  // `claims === 0` path and snapshotted `#000000` / `hidden` / `auto` as the
+  // state to return to — so the final release restored black, and the module
+  // header's own warning about a test that claims without releasing was still
+  // describing a reachable state, now through a poisoned snapshot rather than a
+  // negative counter.
+  resetProjectedShellForTest();
+  const doc = documentStub({
+    root: { overflow: 'visible', scrollbarGutter: 'stable', backgroundColor: 'white' },
+    body: { overflow: 'auto', backgroundColor: 'white' },
+  });
+
+  claimProjectedShell(doc); // deliberately not released — this is the hazard
+  resetProjectedShellForTest();
+  assert.equal(
+    doc.body.style.backgroundColor,
+    'white',
+    'a reset must hand the shell back, or it leaks the black into the next test'
+  );
+
+  const release = claimProjectedShell(doc);
+  release();
+  assert.equal(doc.body.style.backgroundColor, 'white');
+  assert.equal(doc.documentElement.style.backgroundColor, 'white');
+  assert.equal(doc.documentElement.style.scrollbarGutter, 'stable');
+  assert.equal(doc.documentElement.style.overflow, 'visible');
+  assert.equal(doc.body.style.overflow, 'auto');
+});
+
 test('AC-4 behaviour: releasing twice is a no-op, not a double decrement', () => {
   resetProjectedShellForTest();
   const doc = documentStub({ body: { backgroundColor: 'white' } });
@@ -652,22 +1335,105 @@ function classNameValues(source) {
 const carriesDark = (value) => /(?:^|[\s'"`])dark(?:[\s'"`]|$)/.test(value);
 
 /**
- * Each JSX-returning branch of the exported surface, as source.
+ * The root elements of every JSX-returning branch of the exported surface: one
+ * array of opening tags per branch, so a guard can assert about each root of
+ * each branch instead of about one element of one branch.
  *
- * The previous form took `classNameValues(body)[0]` — the first `className` in
- * source order — while its own failure message called that "the OUTERMOST
- * classed element". Any early return carrying a className (loading, empty,
- * error) silently became the checked element, so a stray `dark` on such a branch
- * satisfied the assertion after the real surface root had lost it. Every branch
- * is checked now. `return (` with a `(`-arrow after it (an effect cleanup) is
- * not a render branch and is excluded by requiring a `<` next.
+ * Two narrowings lived here, and both were the same shape — a rule stated
+ * broadly and applied to whichever spelling the author had in front of them.
+ *
+ *   - It took `classNameValues(body)[0]`, the first `className` in source order,
+ *     while its own failure message called that "the OUTERMOST classed element".
+ *     Any early return carrying a className (loading, empty, error) silently
+ *     became the checked element.
+ *   - It then matched `/return\s*\(\s*(?=<)/`, so a **branch** was defined as a
+ *     parenthesised return. A paren-less `return <div …>;` — the house style at
+ *     `src/components/SlideView.tsx:19` — was not a branch at all, and a
+ *     component mixing both styles was checked on half its branches and stayed
+ *     green. That is the silent-skip the rewrite existed to close, one level up.
+ *
+ * A render branch is now any `return` whose expression contains JSX, however it
+ * is written, and it reports the **outermost classed element** under each
+ * top-level root — so `return cond ? <A/> : <B/>` yields two and both are
+ * checked. An effect cleanup (`return () => …`) contains no element and is not a
+ * branch, which no longer depends on how its parentheses fall.
+ *
+ * *Outermost classed*, not *root*, because a context provider carries no
+ * `className` and paints nothing: `SlideGridDialog` returns `<Dialog>` whose
+ * child `<DialogContent>` is the portalled surface that has to declare `dark`,
+ * and its own comment says so. `undefined` is reported for a root with nothing
+ * classed beneath it at all, which is a branch a caller should reject rather
+ * than skip.
+ *
+ * **And "outermost classed" was still implemented as "first classed in source
+ * order", which is a third spelling of the same defect.** Under an unclassed
+ * provider root, first-in-pre-order is whichever CHILD comes first in the file,
+ * not the one that paints. It failed both ways: a `<span className="dark
+ * sr-only" />` placed before `<DialogContent>` satisfied the AC-3 guard with
+ * `dark` stripped from the real surface (47/47 green), and any classed non-dark
+ * sibling placed there — the `<DialogTitle className="sr-only">` shadcn's
+ * accessibility guidance asks for — failed the guard on correct code.
+ *
+ * It descends the single-element chain instead: the surface root is the first
+ * classed element on the way down, and a level with more than one element and no
+ * class above it is **ambiguous and says so**, because at that point nothing in
+ * the source distinguishes the container from its sibling.
  */
+const branchSurfaceRoot = (subtree) => {
+  for (let depth = 0; ; depth += 1) {
+    const here = subtree.filter((el) => el.depth === depth);
+    if (here.length === 0) return undefined;
+    assert.equal(
+      here.length,
+      1,
+      `a render branch has ${here.length} elements at depth ${depth} with no ` +
+        `className above them, so which one paints the surface is not something ` +
+        `this guard can read. Taking the first in source order is what it used ` +
+        `to do, and a classed sibling placed before the real surface satisfied ` +
+        `it. Put the class on the element that contains the branch. Found: ` +
+        `${here.map((el) => el.tag.trim()).join(' | ')}`
+    );
+    if (classNameValues(here[0].tag).length > 0) return here[0].tag;
+  }
+};
+
+/**
+ * The default-exported function's own body, so `jsxReturnBranches` reads the
+ * component and not the rest of the file.
+ *
+ * `source.slice(indexOf('export default function'))` ran to end of file, so a
+ * helper declared below the export contributed its returns as surface branches:
+ * a two-line `function Caption() { return <span className="text-white/70">…; }`
+ * appended to a `FULL_SCREEN` file failed with *"its outermost classed element
+ * is the one that covers the viewport"*, which is false of a caption. Loud
+ * rather than silent, and still wrong.
+ *
+ * One limit remains and is stated rather than implied: a `return` inside a
+ * callback **within** the body — a `.map()` row, an inline component — is still
+ * read as a branch. That direction also fails loudly, never silently, which is
+ * this file's standing policy for a limit it has not closed.
+ */
+function exportedFunctionBody(source) {
+  const at = source.indexOf('export default function');
+  const params = exportedProps(source);
+  return balancedBlock(source, source.indexOf(params, at) + params.length);
+}
+
 function jsxReturnBranches(source) {
-  const body = source.slice(source.indexOf('export default function'));
-  const starts = [...body.matchAll(/return\s*\(\s*(?=<)/g)].map((m) => m.index);
-  return starts.map((start, i) =>
-    body.slice(start, i + 1 < starts.length ? starts[i + 1] : body.length)
-  );
+  const body = exportedFunctionBody(source);
+  const endOfStatement = (c, nesting, open) =>
+    (c === ';' || c === '}') && nesting === 0 && open === 0;
+  return [...body.matchAll(/\breturn\b/g)]
+    .map((m) => {
+      const subtrees = [];
+      for (const el of walkJsx(body, m.index + 'return'.length, endOfStatement)) {
+        if (el.depth === 0) subtrees.push([]);
+        if (subtrees.length === 0) continue;
+        subtrees[subtrees.length - 1].push(el);
+      }
+      return subtrees.map(branchSurfaceRoot);
+    })
+    .filter((roots) => roots.length > 0);
 }
 
 for (const file of [
@@ -678,8 +1444,7 @@ for (const file of [
     const branches = jsxReturnBranches(read(file));
     assert.ok(branches.length > 0, `${file} renders no JSX branch`);
 
-    for (const branch of branches) {
-      const [outermost] = classNameValues(branch);
+    for (const outermost of branches.flat().map((root) => classNameValues(root)[0])) {
       assert.ok(outermost !== undefined, `${file} has a render branch with no classed element`);
       assert.ok(
         carriesDark(outermost),
@@ -832,6 +1597,8 @@ test('AC-1: the control is a labelled button and introduces no new dependency', 
   );
 });
 
+const HEADER_CHROME = 'src/components/header-chrome.ts';
+
 test('AC-1: the control wears the shared header box rather than a copy of it', () => {
   // It used to restate the seven classes of `getLinkClass`'s inactive branch.
   // The test pinned two of them, so a restyle of the pills drifted the toggle
@@ -839,20 +1606,78 @@ test('AC-1: the control wears the shared header box rather than a copy of it', (
   // siblings is the point of the shape. Both now read the same constant.
   const toggle = read('src/components/ThemeToggle.tsx');
   const header = read('src/components/Header.tsx');
-  const chrome = read('src/components/header-chrome.ts');
+  const chrome = read(HEADER_CHROME);
 
   assert.match(toggle, /HEADER_CONTROL_BOX/, 'the toggle takes the shared box');
   assert.match(header, /header-chrome/, 'the pills take it too, or there is nothing shared');
   assert.match(chrome, /cursor-pointer/, 'the toggle was the only control in the row without one');
 });
 
+test('AC-1: no control in the header row restates the resting box', () => {
+  // The previous guard asserted only that `Header.tsx` and `ThemeToggle.tsx`
+  // *mention* `HEADER_CONTROL_BOX`/`header-chrome`, so the third copy — the
+  // profile dropdown trigger at `Header.tsx:120`, on the same row — was
+  // unguarded, and `header-chrome.ts`'s own doc generalised over all three while
+  // one still hand-rolled it. Round-2 item P19(b)'s root cause was "a
+  // hand-reproduced box drifts the moment someone restyles the nav pills"; two of
+  // three copies were closed and the sentence covered the third.
+  //
+  // The subject is every element ON THAT ROW, reached by walking to the toggle's
+  // parent — not a list of files and not a list of controls. A fourth control
+  // added beside the profile button is covered because it is on the row.
+  //
+  // Deliberately NOT swept over all of `src/`: the same three classes are the
+  // app's generic secondary-button surface, and
+  // `AnnouncementsManager.tsx:275`'s *Replace All…* is one — a page action
+  // button in a `active:scale-[0.98] duration-200` family, not header chrome, so
+  // pointing it at a constant documented as "the shared header row" would be
+  // wrong. Filed as its own concern rather than absorbed here.
+  const header = read('src/components/Header.tsx');
+  const row = enclosingTag(header, '<ThemeToggle');
+  const offenders = [];
+  for (const { tag, stack } of jsxTags(header)) {
+    if (!stack.some((e) => e.tag === row)) continue;
+    for (const value of classNameValues(tag)) {
+      const states = (utility) => new RegExp(`(?<![-\\w:])${utility}(?![-\\w/])`).test(value);
+      if (states('rounded-xl') && states('border-border') && states('bg-card/50')) {
+        offenders.push(`${tag.slice(0, 40)}… : ${value.slice(0, 90)}`);
+      }
+    }
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    `a control on the shared header row states the resting box from ` +
+      `\`${HEADER_CHROME}\` by hand, so a restyle of the nav pills will drift ` +
+      `past it. Import \`HEADER_CONTROL_BOX\` (box plus the muted tone) or ` +
+      `\`HEADER_CONTROL_BOX_BASE\` (box only, for a control with its own tone). ` +
+      `Found: ${offenders.join(' | ')}`
+  );
+});
+
 test('AC-1: the theme control is not inside the navigation landmark', () => {
-  // A settings control in `<nav>` is announced as navigation. The row also had
-  // no `flex-wrap` while carrying six controls for an admin.
+  // A settings control in `<nav>` is announced as navigation.
   const header = read('src/components/Header.tsx');
   const nav = header.slice(header.indexOf('<nav'), header.indexOf('</nav>'));
   assert.doesNotMatch(nav, /<ThemeToggle/, 'the toggle belongs beside the nav, not in it');
-  assert.match(nav, /flex-wrap/, 'the header row must be able to wrap');
+});
+
+test('AC-1: the row carrying the controls can wrap', () => {
+  // Asserted on the element that actually holds them, found by walking to the
+  // toggle's parent. The previous form sliced `<nav>…</nav>` and matched
+  // `flex-wrap` there — and both the outer row and the nav carry it, so it
+  // passed on the wrong one. Deleting `flex-wrap` from the row stayed green
+  // while the row stopped wrapping, which is the row the comment at
+  // `Header.tsx:74-78` names: an admin already carries four pills plus the
+  // profile button, and the toggle made it six controls.
+  const header = read('src/components/Header.tsx');
+  const row = enclosingTag(header, '<ThemeToggle');
+  assert.match(
+    row,
+    /flex-wrap/,
+    `the row holding the header controls must be able to wrap — an admin carries ` +
+      `six of them. Found on the toggle's parent: ${row}`
+  );
 });
 
 /** The pre-mount branch, as code. */
@@ -1014,32 +1839,172 @@ test('AC-6: the four load-bearing dark pairs are recorded in DESIGN.md as measur
   }
 });
 
-test('AC-6: every chromatic badge shade reachable on a dark surface has a dark half', () => {
-  // `-600` shades were chosen against white. Round 1 fixed the two files it
-  // found and stopped four sites short of its own rule — "shades with no dark
-  // half in files that became dark-switchable underneath them" — in two files
-  // that contained no `dark:` utility at all. At `text-[10px]` the 4.5:1
-  // small-text floor applies and emerald measured 4.23:1 on the dark card.
-  const surfaces = [
-    ['src/components/SlidePreviewList.tsx', ['emerald', 'amber', 'indigo']],
-    ['src/app/announcements/AnnouncementsManager.tsx', ['emerald', 'amber']],
-    ['src/components/Header.tsx', ['emerald']],
-    ['src/components/admin/ArtifactEditor.tsx', ['emerald']],
-  ];
-  for (const [file, hues] of surfaces) {
-    const source = read(file);
-    for (const hue of hues) {
-      const light = new RegExp(`text-${hue}-[5-9]00`);
-      if (!light.test(source)) continue;
-      assert.match(
-        source,
-        new RegExp(`dark:text-${hue}-`),
-        `${file} paints \`text-${hue}-600\`, a shade picked against a white ` +
-          `surface, and this file is dark-switchable since Story 17.1. ` +
-          `\`PRESENTER_TONE_CLASS\` already holds shades proven on a dark card.`
-      );
+/**
+ * Every string / template literal body in the source, as a candidate class list —
+ * with a template's own text and each of its `${…}` expressions returned as
+ * SEPARATE values.
+ *
+ * The split is the point, and it is what makes the sweep below per-site. A
+ * className here is routinely a template with a ternary in it, and this used to
+ * return the whole template as one value — so the pairing lookup found a `dark:`
+ * half in one arm and counted it for the other. Live shape, at
+ * `AnnouncementsManager.tsx:340-344`: give the false arm a bare
+ * `text-emerald-800` and it rode on the true arm's `dark:text-emerald-200` at
+ * 47/47 green. The source already writes each arm as its own literal; this reads
+ * what is there instead of flattening it.
+ */
+function classValues(source) {
+  const out = [];
+  let i = 0;
+  while (i < source.length) {
+    const c = source[i];
+    if (c === '"' || c === "'") {
+      const end = pastString(source, i);
+      out.push({ value: source.slice(i + 1, Math.max(i + 1, end - 1)), at: i });
+      i = end;
+      continue;
+    }
+    if (c === '`') {
+      const end = pastString(source, i);
+      const inner = source.slice(i + 1, Math.max(i + 1, end - 1));
+      let text = '';
+      let j = 0;
+      while (j < inner.length) {
+        if (inner[j] === '$' && inner[j + 1] === '{') {
+          let depth = 0;
+          let k = j + 1;
+          while (k < inner.length) {
+            const d = inner[k];
+            if (d === '"' || d === "'" || d === '`') {
+              k = pastString(inner, k);
+              continue;
+            }
+            if (d === '{') depth += 1;
+            else if (d === '}') {
+              depth -= 1;
+              if (depth === 0) break;
+            }
+            k += 1;
+          }
+          for (const nested of classValues(inner.slice(j + 2, k))) {
+            out.push({ value: nested.value, at: i + 1 + j + 2 + nested.at });
+          }
+          j = k + 1;
+          continue;
+        }
+        text += inner[j];
+        j += 1;
+      }
+      out.push({ value: text, at: i });
+      i = end;
+      continue;
+    }
+    i += 1;
+  }
+  return out;
+}
+
+/** Tailwind's chromatic scales — the ones that read differently on white and near-black. */
+const CHROMATIC_HUES =
+  'red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose';
+/**
+ * A chromatic text shade that is NOT itself a `dark:` half.
+ *
+ * The lookbehind was `(?<![-\w:])`, and the `:` in it was there to skip
+ * `dark:text-emerald-400`. It skipped every other variant with it — `hover:`,
+ * `group-hover:`, `focus:`, `peer-focus:` and every breakpoint — so a shade
+ * written `hover:text-emerald-600` with no dark half was 47/47 green while a bare
+ * `text-emerald-600` failed. The exclusion now names `dark:` rather than
+ * standing for it, and tolerates it anywhere in a stacked variant chain
+ * (`sm:dark:hover:text-…`).
+ */
+const DARK_VARIANT_CHAIN = String.raw`dark:(?:[a-z0-9-]+:)*`;
+const CHROMATIC_TEXT = new RegExp(
+  `(?<![-\\w])(?<!${DARK_VARIANT_CHAIN})text-(${CHROMATIC_HUES})-(\\d{2,3})`,
+  'g'
+);
+
+/**
+ * The sites where a chromatic text shade states only one half of the pair, with
+ * the reason and the story key that owns it.
+ *
+ * This list is the exception, and it is pinned exactly: an unlisted offender
+ * fails, and so does an entry that has been fixed and not removed. That polarity
+ * is the point. The guard it replaces was a hardcoded 4-file × 3-hue table, so
+ * the *rule* was carried by the table — a `text-emerald-600` with no dark half in
+ * any file outside it was 43/43 green, a second unfixed badge in an already-fixed
+ * file passed on the first one's dark half (the match was file-wide), and the
+ * `text-{hue}-[5-9]00` precondition walked past `-200`/`-300`/`-400` shades
+ * entirely. Round-2 item P1's subject was "the sweep stops four sites short of
+ * its own criterion" and it was closed by widening the list from one file to
+ * four; this is the criterion.
+ */
+const UNPAIRED_CHROMATIC_TEXT = [
+  // The two forms' warning and error banners, which paint a DARK-only shade on
+  // a surface that is light by default — `text-amber-200` over `bg-amber-500/10`,
+  // `text-red-200` over `bg-red-500/10`. Round 2 measured these and deferred the
+  // light-theme failures to Story 17.2, which owns `--muted-foreground` and the
+  // untokenized-hue sweep (`DESIGN.md` Open Item 4). Cited so a reader can check
+  // the claim rather than take the file's word for it.
+  'src/app/services/[id]/EditForm.tsx: text-amber-200 [:471, Story 17.2]',
+  'src/app/services/[id]/EditForm.tsx: text-amber-300 [:473, Story 17.2]',
+  'src/app/services/[id]/EditForm.tsx: text-red-200 [:463, Story 17.2]',
+  'src/app/services/[id]/EditForm.tsx: text-red-500 [:911, Story 17.2]',
+  'src/app/services/new/CreateForm.tsx: text-amber-200 [:444, Story 17.2]',
+  'src/app/services/new/CreateForm.tsx: text-amber-200 [:481, Story 17.2]',
+  'src/app/services/new/CreateForm.tsx: text-amber-300 [:447, Story 17.2]',
+  'src/app/services/new/CreateForm.tsx: text-amber-300 [:483, Story 17.2]',
+  'src/app/services/new/CreateForm.tsx: text-red-200 [:473, Story 17.2]',
+  'src/app/services/new/CreateForm.tsx: text-red-500 [:880, Story 17.2]',
+  // Pinned dark, so it cannot express itself in `dark:` variants at all: the
+  // Presenter renders dark under either theme (AC-3), which is why
+  // `presenter-model.ts:48-54` keeps a second tone table instead of adding dark
+  // halves to the first. Not a defect and not deferred — the opposite surface.
+  'src/app/services/[id]/present/PresenterOperator.tsx: text-amber-300 [:483, pinned dark, AC-3]',
+  'src/app/services/[id]/present/PresenterOperator.tsx: text-amber-300 [:514, pinned dark, AC-3]',
+  'src/app/services/[id]/present/PresenterOperator.tsx: text-amber-300 [:596, pinned dark, AC-3]',
+  'src/app/services/[id]/present/PresenterOperator.tsx: text-amber-300 [:716, pinned dark, AC-3]',
+  'src/app/services/[id]/present/presenter-model.ts: text-amber-200 [PRESENTER_TONE_CLASS, pinned dark, AC-3]',
+  'src/app/services/[id]/present/presenter-model.ts: text-emerald-200 [PRESENTER_TONE_CLASS, pinned dark, AC-3]',
+  'src/app/services/[id]/present/presenter-model.ts: text-indigo-200 [PRESENTER_TONE_CLASS, pinned dark, AC-3]',
+  'src/app/services/[id]/present/presenter-model.ts: text-sky-200 [PRESENTER_TONE_CLASS, pinned dark, AC-3]',
+];
+
+test('AC-6: every chromatic text shade states both halves, or is a filed exception', () => {
+  // `-600` shades were chosen against white; `-200`/`-300` shades were chosen
+  // against near-black. Either alone is a shade that reads on one theme, in a
+  // hub that now has two. At `text-[9px]` the 4.5:1 small-text floor applies and
+  // emerald measured 4.23:1 on the dark card, indigo 2.54:1.
+  //
+  // Swept over every `.tsx` AND `.ts` under `src/`, per SITE rather than per
+  // file — the tone tables that carry these live in `.ts` modules and a file-wide
+  // match let a second unfixed badge ride on the first one's dark half.
+  //
+  // "Per site" was per class VALUE and that is not the same thing: `classValues`
+  // returned a whole template literal, so a ternary's two arms shared one lookup
+  // and the arm with no dark half of its own passed on its sibling's. The split
+  // lives in `classValues` now, where the arms already are.
+  const offenders = [];
+  for (const file of [...allTsxFiles(), ...allTsFiles()]) {
+    for (const { value } of classValues(read(file))) {
+      for (const m of value.matchAll(CHROMATIC_TEXT)) {
+        if (new RegExp(`${DARK_VARIANT_CHAIN}text-${m[1]}-`).test(value)) continue;
+        offenders.push(`${file}: ${m[0]}`);
+      }
     }
   }
+  // Compared as sorted multisets, so a second unpaired site in a file that
+  // already has one filed is a failure rather than a silent pass.
+  assert.deepEqual(
+    offenders.sort(),
+    UNPAIRED_CHROMATIC_TEXT.map((e) => e.replace(/ \[[^\]]*\]$/, '')).sort(),
+    `a chromatic text shade states one half of the pair. State both in the same ` +
+      `class value — \`PRESENTER_TONE_CLASS\` (\`present/presenter-model.ts\`) ` +
+      `already holds shades proven on a dark card — or add the site to ` +
+      `UNPAIRED_CHROMATIC_TEXT with the story key that owns it. An entry that ` +
+      `has been fixed must be removed: this list is pinned in both directions ` +
+      `so it cannot quietly become the rule.`
+  );
 });
 
 test('AC-6: the hand-rolled red pair is the destructive token, so it says so', () => {
