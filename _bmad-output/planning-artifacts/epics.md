@@ -638,7 +638,7 @@ So that the next corpus to quietly stop shipping is caught here instead of by a 
 
 > **Amended 2026-08-01 (FR-24).** The corpus paths move again, to `data/<locale>/bible-translation/<code>.json` and `data/<locale>/song-book/<code>.json`. This story's criterion is written as a rule rather than a line list precisely so an amendment like this does not invalidate it — but the **rule itself widens**: no tracked document may name `data/hymns.json`, **`data/bible/`** or **`data/song-book/`** as a corpus path, nor tell a reader to run `npm run import:kjv` or `npm run import:hymnal`. The two middle spellings are new, and they are ones this repository's own documentation started using *this morning*, which is the argument for the criterion form restated in miniature.
 
-### Epic 24: The interface speaks the operator's language *(in-progress — Story 24.1 ready-for-dev; 24.2 backlog)*
+### Epic 24: The interface speaks the operator's language *(in-progress — Story 24.1 done; 24.2 backlog)*
 
 **FRs addressed:** **FR-25** (UI Locale) — added to the PRD by the second Correct Course of 2026-08-01, as new §4.12.
 
@@ -655,7 +655,7 @@ Created 2026-08-01. **Deliberately not folded into Epic 21 or 22**, which carry 
 
 **Noted, and explicitly out of scope:** `src/lib/slide-plan.ts:261` hard-codes `'Bandung International Community'` — a church name living in code rather than configuration. Story 24.2 passes directly over this line and will be tempted to fix it. It should not: a church name is not a translatable string, and moving it to configuration is a different capability with a different owner. Recorded here so the temptation is a decision rather than a drive-by.
 
-#### Story 24.1: A String Catalogue, a Switcher, and an Honest `lang` *(review — story file 2026-08-01)*
+#### Story 24.1: A String Catalogue, a Switcher, and an Honest `lang` *(done — story file 2026-08-01)*
 
 As an operator who reads Indonesian more comfortably than English,
 I want to set the hub's language and have the page say which language it is in,

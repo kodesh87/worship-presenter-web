@@ -4,7 +4,7 @@ import {
   isUiLocale,
   UI_LOCALE_ORDER,
   type UiLocale,
-} from './i18n';
+} from './i18n/locale';
 import {
   DEFAULT_SLIDE_TRANSITION,
   isSlideTransition,

@@ -48,12 +48,15 @@ const {
   resolveString,
   UI_LOCALE_ORDER,
 } = await import(srcUrl('lib', 'i18n', 'index.ts'));
+const { I18N_KEYS } = await import(srcUrl('lib', 'i18n', 'keys.ts'));
 const {
   setSetting,
   getUiLocale,
   setUiLocale,
   getSlideTransition,
   setSlideTransition,
+  getPptxRetentionDays,
+  setPptxRetentionDays,
 } = await import(srcUrl('lib', 'settings.ts'));
 const { GET, PUT } = await import(
   srcUrl('app', 'api', 'admin', 'settings', 'route.ts')
@@ -173,6 +176,12 @@ test('catalogue key sets match across locales', () => {
   assert.ok(catalogueKeys('en').length > 0);
 });
 
+test('I18N_KEYS matches each shipped catalogue table', () => {
+  const expected = [...I18N_KEYS].sort();
+  assert.deepEqual(catalogueKeys('en'), expected);
+  assert.deepEqual(catalogueKeys('id'), expected);
+});
+
 test('resolveString returns catalogue text for a known key', () => {
   assert.equal(
     resolveString('admin.uiLocale.title', 'en'),
@@ -205,11 +214,21 @@ test('getUiLocale coerces a junk settings row and logs', () => {
 });
 
 test('missing key is a visible defect, not blank and not English', () => {
-  const marker = resolveString('admin.uiLocale.__missing__', 'id');
-  assert.equal(marker, missingKeyMarker('admin.uiLocale.__missing__'));
-  assert.ok(marker.includes('admin.uiLocale.__missing__'));
-  assert.notEqual(marker, resolveString('admin.uiLocale.title', 'en'));
-  assert.notEqual(marker, '');
+  const errors = [];
+  const original = console.error;
+  console.error = (...args) => errors.push(args.join(' '));
+  try {
+    const marker = resolveString('admin.uiLocale.__missing__', 'id');
+    assert.equal(marker, missingKeyMarker('admin.uiLocale.__missing__'));
+    assert.ok(marker.includes('admin.uiLocale.__missing__'));
+    assert.notEqual(marker, resolveString('admin.uiLocale.title', 'en'));
+    assert.notEqual(marker, '');
+    assert.ok(
+      errors.some((line) => line.includes('admin.uiLocale.__missing__'))
+    );
+  } finally {
+    console.error = original;
+  }
 });
 
 test('setUiLocale rejects unknown locales', () => {
@@ -267,6 +286,24 @@ test('PUT rejects an unknown ui_locale before writing anything', async () => {
   assert.equal(res.status, 400);
   assert.equal(getUiLocale(), 'en');
   assert.equal(getSlideTransition(), 'fade');
+});
+
+test('PUT rejects invalid pptx_retention_days before writing ui_locale', async () => {
+  setUiLocale('en');
+  setPptxRetentionDays(30);
+  const res = await PUT(
+    await adminRequest({
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        pptx_retention_days: -1,
+        ui_locale: 'id',
+      }),
+    })
+  );
+  assert.equal(res.status, 400);
+  assert.equal(getUiLocale(), 'en');
+  assert.equal(getPptxRetentionDays(), 30);
 });
 
 test('PUT error names the accepted ui_locale set', async () => {

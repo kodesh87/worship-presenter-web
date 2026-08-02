@@ -16,17 +16,19 @@ export function missingKeyMarker(key: string): string {
 /**
  * Key + locale → string. Pure, callable directly by `node:test`.
  *
- * A missing entry renders a defect marker and logs server-side; it does not
- * fall back to `en`.
+ * A missing entry renders a defect marker and logs on the server; it does not
+ * fall back to `en`. Client callers still render the marker without browser logging.
  */
 export function resolveString(key: I18nKey, locale: UiLocale): string {
   const table = CATALOGUES[locale];
   const value = table[key];
   if (value !== undefined) return value;
 
-  console.error(
-    `[i18n] missing catalogue entry for key "${key}" in locale "${locale}"`
-  );
+  if (typeof window === 'undefined') {
+    console.error(
+      `[i18n] missing catalogue entry for key "${key}" in locale "${locale}"`
+    );
+  }
   return missingKeyMarker(key);
 }
 

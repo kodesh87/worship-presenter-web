@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -20,12 +21,21 @@ export default function UiLocaleSettings({
 }: {
   initialLocale: UiLocale;
 }) {
-  const [locale, setLocale] = useState<UiLocale>(initialLocale);
+  const router = useRouter();
+  /** Persisted locale — drives card copy and matches SQLite until Save succeeds. */
+  const [displayLocale, setDisplayLocale] = useState<UiLocale>(initialLocale);
+  /** Pending select value — may differ from displayLocale until Save. */
+  const [pendingLocale, setPendingLocale] = useState<UiLocale>(initialLocale);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    setDisplayLocale(initialLocale);
+    setPendingLocale(initialLocale);
+  }, [initialLocale]);
+
   const t = (key: Parameters<typeof resolveString>[0]) =>
-    resolveString(key, locale);
+    resolveString(key, displayLocale);
 
   const save = async () => {
     setSaving(true);
@@ -34,11 +44,12 @@ export default function UiLocaleSettings({
       const res = await fetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ui_locale: locale }),
+        body: JSON.stringify({ ui_locale: pendingLocale }),
       });
       if (!res.ok) throw new Error('save failed');
       const data = (await res.json()) as { ui_locale: UiLocale };
-      setLocale(data.ui_locale);
+      setDisplayLocale(data.ui_locale);
+      setPendingLocale(data.ui_locale);
       setMessage(
         resolveString(
           data.ui_locale === 'en'
@@ -47,6 +58,7 @@ export default function UiLocaleSettings({
           data.ui_locale
         )
       );
+      router.refresh();
     } catch {
       setMessage(t('admin.uiLocale.saveFailed'));
     } finally {
@@ -71,8 +83,8 @@ export default function UiLocaleSettings({
           <select
             id="ui-locale"
             className="w-44 rounded-lg border bg-muted px-3 py-2 text-sm"
-            value={locale}
-            onChange={(e) => setLocale(e.target.value as UiLocale)}
+            value={pendingLocale}
+            onChange={(e) => setPendingLocale(e.target.value as UiLocale)}
             disabled={saving}
           >
             {UI_LOCALE_ORDER.map((code) => (

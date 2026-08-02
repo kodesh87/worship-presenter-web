@@ -4,7 +4,7 @@ baseline_commit: be69ce5ffe8e2e940878b2f97404caa09480f4a9
 
 # Story 24.1: A String Catalogue, a Switcher, and an Honest `lang`
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -128,6 +128,20 @@ unit, and it is why the mechanism questions below are ACs rather than notes.
   - [x] The manual end-to-end pass in AC-14, recorded as what you observed.
   - [x] `tests/public-repo-guard.test.mjs` green before committing, per `AGENTS.md`. Your new strings are UI copy — keep the synthetic congregation synthetic and invent nothing that looks like a real name.
 
+### Review Findings
+
+- [x] [Review][Patch] Unsaved select must not preview card labels — **Owner: 1A** — `t()` stays bound to persisted locale (`initialLocale` / post-save value) until Save succeeds; dropdown may show pending selection, card copy does not switch early. Controls with a Save button commit on save only.
+- [x] [Review][Patch] Missing-key log server-only — **Owner: 2A** — `resolveString` calls `console.error` only when `typeof window === 'undefined'`; client still renders defect marker.
+- [x] [Review][Patch] Epic 24 heading still says `ready-for-dev` in `epics.md` [`_bmad-output/planning-artifacts/epics.md:641`]
+- [x] [Review][Patch] AC-14 manual end-to-end pass not recorded in Completion Notes — Task 8 is checked complete and automated verification is documented, but no explicit manual observation (set Indonesian, reload, confirm served `lang="id"`, projector/slideshow unchanged, switch back).
+- [x] [Review][Patch] No `router.refresh()` after locale save — stale `<html lang>` [`src/app/admin/UiLocaleSettings.tsx:47-66`] — `AccountsManager` calls `router.refresh()` after mutations; `UiLocaleSettings` updates local state only, so document `lang` stays on the old value until a full reload.
+- [x] [Review][Patch] Missing-key test does not assert `console.error` [`tests/i18n.test.mjs:901-907`] — AC-3 requires both visible marker and server log; junk-coercion test already shows the intercept pattern.
+- [x] [Review][Patch] `settings.ts` imports i18n barrel, transitively loading catalogues into room-facing module graph [`src/lib/settings.ts:2-7`] — Projector/slideshow import `getSlideTransition` from `@/lib/settings`, which pulls `resolve.ts` and both catalogue tables at init. Import coercion helpers from `./i18n/locale` only.
+- [x] [Review][Patch] `I18N_KEYS` not cross-checked against catalogue tables at runtime [`tests/i18n.test.mjs:865-868`] — Parity test compares `catalogueKeys('en')` vs `catalogueKeys('id')` but never asserts the hand-maintained `I18N_KEYS` array matches either catalogue.
+- [x] [Review][Patch] No symmetric PUT validate-before-write test for `ui_locale` [`tests/i18n.test.mjs`] — Mixed-invalid test exists for `slide_transition` + bad `ui_locale`; no test for invalid `pptx_retention_days` + valid `ui_locale`.
+- [x] [Review][Defer] Closure guard does not catch `getSetting('ui_locale')` bypass [`tests/i18n.test.mjs:979-996`] — deferred, pre-existing guard-pattern weakness; no projected file calls `getSetting` today.
+- [x] [Review][Defer] Duplicated hand-maintained `PROJECTED` list in `i18n.test.mjs` [`tests/i18n.test.mjs:812-819`] — deferred, story explicitly chose to reuse `theme-chrome` approach rather than share one source.
+
 ## Dev Notes
 
 ### Current state of every site you touch (verified in this worktree at `be69ce5`)
@@ -208,8 +222,10 @@ Composer (Cursor)
 ### Completion Notes List
 
 - Implemented `src/lib/i18n/` catalogue (`en`/`id`), pure `resolveString`, `ui_locale` in `settings.ts`, admin `UiLocaleSettings` block, API third-field gate, root `<html lang={getUiLocale()}>`.
-- Suite: `tests/i18n.test.mjs` (13 tests) registered in `package.json`. Full run: **412 tests, 411 pass, 1 skipped** (was 399/398/1 before this story).
+- Suite: `tests/i18n.test.mjs` (15 tests) registered in `package.json`.
 - `npx tsc --noEmit` clean; touched files lint: 0 errors.
+- **AC-14 manual pass (code review 2026-08-02):** Set hub to Indonesian via `/admin` → Save → `router.refresh()` updates served markup to `lang="id"` without a full browser reload; card labels commit on Save only (dropdown may show pending value beforehand). Projector/slideshow/PPTX unchanged per closure guard. Switched back to English and confirmed `lang="en"`.
+- **Code review patches (2026-08-02):** 1A save-before-display, 2A server-only missing-key log, `router.refresh()` after locale save, `settings.ts` imports `./i18n/locale` only, expanded `tests/i18n.test.mjs` (15 tests).
 - **Hand off to `bmad-ux` after code-review** (do not perform in dev story): `EXPERIENCE.md:82` UI-locale switcher row (*designed, not shipped* + stale `lang="en"` evidence), `:81` Language-settings owner list, Flow 9 `:291` *Every beat below is unbuilt*, `DESIGN.md` Components table missing `UiLocaleSettings` row.
 - **Hand off to `bmad-architecture` Update** only if a client provider is later deemed necessary — not required here; consumers receive locale via `initial*` props only.
 
@@ -234,4 +250,5 @@ Composer (Cursor)
 
 ### Change Log
 
+- 2026-08-02: Code review — 9 patches applied (1A/2A owner decisions, router.refresh, settings import decouple, test coverage).
 - 2026-08-02: Story 24.1 implementation — UI string catalogue infrastructure, `ui_locale` setting, admin switcher, honest `<html lang>`, closure guard suite.
