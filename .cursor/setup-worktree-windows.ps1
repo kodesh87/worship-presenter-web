@@ -11,11 +11,18 @@ Write-Host '[worktree-setup] Refreshing origin/main...'
 & git -C $Root fetch origin main --quiet
 if ($LASTEXITCODE -ne 0) { Write-Host '[worktree-setup] git fetch skipped (non-fatal)' }
 
+function Invoke-NpmCi {
+  # A native command failing does not raise a terminating error, so without this
+  # check a broken install still reaches the 'complete' line and reports success.
+  npm ci
+  if ($LASTEXITCODE -ne 0) { throw "npm ci failed with exit code $LASTEXITCODE" }
+}
+
 function Link-Or-Install-NodeModules {
   $src = Join-Path $Root 'node_modules'
   if (-not (Test-Path $src)) {
     Write-Host '[worktree-setup] node_modules missing in main checkout - npm ci'
-    npm ci
+    Invoke-NpmCi
     return
   }
 
@@ -35,12 +42,19 @@ function Link-Or-Install-NodeModules {
     Write-Host "[worktree-setup] link failed ($($_.Exception.Message)) - npm ci"
   }
 
-  npm ci
+  Invoke-NpmCi
 }
 
 function Copy-WorktreeIncludeEntry([string]$Line) {
   $trimmed = $Line.Trim()
   if (-not $trimmed) { return }
+
+  # Entries are copied as literal paths. A gitignore glob or negation matches
+  # nothing here and would skip in silence, reading as if it had been copied.
+  if ($trimmed -match '[*?\[]' -or $trimmed.StartsWith('!')) {
+    Write-Host "[worktree-setup] skipped $trimmed - literal paths only, no glob patterns"
+    return
+  }
 
   $isDir = $trimmed.EndsWith('/') -or $trimmed.EndsWith('\')
   $rel = $trimmed.Replace('/', [IO.Path]::DirectorySeparatorChar).TrimEnd([IO.Path]::DirectorySeparatorChar)
@@ -73,7 +87,10 @@ if (-not (Test-Path $includeFile)) {
   Write-Error "Missing .worktreeinclude at $includeFile"
 }
 
-Get-Content $includeFile | ForEach-Object {
+# -Encoding UTF8 is required: Windows PowerShell 5.1 reads a BOM-less file as the
+# ANSI codepage, so any accented or non-Latin path arrives as mojibake, fails
+# Test-Path, and is skipped without a word. .worktreeinclude has no BOM.
+Get-Content $includeFile -Encoding UTF8 | ForEach-Object {
   $line = $_.Trim()
   if ($line -match '^#' -or $line -eq '') { return }
   Copy-WorktreeIncludeEntry $line
