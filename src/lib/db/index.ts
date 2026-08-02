@@ -125,6 +125,20 @@ function migrateBibleVersesTranslationCode(database: Database.Database) {
 export function reconcileBibleCorpus(database: Database.Database) {
   const descriptors = discoverBibleTranslationFiles();
 
+  // AD-27's two-owner hazard, armed by Story 21.2 and closed by Story 21.4. It
+  // stays a warning rather than a refusal: installing a translation is a file
+  // drop with no registration step (AC-3), so refusing here would break the
+  // documented install path to prevent a wrong book name.
+  if (descriptors.length > 1) {
+    console.warn(
+      `[corpus] ${descriptors.length} bible translations installed ` +
+        `(${descriptors.map((d) => d.code).join(', ')}) — bible_books holds one ` +
+        `global row per book, so the translation reconciling last owns every ` +
+        `book name for every reader. Story 21.4 arbitrates this; until it lands, ` +
+        `book names are last-writer-wins.`
+    );
+  }
+
   const upsertRegistry = database.prepare(`
     INSERT INTO bible_translations (code, name, locale, licence, provenance, content_hash)
     VALUES (@code, @name, @locale, @licence, @provenance, @content_hash)
@@ -136,6 +150,12 @@ export function reconcileBibleCorpus(database: Database.Database) {
       content_hash = excluded.content_hash
   `);
 
+  // The `DO UPDATE` below is AD-27's arbitration point, and it arbitrates by
+  // last writer. `bible_books` is one global row per book while `name` and
+  // `short_name` are per-translation values, so a second corpus repoints every
+  // book name for every reader — silently. It cannot fire while one corpus ships,
+  // which `tests/corpus-closure.test.mjs` pins (AC-13). Story 21.4 owns the fix;
+  // do not add a corpus file before it lands.
   const insertBook = database.prepare(`
     INSERT INTO bible_books (id, name, short_name)
     VALUES (@id, @name, @short_name)

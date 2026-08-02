@@ -243,6 +243,7 @@ Composer
 
 - 2026-08-02: Story 21.2 — translation parameter, corpus path move, bible reconcile, closure guard, docs sync.
 - 2026-08-02: Code review — 14 patch findings applied; AC-7/AC-14 tests; route/registry/perf fixes.
+- 2026-08-02: PR #22 review round 2 — three findings patched (AC-7 fixture isolation, closure-guard regex, AC-13 written down and pinned). 3 injections, 3 react.
 
 ### Review Findings
 
@@ -263,3 +264,16 @@ Composer
 - [x] [Review][Defer] Partial verse range returns incomplete passage without error — deferred, pre-existing
 - [x] [Review][Defer] Removed corpus file leaves stale registry rows — deferred, pre-existing
 - [x] [Review][Defer] `migrateBibleVersesTranslationCode` exotic legacy edge — deferred, pre-existing
+
+#### PR #22 review, round 2 (2026-08-02)
+
+- [x] [Review][Patch] AC-7 truncated the committed 4.36 MB `kjv.json` while `node --test` runs files in parallel processes — raced `corpus.test.mjs` / `scripture-api.test.mjs`, and an interrupted run left the source of record truncated. Now breaks a throwaway `data/zz/bible-translation/zzz.json`, which also buys the sibling-untouched half of AC-7 [`tests/corpus-reconcile.test.mjs`]
+- [x] [Review][Patch] `stripComments` in the AC-10 guard was missing the closing `\/`, so it compiled as `\/\*[\s\S]*?\*` and left block-comment bodies in place — a JSDoc line naming a corpus write read as a corpus write [`tests/corpus-closure.test.mjs`]
+- [x] [Review][Patch] AC-13's hazard was armed with nothing written down: no comment at `insertBook`, no note in the Completion Notes, and AC-3 makes installing a translation a bare file drop. Added the AD-27 comment, a boot `console.warn` when more than one translation is discovered, and a tracked-file assertion pinning the shipped corpus set at one until Story 21.4 [`src/lib/db/index.ts`, `tests/corpus-closure.test.mjs`]
+- [x] [Review][Defer] `?translation=KJV` answers 400 "Unknown" instead of the 503 naming the file when a fresh boot's corpus is unreadable — the registry row is never written, so the 503 branch is unreachable in its own failure mode
+- [x] [Review][Defer] Reconcile fires `DO UPDATE SET verse_text` unconditionally, rewriting all 31,102 rows into the WAL every boot; `WHERE verse_text <> excluded.verse_text` would make an unchanged boot a pure read
+- [x] [Review][Defer] Duplicate-code refusal keys on the filename, not the declared code — the cross-filename case degrades to a logged skip rather than AC-4's named-both-paths refusal
+- [x] [Review][Defer] `listInstalledBibleTranslations` / `readBibleTranslationMeta` have no callers, and parse the whole 4.36 MB file for five metadata fields
+- [x] [Review][Defer] `bibleCorpusContentHash`'s comment still says "for reconcile skip"; `content_hash` has no reader
+- [x] [Review][Defer] `loadBibleCorpus(code)` re-runs `discoverBibleTranslationFiles()` per descriptor — O(n²) directory scans at boot
+- [x] [Review][Defer] The new `try` in `getDb` left ~190 lines at the old indent, and `db.close()` in the catch can mask the original boot error

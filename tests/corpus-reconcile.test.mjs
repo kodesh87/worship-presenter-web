@@ -7,10 +7,9 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
-import { bibleCorpusPath, loadBibleCorpus } from '../src/lib/corpus.ts';
+import { loadBibleCorpus } from '../src/lib/corpus.ts';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const kjvPath = bibleCorpusPath('KJV');
 
 async function loadDbModule(tag) {
   const url =
@@ -18,27 +17,76 @@ async function loadDbModule(tag) {
   return await import(url);
 }
 
-test('truncated corpus file leaves existing bible_verses rows (AC-7)', async () => {
+/**
+ * AC-7 breaks a corpus file on purpose, so it breaks a throwaway one rather than
+ * the committed KJV. `node --test` runs test files in parallel processes, and
+ * `tests/corpus.test.mjs` and `tests/scripture-api.test.mjs` both read
+ * `data/en/bible-translation/kjv.json` while this file runs — truncating it here
+ * raced them, and a killed process left the 4.36 MB source of record truncated in
+ * the working tree. Discovery is `data/<locale>/bible-translation/<code>.json`, so
+ * a sidecar locale is enough, and it buys the sibling-untouched half of AC-7 too.
+ */
+const SIDECAR_LOCALE = 'zz';
+const SIDECAR_CODE = 'ZZZ';
+const sidecarLocaleDir = path.join(root, 'data', SIDECAR_LOCALE);
+const sidecarPath = path.join(
+  sidecarLocaleDir,
+  'bible-translation',
+  `${SIDECAR_CODE.toLowerCase()}.json`
+);
+
+/** Book id 999 exists in no real corpus, so `bible_books` never collides. */
+const SIDECAR_CORPUS = {
+  translation: {
+    code: SIDECAR_CODE,
+    name: 'Throwaway Test Translation',
+    locale: SIDECAR_LOCALE,
+    licence: 'Test fixture — not a translation, never shipped.',
+    provenance: 'Written and removed by tests/corpus-reconcile.test.mjs.',
+  },
+  books: [
+    {
+      id: 999,
+      name: 'Book of Nothing',
+      shortName: 'Noth',
+      chapters: [['first verse', 'second verse']],
+    },
+  ],
+  counts: { books: 1, chapters: 1, verses: 2 },
+};
+
+test('unparseable corpus file reconciles nothing, siblings untouched (AC-7)', async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'corpus-reconcile-ac7-'));
   process.env.DB_PATH = path.join(tmp, 'ac7.db');
 
-  const { getDb, reconcileBibleCorpus } = await loadDbModule('ac7');
-  const original = fs.readFileSync(kjvPath, 'utf8');
-  const db = getDb();
-  const before = db
-    .prepare('SELECT COUNT(*) AS n FROM bible_verses WHERE translation_code = ?')
-    .get('KJV').n;
-  assert.ok(before > 0);
+  fs.mkdirSync(path.dirname(sidecarPath), { recursive: true });
+  fs.writeFileSync(sidecarPath, JSON.stringify(SIDECAR_CORPUS, null, 2));
 
-  fs.writeFileSync(kjvPath, '{ "translation": {');
   try {
+    const { getDb, reconcileBibleCorpus } = await loadDbModule('ac7');
+    const db = getDb();
+    const verses = (code) =>
+      db
+        .prepare('SELECT COUNT(*) AS n FROM bible_verses WHERE translation_code = ?')
+        .get(code).n;
+
+    const kjvBefore = verses('KJV');
+    assert.ok(kjvBefore > 0, 'KJV seeded on first boot');
+    assert.equal(verses(SIDECAR_CODE), 2, 'sidecar seeded on first boot');
+
+    fs.writeFileSync(sidecarPath, '{ "translation": {');
     reconcileBibleCorpus(db);
-    const after = db
-      .prepare('SELECT COUNT(*) AS n FROM bible_verses WHERE translation_code = ?')
-      .get('KJV').n;
-    assert.equal(after, before);
+
+    assert.equal(verses(SIDECAR_CODE), 2, 'unparseable file removes nothing');
+    assert.equal(kjvBefore, verses('KJV'), 'a sibling translation is never touched');
+    assert.ok(
+      db
+        .prepare('SELECT code FROM bible_translations WHERE code = ?')
+        .get(SIDECAR_CODE),
+      'the registry row survives a file that cannot be read'
+    );
   } finally {
-    fs.writeFileSync(kjvPath, original);
+    fs.rmSync(sidecarLocaleDir, { recursive: true, force: true });
   }
 });
 

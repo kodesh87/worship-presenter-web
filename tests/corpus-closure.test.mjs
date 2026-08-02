@@ -4,6 +4,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -53,9 +54,14 @@ function walkSrcFiles() {
   return files;
 }
 
+/**
+ * The block-comment arm needs its closing `\/`: without it the pattern compiles
+ * as `\/\*[\s\S]*?\*`, which eats `/**` and leaves the comment body behind — so a
+ * JSDoc line describing a corpus write read as a corpus write.
+ */
 function stripComments(text) {
   return text
-    .replace(/\/\*[\s\S]*?\*/g, '')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
     .replace(/(^|[^:])\/\/.*$/gm, '$1');
 }
 
@@ -75,6 +81,37 @@ test('no corpus table is written outside the boot module', () => {
     }
   }
   assert.deepEqual(offenders, []);
+});
+
+/**
+ * Story 21.2 AC-13: exactly one bible corpus ships until Story 21.4 arbitrates
+ * `bible_books`. Parameterising the emptiness guard armed AD-27's two-owner
+ * hazard — `name` / `short_name` are per-translation values in a table holding
+ * one global row per book, so the translation reconciling last owns every book
+ * name for every reader. A second committed corpus fires it.
+ *
+ * Tracked files, not `discoverBibleTranslationFiles()`: an operator installing a
+ * translation is a file drop by design (AC-3) and must not fail this suite, and
+ * `tests/corpus-reconcile.test.mjs` stages an untracked sidecar corpus in a
+ * parallel process while this runs.
+ */
+test('exactly one bible corpus is committed until Story 21.4 (AC-13)', () => {
+  const tracked = execFileSync(
+    'git',
+    ['ls-files', '--', 'data/*/bible-translation/*.json'],
+    { cwd: repoRoot, encoding: 'utf8' }
+  )
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  assert.deepEqual(
+    tracked,
+    ['data/en/bible-translation/kjv.json'],
+    'a second committed corpus arms AD-27: whichever translation reconciles ' +
+      'last owns every bible_books name. Land Story 21.4 first, then update ' +
+      'this expectation in the same change set'
+  );
 });
 
 test('corpus read paths carry no locale predicate in SQL', () => {
