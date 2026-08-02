@@ -2,7 +2,7 @@
 name: Worship Presenter Web
 description: Operator hub for preparing and projecting a worship service. shadcn/ui (base-nova) on Next.js + Tailwind 4; this DESIGN.md ratifies the as-built visual identity, which is a near-zero brand-layer delta over shadcn defaults.
 status: final
-updated: '2026-08-01'
+updated: '2026-08-02'
 colors:
   # Ratified from src/app/globals.css. The palette is ACHROMATIC BY REALITY:
   # every token below is oklch(L 0 0) -- lightness only, chroma exactly zero.
@@ -197,6 +197,7 @@ Every component below has a behavioral counterpart in `EXPERIENCE.md` → *Compo
 | `artifacts/ArtifactSlide` | Renders one Artifact template — geometry, fonts, and colors come from the Registry, **not** from this file. Nothing in DESIGN.md governs its interior. |
 | `admin/ArtifactEditor` | Fabric.js canvas editor at fixed 16:9. Editor chrome uses this file's tokens; the canvas interior does not. |
 | `admin/TransitionSettings` | A `card` on `/admin` holding a native `select` plus a `button`. No custom control and no iconography; the hint and the save confirmation are `muted-foreground` body text. |
+| `admin/UiLocaleSettings` | `admin/TransitionSettings`'s row reproduced rather than reinterpreted: a `card` on `/admin` holding a native `select` plus a `button`, no custom control, no iconography, the save confirmation in `muted-foreground` body text. **No token override and no chromatic affordance** — a language is named in words and never encoded as a tone, the same rule the *Corpus picker* row states for itself. One visual consequence of a behavioral contract this file inherits rather than makes ([`EXPERIENCE.md`](./EXPERIENCE.md) → *Component Patterns*, commits on Save): the card's labels and its `select` can legitimately show two different languages at once while the operator hesitates. **That is the intended appearance, not a lag**, and it needs no affordance to explain it. |
 | Presenter transition control | A native `select` in the presenter's dark control bar, carrying an inline **Live only · not saved** badge — `border` outline on `muted`, no fill. When the live style differs from the saved one the surface adds a warning line in un-tokenized amber (*Open Item 4*), on the reasoning that greyscale alone cannot distinguish "this is temporary" from ordinary secondary text. |
 | `HymnNumberAutocomplete` | `popover` at `{rounded.md}` anchored to a number input; results are plain rows, no iconography. |
 | Scripture reference field | **⚠ Not shipped** — *Owner: Story 21.5*, added here 2026-08-01 to keep this table paired with [`EXPERIENCE.md`](./EXPERIENCE.md) → *Component Patterns*. Visually it is `HymnNumberAutocomplete`'s row: a `popover` at `{rounded.md}` anchored to a single text input, plain result rows, no iconography. **One input, not a composite** — no book `select` beside a chapter and verse pair — which is a behavioral decision this file inherits rather than makes. The one thing that is this file's: a suggestion row carries a book name, not a code, so it needs no badge and no second tone. Today the three sites are bare inputs and one is `PresenterOperator`'s, which pins `dark` on its own wrapper — so this control renders on the dark surface at least as often as the light one and must be measured on both, unlike every other row here. |

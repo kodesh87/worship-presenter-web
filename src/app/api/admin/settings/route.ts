@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth/require';
+import { isUiLocale, UI_LOCALE_ORDER, type UiLocale } from '@/lib/i18n';
 import {
   getPptxRetentionDays,
   getSlideTransition,
+  getUiLocale,
   setPptxRetentionDays,
   setSlideTransition,
+  setUiLocale,
 } from '@/lib/settings';
 import { cleanupExpiredPptxCache } from '@/lib/pptx-cache';
 import {
@@ -22,6 +25,7 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     pptx_retention_days: getPptxRetentionDays(),
     slide_transition: getSlideTransition(),
+    ui_locale: getUiLocale(),
   });
 }
 
@@ -40,10 +44,12 @@ export async function PUT(request: NextRequest) {
     const fields = body as {
       pptx_retention_days?: unknown;
       slide_transition?: unknown;
+      ui_locale?: unknown;
     };
     const hasDays = 'pptx_retention_days' in fields;
     const hasTransition = 'slide_transition' in fields;
-    if (!hasDays && !hasTransition) {
+    const hasLocale = 'ui_locale' in fields;
+    if (!hasDays && !hasTransition && !hasLocale) {
       return NextResponse.json({ error: 'Invalid body' }, { status: 400 });
     }
 
@@ -76,6 +82,20 @@ export async function PUT(request: NextRequest) {
       transition = value;
     }
 
+    let uiLocale: UiLocale | null = null;
+    if (hasLocale) {
+      const value = fields.ui_locale;
+      if (!isUiLocale(value)) {
+        return NextResponse.json(
+          {
+            error: `ui_locale must be one of: ${UI_LOCALE_ORDER.join(', ')}`,
+          },
+          { status: 400 }
+        );
+      }
+      uiLocale = value;
+    }
+
     let removed = 0;
     if (days !== null) {
       setPptxRetentionDays(days);
@@ -84,10 +104,14 @@ export async function PUT(request: NextRequest) {
     if (transition !== null) {
       setSlideTransition(transition);
     }
+    if (uiLocale !== null) {
+      setUiLocale(uiLocale);
+    }
 
     return NextResponse.json({
       pptx_retention_days: getPptxRetentionDays(),
       slide_transition: getSlideTransition(),
+      ui_locale: getUiLocale(),
       cache_files_removed: removed,
     });
   } catch (error) {

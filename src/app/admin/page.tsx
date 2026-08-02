@@ -1,9 +1,14 @@
 import { listAccounts } from '@/lib/auth/accounts';
-import { getPptxRetentionDays, getSlideTransition } from '@/lib/settings';
+import {
+  getPptxRetentionDays,
+  getSlideTransition,
+  getUiLocale,
+} from '@/lib/settings';
 import Header from '@/components/Header';
 import AccountsManager from './AccountsManager';
 import RetentionSettings from './RetentionSettings';
 import TransitionSettings from './TransitionSettings';
+import UiLocaleSettings from './UiLocaleSettings';
 import { cookies } from 'next/headers';
 import { SESSION_COOKIE } from '@/lib/auth/session';
 import { validateSessionToken } from '@/lib/auth/require';
@@ -29,6 +34,7 @@ export default async function AdminPage() {
   const accounts = listAccounts();
   const retentionDays = getPptxRetentionDays();
   const slideTransition = getSlideTransition();
+  const uiLocale = getUiLocale();
 
   return (
     <div className="min-h-screen bg-background text-foreground p-8 relative overflow-hidden font-sans">
@@ -44,12 +50,13 @@ export default async function AdminPage() {
         <header className="mb-8 pb-4">
           <h1 className="text-3xl font-extrabold tracking-tight">Settings</h1>
           <p className="text-xs text-muted-foreground mt-1">
-            Manage Admin and Operator accounts, the slide transition and PPTX
-            retention.
+            Manage Admin and Operator accounts, interface language, slide
+            transition, and PPTX retention.
           </p>
         </header>
 
         <TransitionSettings initialTransition={slideTransition} />
+        <UiLocaleSettings initialLocale={uiLocale} />
         <RetentionSettings initialDays={retentionDays} />
         <AccountsManager initialAccounts={accounts} />
       </div>

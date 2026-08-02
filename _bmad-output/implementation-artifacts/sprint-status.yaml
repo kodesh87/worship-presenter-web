@@ -1,8 +1,5 @@
 # generated: 2026-07-10
-# last_updated: 2026-08-01 (bmad-create-story, two runs in one session: 21.2 and
-#   24.1 written, both backlog -> ready-for-dev; epic-24 backlog -> in-progress as
-#   its first story. Prior the same day: second Correct Course — locale axis; see
-#   planning-artifacts/sprint-change-proposal-2026-08-01-locale.md)
+# last_updated: 2026-08-02 (Story 24.1 code review → done)
 # project: BIC Worship Presentation Automation
 # project_key: NOKEY
 # tracking_system: file-system
@@ -382,7 +379,7 @@ development_status:
   # data-locale vocabulary — catalogues ship with the build, corpora are installed.
   # Own component, not a shared language card: EXPERIENCE.md:73 says per-concern,
   # and a shared card is a file Stories 21.3/22.3 would each have to rewrite.
-  24-1-string-catalogue-switcher-and-lang: ready-for-dev
+  24-1-string-catalogue-switcher-and-lang: done
   # The sweep. Includes the slide-plan.ts operator-facing labels ('Welcome',
   # 'Opening Song', 'Congregation, please stand', 'Prayer Partners', 'Break Time')
   # — verified 2026-08-01 they populate LegacyProjection (slide-plan.ts:76), read
