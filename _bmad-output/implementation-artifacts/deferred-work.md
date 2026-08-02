@@ -279,6 +279,26 @@ Two things this entry predicted, checked rather than assumed. **It was right abo
 
 The architecture wait resolved differently than expected, and the distinction matters. Story 22.2 shipped **without** the AD, not by bypassing it: it added no channel, because `upsertHymns` already overwrote `title` from the corpus on every boot. The corrected titles rode the path that was already there. The `bmad-architecture` Update is still **open**, re-scoped to the forward question it always really was — should a shipped reference corpus keep an every-boot overwrite? If the answer is AD-21's counter, its target is `upsertHymns`, not this data.
 
+## Deferred from: code review of 21-2-translation-is-a-parameter (2026-08-02)
+
+- Partial verse range returns incomplete passage without error (`src/lib/scripture.ts:141`) — pre-existing scripture behavior; Story 21.4 owns reference/matcher semantics.
+- Removed corpus file leaves stale `bible_translations`/`bible_verses` rows (`src/lib/db/index.ts:125`) — reconcile only processes discovered files; corpus-file deletion cleanup is out of AC scope for Story 21.2.
+- `migrateBibleVersesTranslationCode` assumes `translation` or `translation_code` column exists (`src/lib/db/index.ts:111`) — edge case for exotic legacy DB shapes; no observed failure path on normal upgrade from shipped schema.
+
+## Deferred from: PR #22 review, round 2 (2026-08-02)
+
+Three findings from this round were patched in the same change set (AC-7 fixture
+isolation, the closure-guard regex, AC-13 written down and pinned). These seven
+were not, and each names where it belongs rather than asking for a story of its own.
+
+- **The 503 is unreachable in its own failure mode** (`src/app/api/scripture/route.ts:40-71`). A fresh boot whose corpus file is unreadable writes no `bible_translations` row, so `?translation=KJV` fails the registry check and answers `400 Unknown bible translation "KJV"` — while the carefully written 503 that names the file and points at `corpus:verify` only fires when the registry row exists and the verses are gone. The same broken install answers differently with and without the parameter. `discoverBibleTranslationFiles()` is already imported in that module, so "discovered on disk but absent from the registry" is a two-line distinction. Story 21.3 owns this surface next.
+- **Every boot rewrites all 31,102 verse rows into the WAL** (`src/lib/db/index.ts`). `DO UPDATE SET verse_text = excluded.verse_text` fires unconditionally, so an unchanged boot still dirties every row. SQLite accepts `WHERE verse_text <> excluded.verse_text` on an upsert, which makes the steady state a pure read while keeping the DB-edit correction AC-14 requires. AC-8 chose reconcile-over-fingerprint on CPU cost and did not weigh the write amplification; this is the cheap half of that decision, not a reversal of it.
+- **AC-4's duplicate refusal keys on the filename, not the declared code** (`src/lib/corpus.ts:112,127-139`). Two files named `kjv.json` refuse correctly; a second file declaring `KJV` under another filename degrades to a logged skip from `loadBibleCorpus`. No last-wins corruption results, so the safety property holds — but the behaviour is not what AC-4 describes, and an operator sees a load error rather than the named-both-paths refusal. Either tighten to group by declared code or amend AC-4. Neither branch is tested, and neither is the declared-locale-vs-directory refusal.
+- **`listInstalledBibleTranslations` / `readBibleTranslationMeta` have no callers** (`src/lib/corpus.ts:70-93,313-319`). Added as the "lightweight" answer to a round-1 finding, then superseded when the route went to the DB registry instead. They also parse the whole 4.36 MB file for five metadata fields, so they are not lightweight either. Delete, or stop the read at the `translation` block.
+- **`content_hash` is written and never read** (`src/lib/corpus.ts:197`). The column is fine as a forensic breadcrumb; the comment calling it "for reconcile skip" contradicts `data-models-monolith.md`, which correctly says it is not used to skip.
+- **O(n²) directory scans at boot** (`src/lib/corpus.ts:149-163`). `reconcileBibleCorpus` discovers once, then `loadBibleCorpus(code)` re-runs `discoverBibleTranslationFiles()` per descriptor — twice more when it throws. Inert at one corpus; a `loadBibleCorpusFromPath(descriptor.corpusPath)` overload removes it. Also note `bibleCorpusPath()` is no longer a pure path resolver and now throws, which makes `tests/corpus.test.mjs:31`'s `fs.existsSync(bibleCorpusPath(...))` assertion message unreachable.
+- **The `try` added to `getDb` left ~190 lines at the old indent** (`src/lib/db/index.ts`), and `db.close()` in the catch can throw and mask the original boot error. Cosmetic and near-cosmetic respectively, but the indent makes the boot path harder to read than it was.
+
 ## Deferred from: code review of 24-1-string-catalogue-switcher-and-lang (2026-08-02)
 
 - Closure guard does not catch `getSetting('ui_locale')` bypass — guard checks direct `@/lib/i18n` imports and `getUiLocale` calls only; a projected module could read the raw settings key without failing the suite. No projected file does this today.

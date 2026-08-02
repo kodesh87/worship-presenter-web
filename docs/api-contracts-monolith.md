@@ -31,7 +31,7 @@ The system uses two primary authentication methods:
 | **DELETE** | `/api/announcements/[id]` | Session | None | Deletes an announcement item. |
 | **POST** | `/api/upload` | Session | None | Uploads image files to local storage. |
 | **GET** | `/api/uploads/[filename]` | Session | None | Retrieves an uploaded static file. |
-| **GET** | `/api/scripture` | Session | None | Resolves scripture text references (KJV). |
+| **GET** | `/api/scripture` | Session | None | Resolves scripture text references for a named translation. |
 | **GET** | `/api/admin/accounts` | Session | `admin` | Lists registered accounts. |
 | **POST** | `/api/admin/accounts` | Session | `admin` | Creates a new operator/admin account. |
 | **GET** | `/api/admin/accounts/[id]` | Session | `admin` | Retrieves account details. |
@@ -170,13 +170,15 @@ Uploads raw media files.
   ```
 
 #### 8. GET `/api/scripture`
-Resolves scripture reference to text from KJV database. Used for Presenter operator screen overlay.
+Resolves scripture reference to text from the bible corpus. Used for Presenter operator screen overlay.
 - **Query Parameters:**
   - `ref`: String (e.g., `John 4:23` or `John 4:23,24`)
+  - `translation`: Optional string corpus code (e.g., `KJV`). When absent, resolves to the shipped default (`KJV` until Story 21.3). Unknown codes return `400` naming the code; never a silent fallback.
 - **Response (200 OK):**
   ```json
   {
     "reference": "John 4:23",
-    "text": "But the hour cometh, and now is, when the true worshippers..."
+    "text": "But the hour cometh, and now is, when the true worshippers...",
+    "translation": "KJV"
   }
   ```

@@ -83,7 +83,7 @@ Document (do not automate Windows installers in-repo unless trivial scripts):
 **Files likely touched:** `next.config.ts`, `package.json` (scripts only if needed), maybe `Dockerfile`.
 
 1. Enable Next.js `output: 'standalone'` in `next.config.ts` if not already set (required for slim production image). Read Next 16 docs under `node_modules/next/dist/docs/` before changing — this repo uses a Next version that may differ from training data.
-2. Ensure standalone build copies/uses `data/song-book/sdah.json` and `data/bible/kjv.json` (and any runtime assets under `public/`, `data/`) so both seeds work inside the container. Bake the whole of `data/` except `data/local/` and `data/uploads/` into the image; **never** bake `data.db`.
+2. Ensure standalone build copies/uses `data/song-book/sdah.json` and `data/en/bible-translation/kjv.json` (and any runtime assets under `public/`, `data/`) so both seeds work inside the container. Bake the whole of `data/` except `data/local/` and `data/uploads/` into the image; **never** bake `data.db`.
 3. Confirm `better-sqlite3` native build works in the Docker build stage (Debian/bookworm or node:22-bookworm with build tools). Multi-stage: deps → builder → runner with production node_modules including native addon OR copy standalone + native binding correctly.
 4. App must honor:
    - `DB_PATH` (absolute path **inside container**, e.g. `/data/data.db`)
@@ -244,7 +244,7 @@ Dev profile: separate service or same service with different `target` / command 
 2. Install build toolchain only in builder (`python3`, `make`, `g++`) for `better-sqlite3`.
 3. Production CMD runs standalone server; `HOSTNAME=0.0.0.0` so the process listens inside the container.
 4. Run as non-root user if feasible without breaking volume permissions on Windows mounts (if permissions fight you, document running as root in v1 and ticket hardening).
-5. No corpus import step exists any more — both corpora are committed and seed themselves on first boot. What the image build must guarantee is that `data/bible/kjv.json` and `data/song-book/sdah.json` are *present*; `npm run corpus:verify` in the builder stage fails the build if either is truncated.
+5. No corpus import step exists any more — both corpora are committed and seed themselves on first boot. What the image build must guarantee is that `data/en/bible-translation/kjv.json` and `data/song-book/sdah.json` are *present*; `npm run corpus:verify` in the builder stage fails the build if either is truncated.
 6. Song book and bible both seed at runtime from `data/` (already app behavior); ensure the JSON is in the image.
 
 ---

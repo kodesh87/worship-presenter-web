@@ -28,7 +28,7 @@ const SDAH_HYMNS = 695;
 test('both corpora are committed, not left to an ops step', () => {
   assert.ok(
     fs.existsSync(bibleCorpusPath(DEFAULT_TRANSLATION)),
-    'data/bible/kjv.json must be in the repository'
+    'data/en/bible-translation/kjv.json must be in the repository'
   );
   assert.ok(
     fs.existsSync(songBookCorpusPath(DEFAULT_SONG_BOOK)),
@@ -72,6 +72,13 @@ test('no @N source markup survived the conversion', () => {
     });
   }
   assert.deepEqual(offenders, []);
+});
+
+test('the KJV corpus declares locale', () => {
+  const raw = JSON.parse(
+    fs.readFileSync(bibleCorpusPath(DEFAULT_TRANSLATION), 'utf8')
+  );
+  assert.equal(raw.translation.locale, 'en');
 });
 
 test('the KJV corpus states its licence and its provenance', () => {
@@ -181,6 +188,19 @@ test('nothing a reader follows sends them to a retired import command', () => {
     offenders,
     [],
     'these name a command that no longer exists in package.json'
+  );
+});
+
+test('nothing a reader follows names data/bible/ as the corpus path', () => {
+  const moved = /data\/bible\//;
+  const offenders = walkInstructionalFiles()
+    .filter(({ abs }) => moved.test(fs.readFileSync(abs, 'utf8')))
+    .map(({ rel }) => rel);
+
+  assert.deepEqual(
+    offenders,
+    [],
+    'the corpus moved to data/<locale>/bible-translation/<code>.json'
   );
 });
 

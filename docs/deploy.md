@@ -71,7 +71,7 @@ and nothing to copy onto the host beyond the repository itself.
 
 | File | Table | Boot behaviour |
 | --- | --- | --- |
-| `data/bible/kjv.json` | `bible_books`, `bible_verses` | seeded only when the translation is empty |
+| `data/en/bible-translation/kjv.json` | `bible_translations`, `bible_books`, `bible_verses` | reconciled from the committed file on boot |
 | `data/song-book/sdah.json` | `hymns` | upserted on `(book_code, number)` every boot |
 
 ```bash

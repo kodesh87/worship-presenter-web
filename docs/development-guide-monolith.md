@@ -44,7 +44,7 @@ Follow these steps to set up the development environment from scratch:
    # Optional: assert both shipped corpora are whole
    npm run corpus:verify
    ```
-   *Note: the first boot creates the SQLite database `data.db` in the root of the project and fills it from `data/song-book/sdah.json` and `data/bible/kjv.json`.*
+   *Note: the first boot creates the SQLite database `data.db` in the root of the project and fills it from `data/song-book/sdah.json` and `data/en/bible-translation/kjv.json`.*
 
 ---
 

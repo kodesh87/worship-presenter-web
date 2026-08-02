@@ -1,5 +1,6 @@
 # generated: 2026-07-10
-# last_updated: 2026-08-02 (Story 24.1 code review → done)
+# last_updated: 2026-08-02 (Story 24.1 code review -> done, merged to main;
+#   bmad-dev-story: Story 21.2 -> review)
 # project: BIC Worship Presentation Automation
 # project_key: NOKEY
 # tracking_system: file-system
@@ -261,7 +262,7 @@ development_status:
   # already done by 21.1, and three operator-facing KJV labels were uncounted
   # (PresenterOperator.tsx:692 is assigned to this story by EXPERIENCE.md:45;
   # CreateForm.tsx:581 / EditForm.tsx:612 are a recorded scope call).
-  21-2-translation-is-a-parameter: ready-for-dev
+  21-2-translation-is-a-parameter: done
   # AMENDED 2026-08-01 (FR-24): owns default_bible_translation AND the shared
   # default_data_locale. The translation control opens on the default locale and
   # carries an always-present way to browse the others. settings.ts is the

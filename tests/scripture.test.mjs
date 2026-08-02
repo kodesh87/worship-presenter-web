@@ -29,8 +29,8 @@ db.exec(`
     chapter INTEGER NOT NULL,
     verse INTEGER NOT NULL,
     verse_text TEXT NOT NULL,
-    translation TEXT NOT NULL DEFAULT 'KJV',
-    UNIQUE(book_id, chapter, verse, translation)
+    translation_code TEXT NOT NULL DEFAULT 'KJV',
+    UNIQUE(book_id, chapter, verse, translation_code)
   );
 `);
 db.prepare(
@@ -40,22 +40,25 @@ db.prepare(
   `INSERT INTO bible_books (id, name, short_name) VALUES (19, 'Psalms', 'Ps')`
 ).run();
 db.prepare(
-  `INSERT INTO bible_verses (book_id, chapter, verse, verse_text, translation)
+  `INSERT INTO bible_verses (book_id, chapter, verse, verse_text, translation_code)
    VALUES (43, 4, 23, '@6But the hour cometh@5', 'KJV')`
 ).run();
 db.prepare(
-  `INSERT INTO bible_verses (book_id, chapter, verse, verse_text, translation)
+  `INSERT INTO bible_verses (book_id, chapter, verse, verse_text, translation_code)
    VALUES (43, 4, 24, 'God is a Spirit', 'KJV')`
 ).run();
 db.prepare(
-  `INSERT INTO bible_verses (book_id, chapter, verse, verse_text, translation)
+  `INSERT INTO bible_verses (book_id, chapter, verse, verse_text, translation_code)
    VALUES (19, 23, 1, 'The LORD is my shepherd', 'KJV')`
+).run();
+db.prepare(
+  `INSERT INTO bible_verses (book_id, chapter, verse, verse_text, translation_code)
+   VALUES (43, 3, 16, 'For God so loved the world', 'TB')`
 ).run();
 db.close();
 
-const { parseScriptureRef, lookupScripture, stripVerseMarkup } = await import(
-  pathToFileURL(path.join(root, 'src', 'lib', 'scripture.ts')).href
-);
+const { parseScriptureRef, lookupScripture, stripVerseMarkup, isBibleTranslationEmpty } =
+  await import(pathToFileURL(path.join(root, 'src', 'lib', 'scripture.ts')).href);
 
 test('stripVerseMarkup removes @n tags', () => {
   assert.equal(stripVerseMarkup('@6But the hour@5'), 'But the hour');
@@ -83,22 +86,44 @@ test('parseScriptureRef handles John+4:23 and ranges', () => {
 });
 
 test('lookupScripture returns KJV text for John 4:23', () => {
-  const passage = lookupScripture('John 4:23');
+  const passage = lookupScripture('John 4:23', 'KJV');
   assert.ok(passage);
   assert.equal(passage.reference, 'John 4:23');
   assert.equal(passage.translation, 'KJV');
-  assert.equal(passage.text, 'But the hour cometh');
+  assert.match(passage.text, /But the hour cometh/);
 });
 
 test('lookupScripture range joins verses', () => {
-  const passage = lookupScripture('John 4:23-24');
+  const passage = lookupScripture('John 4:23-24', 'KJV');
   assert.ok(passage);
   assert.match(passage.text, /But the hour cometh/);
   assert.match(passage.text, /God is a Spirit/);
 });
 
 test('lookupScripture aliases Psalm to Psalms', () => {
-  const passage = lookupScripture('Psalm 23:1');
+  const passage = lookupScripture('Psalm 23:1', 'KJV');
   assert.ok(passage);
-  assert.equal(passage.text, 'The LORD is my shepherd');
+  assert.match(passage.text, /The LORD is my shepherd/);
+});
+
+test('lookupScripture reads only the named translation', () => {
+  const kjv = lookupScripture('John 3:16', 'KJV');
+  const tb = lookupScripture('John 3:16', 'TB');
+  assert.ok(kjv);
+  assert.ok(tb);
+  assert.equal(tb.translation, 'TB');
+  assert.equal(tb.text, 'For God so loved the world');
+  assert.notEqual(kjv.text, tb.text);
+});
+
+test('isBibleTranslationEmpty is per translation', () => {
+  assert.equal(isBibleTranslationEmpty('KJV'), false);
+  assert.equal(isBibleTranslationEmpty('TB'), false);
+  assert.equal(isBibleTranslationEmpty('NIV'), true);
+});
+
+test('lookupScripture normalizes translation code casing', () => {
+  const passage = lookupScripture('John 4:23', 'kjv');
+  assert.ok(passage);
+  assert.equal(passage.translation, 'KJV');
 });

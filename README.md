@@ -63,7 +63,7 @@ Two default corpora are committed, so a clone resolves a hymn number and a scrip
 | File | Seeds | On boot |
 | --- | --- | --- |
 | `data/song-book/sdah.json` | 695 hymns of the Seventh-day Adventist Hymnal | title and lyrics re-applied from the file |
-| `data/bible/kjv.json` | 66 books, 1,189 chapters, 31,102 KJV verses | seeded only when the translation is empty; never overwritten |
+| `data/en/bible-translation/kjv.json` | 66 books, 1,189 chapters, 31,102 KJV verses | reconciled from the committed file on every boot (~130–150 ms measured) |
 
 `npm run corpus:verify` asserts both are whole. Neither has a generator: the exports they were converted from are gone, so these files are the source of record — restore from version control rather than rebuilding.
 

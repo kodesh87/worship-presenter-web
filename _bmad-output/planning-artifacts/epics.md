@@ -454,7 +454,7 @@ As an administrator, I want four predefined SongSet slots — Bible Talk open/cl
 As an operator, I want a service to hold its own snapshot of the registry, and a **Sync Artifact** action to refresh it. Live registry edits must not reach an existing service until Sync. **Still blocked, but on one item rather than two** — `AD-16` was recorded on 2026-07-30, so what remains is the `EXPERIENCE.md` reconciliation above. Two `AD-16` clauses the story must implement rather than re-decide: Sync carries the service's `updated_at` precondition (`AD-6`, which the spine had been silent on — a different decision, not a typo), and Sync is permitted on **any** service including one already presented — because the freeze event is service **creation**, and what a service holds against the registry is its supporting data entry, not a reproducible deck. Announcement membership is deliberately **not** frozen, and a later structural change need not keep an old snapshot renderable. It is last for a reason: every story above defines what gets cloned.
 
 
-### Epic 21: Scripture is on hand, in the translation being read *(in-progress — Story 21.1 done 2026-08-01; 21.2 ready-for-dev; 21.3, 21.4 and 21.5 backlog)*
+### Epic 21: Scripture is on hand, in the translation being read *(in-progress — Story 21.1 done 2026-08-01; 21.2 done 2026-08-02; 21.3, 21.4 and 21.5 backlog)*
 
 **FRs addressed:** FR-19 (on-demand Scripture Display — the last product `Partial` on the coverage map above), **FR-22** (several translations, one default) — added to the PRD by the same Correct Course that opened this epic — and, since the second Correct Course of 2026-08-01, **FR-24** (Data Locale) for the scripture half.
 
@@ -487,7 +487,7 @@ Converts the export to a normalised `data/bible/kjv.json` and seeds it from zero
 
 > **Path superseded 2026-08-01, after this story closed.** FR-24 moves the corpus to **`data/en/bible-translation/kjv.json`**. This story's AC-1 and its file list name `data/bible/kjv.json`, and they are left standing as the record of what shipped — the move is Story 21.2's to perform, not a retroactive edit to a `done` story. Everything else this story asserts (the seed-from-zero channel, the structural completeness counts, the deleted export) is unaffected: only the path changes.
 
-#### Story 21.2: Translation Is a Parameter, Not a Literal *(ready-for-dev — story file 2026-08-01)*
+#### Story 21.2: Translation Is a Parameter, Not a Literal *(done — story file 2026-08-01)*
 As the system,
 I want every scripture read path to name the translation it is reading,
 So that a second corpus is an addition rather than a rewrite of six call sites.

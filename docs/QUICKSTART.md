@@ -87,8 +87,8 @@ the deck and the browser.
 ## 6. Optional extras
 
 **Scripture lookup.** Presenter mode can put a KJV passage on the projector. The
-corpus ships at `data/bible/kjv.json` and seeds itself the first time the app
-starts, so there is nothing to do here.
+corpus ships at `data/en/bible-translation/kjv.json` and is reconciled from that file on
+every boot, so there is nothing to do here.
 
 **Chat intake.** `POST /api/webhook` with an `x-webhook-secret` header accepts a
 rundown as JSON, so a bot can create or correct a service. The secret is in

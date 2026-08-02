@@ -689,7 +689,7 @@ export default function PresenterOperator({
           </section>
 
           <section className={`p-3 ${PANEL_CLASS}`}>
-            <h2 className="mb-2 text-sm font-semibold">Scripture (KJV)</h2>
+            <h2 className="mb-2 text-sm font-semibold">Scripture</h2>
             <p className="mb-2 text-xs text-muted-foreground">
               On-demand only — not used for deck theme slides.
             </p>
