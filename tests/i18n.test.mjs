@@ -168,8 +168,35 @@ function projectedTree() {
   return [...seen.keys()];
 }
 
-const I18N_IMPORT = /(?:@\/lib\/i18n|lib\/i18n)/;
+/**
+ * Catalogue text lives in every i18n module except the two that carry none:
+ * `locale.ts` is the locale vocabulary and coercion, which `settings.ts`
+ * legitimately reaches for, and `keys.ts` is the key list. Derived from the
+ * directory rather than hand-listed, so a catalogue module added by Story 24.2
+ * is covered the moment it exists.
+ */
+const I18N_TEXT_FREE = new Set(['locale.ts', 'keys.ts']);
+const CATALOGUE_MODULES = new Set(
+  fs
+    .readdirSync(path.join(repoRoot, 'src', 'lib', 'i18n'))
+    .filter((entry) => entry.endsWith('.ts') && !I18N_TEXT_FREE.has(entry))
+    .map((entry) => `src/lib/i18n/${entry}`)
+);
+
 const UI_LOCALE_READ = /\bgetUiLocale\b/;
+
+/**
+ * `src/lib/settings.ts` is in the projected tree — the projector reads
+ * `slide_transition` through it — and it is also where `getUiLocale` is
+ * *defined*. Strip the declaration so the guard still catches a *call* from
+ * anywhere in that file, rather than skipping the file wholesale: skipping it
+ * is what let the catalogue reach the projector's module graph once already.
+ */
+function callSites(file, source) {
+  return file === 'src/lib/settings.ts'
+    ? source.replace(/export function getUiLocale\b/g, '')
+    : source;
+}
 
 test('catalogue key sets match across locales', () => {
   assert.deepEqual(catalogueKeys('en'), catalogueKeys('id'));
@@ -180,6 +207,20 @@ test('I18N_KEYS matches each shipped catalogue table', () => {
   const expected = [...I18N_KEYS].sort();
   assert.deepEqual(catalogueKeys('en'), expected);
   assert.deepEqual(catalogueKeys('id'), expected);
+});
+
+test('every shipped locale has its own switcher label and confirmation', () => {
+  // The switcher derives these keys from the locale code rather than branching
+  // on it, so a locale added to UI_LOCALE_ORDER with no entry of its own is a
+  // compile error and a red suite — never a dropdown quietly wearing another
+  // language's name.
+  const keys = new Set(I18N_KEYS);
+  const missing = UI_LOCALE_ORDER.flatMap((code) =>
+    [`admin.uiLocale.option.${code}`, `admin.uiLocale.saved.${code}`].filter(
+      (key) => !keys.has(key)
+    )
+  );
+  assert.deepEqual(missing, []);
 });
 
 test('resolveString returns catalogue text for a known key', () => {
@@ -319,31 +360,49 @@ test('PUT error names the accepted ui_locale set', async () => {
   assert.match(body.error, new RegExp(UI_LOCALE_ORDER.join('|')));
 });
 
-test('the projected tree does not import the catalogue or call getUiLocale', () => {
+test('the projected tree does not reach catalogue text or call getUiLocale', () => {
   const offenders = [];
   for (const file of projectedTree()) {
-    // settings.ts is reachable for slide_transition only; it defines getUiLocale
-    // but room-facing code must not call it.
-    if (file === 'src/lib/settings.ts') continue;
-    const source = read(file);
-    if (I18N_IMPORT.test(source)) offenders.push(`${file}: i18n import`);
-    if (UI_LOCALE_READ.test(source)) offenders.push(`${file}: getUiLocale call`);
+    for (const imported of moduleImports(file)) {
+      if (CATALOGUE_MODULES.has(imported)) {
+        offenders.push(`${file}: imports ${imported}`);
+      }
+    }
+    if (UI_LOCALE_READ.test(callSites(file, read(file)))) {
+      offenders.push(`${file}: getUiLocale call`);
+    }
   }
   assert.deepEqual(
     offenders,
     [],
-    `room-facing modules must not import the catalogue or call getUiLocale ` +
+    `room-facing modules must not reach catalogue text or call getUiLocale ` +
       `(layout lang is the deliberate exception, not in this tree). ` +
       `Found: ${offenders.join(' | ')}`
   );
 });
 
-test('pptx generation does not read ui_locale', () => {
+test('settings.ts stays out of the catalogue, keeping it off the projector', () => {
+  // The projector reaches `settings.ts` for `slide_transition`, so an import of
+  // the i18n barrel here pulls both catalogue tables into the room-facing module
+  // graph. It did once. `./i18n/locale` — vocabulary and coercion, no text — is
+  // the only i18n module this file may import.
+  const imported = moduleImports('src/lib/settings.ts');
+  assert.deepEqual(
+    imported.filter((f) => CATALOGUE_MODULES.has(f)),
+    []
+  );
+  assert.ok(imported.includes('src/lib/i18n/locale.ts'));
+});
+
+test('pptx generation does not reach catalogue text or read ui_locale', () => {
   for (const file of ROOM_FACING_LIB) {
-    const source = read(file);
-    assert.ok(!I18N_IMPORT.test(source), `${file} must not import i18n`);
+    assert.deepEqual(
+      moduleImports(file).filter((f) => CATALOGUE_MODULES.has(f)),
+      [],
+      `${file} must not import catalogue text`
+    );
     assert.ok(
-      !/\bgetUiLocale\b/.test(source),
+      !UI_LOCALE_READ.test(read(file)),
       `${file} must not call getUiLocale`
     );
   }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -29,11 +29,6 @@ export default function UiLocaleSettings({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    setDisplayLocale(initialLocale);
-    setPendingLocale(initialLocale);
-  }, [initialLocale]);
-
   const t = (key: Parameters<typeof resolveString>[0]) =>
     resolveString(key, displayLocale);
 
@@ -51,13 +46,11 @@ export default function UiLocaleSettings({
       setDisplayLocale(data.ui_locale);
       setPendingLocale(data.ui_locale);
       setMessage(
-        resolveString(
-          data.ui_locale === 'en'
-            ? 'admin.uiLocale.saved.en'
-            : 'admin.uiLocale.saved.id',
-          data.ui_locale
-        )
+        resolveString(`admin.uiLocale.saved.${data.ui_locale}`, data.ui_locale)
       );
+      // Only to re-render the root layout so `<html lang>` follows the new
+      // setting. This component's own state is already correct above, which is
+      // why there is no prop-sync effect: nothing else writes `ui_locale`.
       router.refresh();
     } catch {
       setMessage(t('admin.uiLocale.saveFailed'));
@@ -87,11 +80,15 @@ export default function UiLocaleSettings({
             onChange={(e) => setPendingLocale(e.target.value as UiLocale)}
             disabled={saving}
           >
+            {/*
+              The key is derived from the locale code, not chosen by a branch:
+              a locale added to UI_LOCALE_ORDER with no catalogue entry renders
+              the defect marker instead of silently wearing another locale's
+              label. Story 24.2 inherits this idiom 100-150 times.
+            */}
             {UI_LOCALE_ORDER.map((code) => (
               <option key={code} value={code}>
-                {code === 'en'
-                  ? t('admin.uiLocale.option.en')
-                  : t('admin.uiLocale.option.id')}
+                {t(`admin.uiLocale.option.${code}`)}
               </option>
             ))}
           </select>
