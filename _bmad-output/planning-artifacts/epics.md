@@ -277,7 +277,7 @@ So that layouts can be extended without a code change.
 
 **Note:** seeded element IDs and any element marked `required` stay immutable — the save API rejects their removal or rename (400) and read-only base types (FullScreenImage, SongSet, Announcement) expose no add/delete affordances at all. Only elements authored in the editor may be deleted.
 
-### Epic 17: An operator surface that is readable and honest *(in-progress — Story 17.1 done; 17.8 ready-for-dev; 17.2–17.7 backlog)*
+### Epic 17: An operator surface that is readable and honest *(in-progress — Stories 17.1 and 17.8 done; 17.2–17.7 backlog)*
 
 Created 2026-07-29 from the implementation-readiness assessment's product defects, via the epic route rather than inline patching — the point of Correct Course that day was that inline is how the drift happened. Titled around what an operator gets, per the C5-1 remediation: the value standard applies to new epics from here.
 
@@ -350,7 +350,7 @@ So that a theme switch in the back row cannot change what is projected, mid-serv
 
 **Two findings from the 2026-08-01 Update run's Reviewer Gate are filed against this story specifically**, both in `tests/theme-chrome.test.mjs`: the gate keeps **four** hardcoded room-facing lists where one derivation would do (`PROJECTED`, `ROUTE_SHELLS`, `FULL_SCREEN`, and an inline pair — `AD-24` claimed two until that run corrected it), and `exportedProps` cannot read an `export default async function`, which is the shape of every Server Component this story adds. The route segment this story creates is the first real value the roots could be **derived from** rather than listed — which is what would make the spine's *encode the criterion* instruction satisfiable here instead of merely correct. Related but deliberately **not** this story's: the four guard narrownesses in Story 17.8.
 
-#### Story 17.8: The Guard Encodes Its Criteria, Not Its Spellings *(ready-for-dev)*
+#### Story 17.8: The Guard Encodes Its Criteria, Not Its Spellings *(done — code review closed all six findings on 2026-08-03; focused guard 54/54)*
 As the maintainer of the one test `AD-24` names as its closure gate,
 I want each of that gate's four remaining narrownesses closed by stating the rule rather than by adding the next spelling to a list,
 So that the guarantee AC-4 rests on stops needing a fifth review round to discover a fifth spelling.

@@ -51,6 +51,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import ts from 'typescript';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const readRaw = (rel) => fs.readFileSync(path.join(repoRoot, rel), 'utf8');
@@ -319,6 +320,17 @@ function stripComments(source) {
 
 const read = (rel) => stripComments(readRaw(rel));
 
+/** Parse a source fixture with the same TS/TSX grammar the application uses. */
+function parseSource(source, file = 'fixture.tsx') {
+  return ts.createSourceFile(
+    file,
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+  );
+}
+
 /**
  * The `{ … }` block opening at or after `from`, brace-balanced and string-aware.
  *
@@ -562,15 +574,20 @@ const TOKEN_CSS_VAR = new RegExp(
  * (`dark:-mt-1`) are `dark:` rules too, and the doc above advertises `dark:` as
  * one of exactly three routes in.
  */
-const DARK_VARIANT = /(?<![\w:])dark:[a-z[-]/g;
+const DARK_VARIANT = /(?<![\/\w-])dark:(?=[^\s"'`]+)/g;
+
+function darkVariantReferences(source) {
+  return classValues(source).flatMap(({ value }) =>
+    [...value.matchAll(DARK_VARIANT)].map((match) => match[0])
+  );
+}
 
 function themeReferences(source) {
   return [
     ...source.matchAll(TOKEN_UTILITY),
     ...source.matchAll(TOKEN_SHORTHAND),
     ...source.matchAll(TOKEN_CSS_VAR),
-    ...source.matchAll(DARK_VARIANT),
-  ].map((m) => m[0]);
+  ].map((m) => m[0]).concat(darkVariantReferences(source));
 }
 
 // --- AC-4: the projected output cannot see the operator's theme -------------
@@ -658,9 +675,34 @@ const EDGE_PATTERNS = [
 ];
 const EDGE_UTILITY = new RegExp(EDGE_PATTERNS.join('|'), 'g');
 
+function typeOnlyRanges(source, file) {
+  const ranges = [];
+  const sourceFile = parseSource(source, file);
+  const visit = (node) => {
+    if (
+      ts.isInterfaceDeclaration(node) ||
+      ts.isTypeAliasDeclaration(node) ||
+      ts.isTypeNode(node)
+    ) {
+      ranges.push([node.getStart(sourceFile), node.getEnd()]);
+      return;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return ranges;
+}
+
+function edgeUtilities(source, file) {
+  const erased = typeOnlyRanges(source, file);
+  return [...source.matchAll(EDGE_UTILITY)]
+    .filter((match) => !erased.some(([start, end]) => match.index >= start && match.index < end))
+    .map((match) => match[0]);
+}
+
 for (const file of PROJECTED) {
   test(`AC-4: ${file} paints no theme-coloured edge`, () => {
-    const found = [...read(file).matchAll(EDGE_UTILITY)].map((m) => m[0]);
+    const found = edgeUtilities(read(file), file);
     assert.deepEqual(
       found,
       [],
@@ -725,8 +767,140 @@ const isFocusable = (tag) => FOCUSABLE_TAG.test(tag) || /\btabIndex\s*=/.test(ta
  * pins, and a theme-token `color` cannot reach here because the token guard
  * rejects it.
  */
-const LITERAL_OUTLINE_COLOUR =
-  /focus-visible:outline-(?!none\b|hidden\b|offset\b|transparent\b|inherit\b|initial\b|unset\b|revert\b|\d)[a-z[(]/;
+const CSS_NAMED_COLOURS = new Set(`
+  aliceblue antiquewhite aqua aquamarine azure beige bisque black blanchedalmond blue
+  blueviolet brown burlywood cadetblue chartreuse chocolate coral cornflowerblue cornsilk
+  crimson cyan darkblue darkcyan darkgoldenrod darkgray darkgreen darkgrey darkkhaki
+  darkmagenta darkolivegreen darkorange darkorchid darkred darksalmon darkseagreen
+  darkslateblue darkslategray darkslategrey darkturquoise darkviolet deeppink deepskyblue
+  dimgray dimgrey dodgerblue firebrick floralwhite forestgreen fuchsia gainsboro ghostwhite
+  gold goldenrod gray green greenyellow grey honeydew hotpink indianred indigo ivory khaki
+  lavender lavenderblush lawngreen lemonchiffon lightblue lightcoral lightcyan
+  lightgoldenrodyellow lightgray lightgreen lightgrey lightpink lightsalmon lightseagreen
+  lightskyblue lightslategray lightslategrey lightsteelblue lightyellow lime limegreen linen
+  magenta maroon mediumaquamarine mediumblue mediumorchid mediumpurple mediumseagreen
+  mediumslateblue mediumspringgreen mediumturquoise mediumvioletred midnightblue mintcream
+  mistyrose moccasin navajowhite navy oldlace olive olivedrab orange orangered orchid
+  palegoldenrod palegreen paleturquoise palevioletred papayawhip peachpuff peru pink plum
+  powderblue purple rebeccapurple red rosybrown royalblue saddlebrown salmon sandybrown
+  seagreen seashell sienna silver skyblue slateblue slategray slategrey snow springgreen
+  steelblue tan teal thistle tomato turquoise violet wheat white whitesmoke yellow yellowgreen
+`.trim().split(/\s+/));
+const TAILWIND_COLOUR_HUES = new Set(
+  'slate gray zinc neutral stone red orange amber yellow lime green emerald teal cyan sky blue indigo violet purple fuchsia pink rose'.split(' ')
+);
+const TAILWIND_COLOUR_SHADES = new Set(
+  '50 100 200 300 400 500 600 700 800 900 950'.split(' ')
+);
+const COLOUR_FUNCTIONS = new Set(
+  'rgb hsl hwb lab lch oklab oklch color'.split(' ')
+);
+const COLOUR_FUNCTION_WORDS = new Set(
+  'none deg rad grad turn srgb srgb-linear display-p3 a98-rgb prophoto-rgb rec2020 xyz xyz-d50 xyz-d65'.split(' ')
+);
+
+// Unflagged by design: each class token is classified independently.
+const LITERAL_OUTLINE_COLOUR = /^focus-visible:outline-(.+)$/;
+
+function visibleAlpha(value, percentageScale = false) {
+  const text = value.trim();
+  if (/^-?(?:\d+(?:\.\d+)?|\.\d+)%$/.test(text)) {
+    const alpha = Number.parseFloat(text);
+    return alpha > 0 && alpha <= 100;
+  }
+  if (!/^-?(?:\d+(?:\.\d+)?|\.\d+)$/.test(text)) return false;
+  const alpha = Number.parseFloat(text);
+  return alpha > 0 && alpha <= (percentageScale ? 100 : 1);
+}
+
+function splitTailwindOpacity(value) {
+  if (value.startsWith('[')) {
+    const close = value.lastIndexOf(']');
+    if (close !== -1 && value[close + 1] === '/') {
+      return [value.slice(0, close + 1), value.slice(close + 2)];
+    }
+    return [value, null];
+  }
+  const slash = value.lastIndexOf('/');
+  return slash === -1 ? [value, null] : [value.slice(0, slash), value.slice(slash + 1)];
+}
+
+function localColour(value) {
+  const [baseWithHint, opacity] = splitTailwindOpacity(value);
+  if (opacity !== null) {
+    const arbitrary = /^\[(.*)\]$/.exec(opacity)?.[1];
+    if (!visibleAlpha(arbitrary ?? opacity, arbitrary === undefined)) return null;
+  }
+
+  let base = baseWithHint;
+  if (base.startsWith('[') && base.endsWith(']')) base = base.slice(1, -1);
+  if (base.startsWith('color:')) base = base.slice('color:'.length);
+  const lower = base.toLowerCase();
+  if (lower === 'current' || lower === 'currentcolor') return { current: true };
+  if (CSS_NAMED_COLOURS.has(lower)) return { current: false };
+
+  const tailwind = /^([a-z]+)-(\d{2,3})$/.exec(lower);
+  if (
+    tailwind &&
+    TAILWIND_COLOUR_HUES.has(tailwind[1]) &&
+    TAILWIND_COLOUR_SHADES.has(tailwind[2])
+  ) return { current: false };
+
+  if (/^#[0-9a-f]+$/i.test(base)) {
+    if (![3, 4, 6, 8].includes(base.length - 1)) return null;
+    if (base.length === 5 && base.at(-1) === '0') return null;
+    if (base.length === 9 && base.slice(-2) === '00') return null;
+    return { current: false };
+  }
+
+  const fn = /^([a-z]+)\((.*)\)$/i.exec(base);
+  if (!fn || !COLOUR_FUNCTIONS.has(fn[1].toLowerCase())) return null;
+  const body = fn[2].replaceAll('_', ' ').trim();
+  if (!body || /(?:var|env|attr)\s*\(|--/i.test(body)) return null;
+  const words = body.match(/[a-z][a-z0-9-]*/gi) ?? [];
+  if (words.some((word) => !COLOUR_FUNCTION_WORDS.has(word.toLowerCase()))) return null;
+
+  const slash = body.lastIndexOf('/');
+  if (slash !== -1 && !visibleAlpha(body.slice(slash + 1))) return null;
+  if (slash === -1 && /^(?:rgb|hsl)$/i.test(fn[1])) {
+    const legacy = body.split(',');
+    if (legacy.length === 4 && !visibleAlpha(legacy[3])) return null;
+  }
+  return { current: false };
+}
+
+function sourceClassTokens(source) {
+  return classNameValues(source).flatMap((value) =>
+    value
+      .split(/[\s"'`,]+/)
+      .map((token) => token.replace(/^[({]+|[)}]+$/g, ''))
+      .filter(Boolean)
+  );
+}
+
+function hasVisibleOwnTextColour(tag) {
+  for (const token of sourceClassTokens(tag)) {
+    const value = token.startsWith('text-')
+      ? token.slice('text-'.length)
+      : token.startsWith('focus-visible:text-')
+        ? token.slice('focus-visible:text-'.length)
+        : null;
+    if (value === null) continue;
+    const colour = localColour(value);
+    if (colour && !colour.current) return true;
+  }
+  return false;
+}
+
+function hasVisibleLocalOutlineColour(tag) {
+  for (const token of sourceClassTokens(tag)) {
+    const match = LITERAL_OUTLINE_COLOUR.exec(token);
+    if (!match) continue;
+    const colour = localColour(match[1]);
+    if (colour && (!colour.current || hasVisibleOwnTextColour(tag))) return true;
+  }
+  return false;
+}
 
 test('AC-4: every projected focusable states a literal outline colour', () => {
   // `* { @apply outline-ring/50 }` gives every node a theme-dependent
@@ -752,7 +926,7 @@ test('AC-4: every projected focusable states a literal outline colour', () => {
     for (const { tag } of jsxTags(read(file))) {
       if (!isFocusable(tag)) continue;
       found += 1;
-      if (!LITERAL_OUTLINE_COLOUR.test(tag)) offenders.push(`${file}: ${tag.trim()}`);
+      if (!hasVisibleLocalOutlineColour(tag)) offenders.push(`${file}: ${tag.trim()}`);
     }
   }
   assert.ok(found > 0, 'the projected surfaces carry focusables; this guard found none');
@@ -873,6 +1047,76 @@ const projectedTree = (() => {
   };
 })();
 
+test('AC-4: reachable projected modules paint no theme-coloured edge', () => {
+  const offenders = [];
+  for (const { file, via } of projectedTree().filter(({ via }) => via !== null)) {
+    const found = edgeUtilities(read(file), file);
+    if (found.length > 0) offenders.push(`${via} (${file}) carries ${found.join(', ')}`);
+  }
+  assert.deepEqual(
+    offenders,
+    [],
+    `a module reachable from projected output carries an edge width that inherits ` +
+      `the operator theme. Found: ${offenders.join(' | ')}`
+  );
+});
+
+test('AC-4: focus outlines use a positive locally-resolved colour classifier', () => {
+  for (const value of [
+    'focus-visible:outline-[transparent]',
+    'focus-visible:outline-[inherit]',
+    'focus-visible:outline-[color:inherit]',
+    'focus-visible:outline-[revert]',
+    'focus-visible:outline-[unset]',
+    'focus-visible:outline-[initial]',
+    'focus-visible:outline-[--ring]',
+    'focus-visible:outline-white/0',
+    'focus-visible:outline-[#fff0]',
+    'focus-visible:outline-[#ffffff00]',
+    'focus-visible:outline-[#fffff]',
+    'focus-visible:outline-[rgb(255_255_255/0)]',
+    'focus-visible:outline-[rgb(var(--local))]',
+  ]) assert.equal(hasVisibleLocalOutlineColour(`<a className="${value}">`), false, value);
+  for (const value of [
+    'focus-visible:outline-white',
+    'focus-visible:outline-[#fff]', 'focus-visible:outline-[rgb(255_255_255)]',
+    'focus-visible:outline-[color:#fff]', 'focus-visible:outline-[red]',
+    'focus-visible:outline-[rebeccapurple]', 'focus-visible:outline-cyan-500',
+  ]) assert.equal(hasVisibleLocalOutlineColour(`<a className="${value}">`), true, value);
+  assert.equal(
+    hasVisibleLocalOutlineColour('<a className="text-white focus-visible:outline-current">'),
+    true,
+    'current remains allowed when the focusable states its own visible colour'
+  );
+  assert.equal(
+    hasVisibleLocalOutlineColour('<a className="text-transparent focus-visible:outline-current">'),
+    false,
+    'current cannot borrow an invisible colour'
+  );
+});
+
+test('AC-4: dark is detected as a variant segment, wherever it is stacked', () => {
+  for (const value of [
+    'dark:!bg-zinc-900', 'dark:2xl:bg-zinc-900', 'dark:*:bg-zinc-900',
+    'sm:dark:bg-zinc-900', 'sm:dark:hover:bg-zinc-900', 'dark:hover:!bg-zinc-900',
+  ]) assert.notDeepEqual(themeReferences(`const classes = '${value}'`), []);
+  assert.deepEqual(themeReferences("const classes = 'sm:hover:bg-zinc-900'"), []);
+  assert.deepEqual(themeReferences('const palette = { dark: false }'), []);
+  assert.deepEqual(themeReferences("const classes = 'group-hover/dark:bg-white'"), []);
+  assert.deepEqual(themeReferences("const classes = 'peer-checked/dark:text-white'"), []);
+});
+
+test('AC-4: the edge sweep ignores erased types but keeps runtime paint', () => {
+  assert.deepEqual(
+    edgeUtilities('type Edge = { borderWidth: number; token: "border-2" }', 'fixture.ts'),
+    []
+  );
+  assert.deepEqual(
+    edgeUtilities('const edge = { borderWidth: 1 };', 'fixture.ts'),
+    ['borderWidth:']
+  );
+});
+
 test('AC-4: the projected tree stays closed, transitively and with no exempt directory', () => {
   // Two earlier versions of this were narrower than they read. The first walked
   // `@/components/…` imports only, so a relative `./Sibling`, an `@/app/…`
@@ -926,6 +1170,55 @@ test('AC-4: the projected tree stays closed, transitively and with no exempt dir
   );
 });
 
+function staticPropertyName(name) {
+  if (!name) return null;
+  if (ts.isIdentifier(name) || ts.isStringLiteralLike(name) || ts.isNumericLiteral(name)) {
+    return name.text;
+  }
+  if (
+    ts.isComputedPropertyName(name) &&
+    (ts.isStringLiteralLike(name.expression) || ts.isNoSubstitutionTemplateLiteral(name.expression))
+  ) return name.expression.text;
+  return null;
+}
+
+function createElementStyleCalls(source, file = 'fixture.tsx') {
+  const sourceFile = parseSource(source, file);
+  const offenders = [];
+  const visit = (node) => {
+    const subject = ts.isCallExpression(node) ? node.arguments[0] : undefined;
+    if (
+      ts.isCallExpression(node) &&
+      ts.isPropertyAccessExpression(node.expression) &&
+      ts.isIdentifier(node.expression.expression) &&
+      node.expression.expression.text === 'React' &&
+      node.expression.name.text === 'createElement' &&
+      subject &&
+      ts.isIdentifier(subject) &&
+      ['SlideView', 'ArtifactSlide'].includes(subject.text)
+    ) {
+      const props = node.arguments[1];
+      let unsafe = false;
+      if (props && ts.isObjectLiteralExpression(props)) {
+        unsafe = props.properties.some(
+          (property) => ts.isSpreadAssignment(property) || staticPropertyName(property.name) === 'className'
+        );
+      } else if (
+        props &&
+        props.kind !== ts.SyntaxKind.NullKeyword &&
+        !(ts.isIdentifier(props) && props.text === 'undefined')
+      ) {
+        // An opaque props expression cannot prove the closed shape this belt asserts.
+        unsafe = true;
+      }
+      if (unsafe) offenders.push(node.getText(sourceFile));
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return offenders;
+}
+
 test('AC-4: no caller can style the projected wrapper from outside', () => {
   // `ArtifactSlide` used to splice a caller's `className` onto the wrapper the
   // congregation sees, and `SlideView` forwarded one straight through. Neither
@@ -945,6 +1238,11 @@ test('AC-4: no caller can style the projected wrapper from outside', () => {
       if (/\bclassName\s*=|\{\s*\.\.\./.test(tag)) offenders.push(`${file}: ${tag.trim()}`);
     }
   }
+  for (const file of [...allTsxFiles(), ...allTsFiles()]) {
+    for (const call of createElementStyleCalls(read(file), file)) {
+      offenders.push(`${file}: ${call}`);
+    }
+  }
   assert.deepEqual(
     offenders,
     [],
@@ -952,6 +1250,31 @@ test('AC-4: no caller can style the projected wrapper from outside', () => {
       `theme token in it defeats AC-4 without touching any guarded file. A ` +
       `spread is flagged for the same reason: it can carry one invisibly. ` +
       `Found: ${offenders.join(' | ')}`
+  );
+});
+
+test('AC-4: createElement checks exactly the projected props object', () => {
+  for (const source of [
+    'React.createElement(SlideView, { slide, className })',
+    "React.createElement(SlideView, { slide, 'className': 'bg-card' })",
+    "React.createElement(SlideView, { slide, ['className']: 'bg-card' })",
+    'React.createElement(SlideView, { slide, ...rest })',
+    'React.createElement(SlideView, props)',
+  ]) assert.equal(createElementStyleCalls(source, 'fixture.ts').length, 1, source);
+
+  assert.deepEqual(
+    createElementStyleCalls(
+      "React.createElement(SlideView, { slide }); const unrelated = { className: 'x' }",
+      'fixture.tsx'
+    ),
+    []
+  );
+  assert.deepEqual(
+    createElementStyleCalls(
+      "React.createElement(SlideView, { slide, options: { className: 'metadata' } })",
+      'fixture.ts'
+    ),
+    []
   );
 });
 
@@ -1041,6 +1364,77 @@ function withoutObjectLiterals(text) {
 /** Words that appear in a type composition and name no type. */
 const TYPE_NOISE = new Set(['extends', 'type', 'interface', 'readonly', 'keyof', 'infer']);
 
+function assertClosedPropsStructure(source, file) {
+  const sourceFile = parseSource(source, file);
+  const component = sourceFile.statements.find(
+    (statement) =>
+      ts.isFunctionDeclaration(statement) &&
+      statement.modifiers?.some((modifier) => modifier.kind === ts.SyntaxKind.DefaultKeyword)
+  );
+  assert.ok(component, `${file} must keep a default-exported function`);
+  const parameter = component.parameters[0];
+  assert.ok(parameter, `${file}'s exported component must declare its props`);
+
+  if (
+    ts.isObjectBindingPattern(parameter.name) &&
+    parameter.name.elements.some((element) => element.dotDotDotToken)
+  ) {
+    assert.fail(
+      `${file}'s exported props must not collect a rest object; it can forward ` +
+        `a caller-supplied className onto the projected wrapper.`
+    );
+  }
+
+  const declarations = new Map();
+  for (const statement of sourceFile.statements) {
+    if (ts.isTypeAliasDeclaration(statement) || ts.isInterfaceDeclaration(statement)) {
+      declarations.set(statement.name.text, statement);
+    }
+  }
+  const seen = new Set();
+  const failOpenShape = () => assert.fail(
+    `${file}'s exported props must be a closed object literal; an index signature ` +
+      `can reintroduce className without naming it.`
+  );
+  const checkMembers = (members) => {
+    if (members.some((member) => ts.isIndexSignatureDeclaration(member))) failOpenShape();
+  };
+  const checkType = (node) => {
+    if (!node) return;
+    if (ts.isTypeLiteralNode(node)) {
+      checkMembers([...node.members]);
+      return;
+    }
+    if (ts.isMappedTypeNode(node)) failOpenShape();
+    if (ts.isIntersectionTypeNode(node) || ts.isUnionTypeNode(node)) {
+      for (const member of node.types) checkType(member);
+      return;
+    }
+    if (ts.isParenthesizedTypeNode(node) || ts.isTypeOperatorNode(node)) {
+      checkType(node.type);
+      return;
+    }
+    if (!ts.isTypeReferenceNode(node) || !ts.isIdentifier(node.typeName)) return;
+    const name = node.typeName.text;
+    if (seen.has(name)) return;
+    seen.add(name);
+    const declaration = declarations.get(name);
+    if (!declaration) return; // The existing resolver below reports this loudly.
+    if (ts.isTypeAliasDeclaration(declaration)) checkType(declaration.type);
+    if (ts.isInterfaceDeclaration(declaration)) {
+      checkMembers([...declaration.members]);
+      for (const clause of declaration.heritageClauses ?? []) {
+        for (const inherited of clause.types) {
+          if (ts.isIdentifier(inherited.expression)) {
+            checkType(ts.factory.createTypeReferenceNode(inherited.expression.text, undefined));
+          }
+        }
+      }
+    }
+  };
+  checkType(parameter.type);
+}
+
 /**
  * The props of the file's default-exported component, as source — the inline
  * parameter list plus the whole local declaration of a named props type, and of
@@ -1073,6 +1467,7 @@ const TYPE_NOISE = new Set(['extends', 'type', 'interface', 'readonly', 'keyof',
  */
 function exportedPropsShape(source, file) {
   const params = exportedProps(source);
+  assertClosedPropsStructure(source, file);
   const annotation = propsAnnotation(params);
   assert.notEqual(
     annotation,
@@ -1080,7 +1475,9 @@ function exportedPropsShape(source, file) {
     `${file}'s exported component must annotate its props, or this guard has ` +
       `nothing to read`
   );
-  if (annotation.startsWith('{')) return params;
+  if (annotation.startsWith('{')) {
+    return params;
+  }
 
   const parts = [params];
   const seen = new Set();
@@ -1106,8 +1503,38 @@ function exportedPropsShape(source, file) {
   };
 
   resolve(annotation.replace(/[^\w$].*$/s, ''), 'are annotated as');
-  return parts.join('\n');
+  const shape = parts.join('\n');
+  return shape;
 }
+
+test('AC-4: projected props remain closed object literals', () => {
+  const file = 'fixture.tsx';
+  assert.throws(
+    () => exportedPropsShape('export default function X({ slide }: { slide: string; [key: string]: unknown }) {}', file),
+    /closed object literal/
+  );
+  assert.throws(
+    () => exportedPropsShape('export default function X({ slide, ...rest }: { slide: string }) {}', file),
+    /must not collect a rest object/
+  );
+  assert.throws(
+    () => exportedPropsShape('export default function X({ slide = {}, ...rest }: { slide: object }) {}', file),
+    /must not collect a rest object/
+  );
+  assert.throws(
+    () => exportedPropsShape('export default function X({ slide }: { [K in string]?: unknown }) {}', file),
+    /closed object literal/
+  );
+  assert.doesNotThrow(
+    () => exportedPropsShape('export default function X({ slide }: { slide: string[]; pair: [string, number] }) {}', file)
+  );
+  assert.doesNotThrow(
+    () => exportedPropsShape('export default function X({ options }: { options: { [key: string]: unknown } }) {}', file)
+  );
+  assert.doesNotThrow(
+    () => exportedPropsShape('export default function X({ slide = { ...defaults } }: { slide: object }) {}', file)
+  );
+});
 
 test('AC-4: neither projected component accepts a className at all', () => {
   // The invariant above as a type signature rather than a regex, which is what
