@@ -1,13 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   DEFAULT_TRANSLATION,
-  bibleCorpusPath,
-  listInstalledBibleTranslations,
+  discoverBibleTranslationFiles,
 } from '@/lib/corpus';
+import { listBibleTranslations } from '@/lib/db';
 import {
   isBibleTranslationEmpty,
   lookupScripture,
 } from '@/lib/scripture';
+
+function corpusPathForError(translationCode: string): string {
+  const match = discoverBibleTranslationFiles().find(
+    (d) => d.code === translationCode
+  );
+  if (match) {
+    return match.corpusPath
+      .replace(process.cwd(), '')
+      .replace(/^[/\\]/, '')
+      .replace(/\\/g, '/');
+  }
+  return `data/*/bible-translation/${translationCode.toLowerCase()}.json`;
+}
 
 /**
  * GET /api/scripture?ref=John+4:23&translation=KJV — scripture lookup for
@@ -24,7 +37,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const installed = listInstalledBibleTranslations();
+    const installed = listBibleTranslations();
     const translationParam = request.nextUrl.searchParams.get('translation');
     let translationCode: string;
 
@@ -46,15 +59,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (isBibleTranslationEmpty(translationCode)) {
-      const corpusPath = bibleCorpusPath(translationCode)
-        .replace(process.cwd(), '')
-        .replace(/^[/\\]/, '')
-        .replace(/\\/g, '/');
+      const corpusPath = corpusPathForError(translationCode);
       return NextResponse.json(
         {
           error:
             `${translationCode} corpus is empty. It ships at ${corpusPath} and ` +
-            'seeds on first boot; check the file with npm run corpus:verify.',
+            'is reconciled from that file on boot; check it with npm run corpus:verify.',
         },
         { status: 503 }
       );

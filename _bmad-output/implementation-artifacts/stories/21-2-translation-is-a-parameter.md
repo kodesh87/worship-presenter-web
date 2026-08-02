@@ -4,7 +4,7 @@ baseline_commit: be69ce5ffe8e2e940878b2f97404caa09480f4a9
 
 # Story 21.2: Translation Is a Parameter, Not a Literal
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -202,7 +202,8 @@ Composer
 - Added `tests/corpus-closure.test.mjs` (registered in `package.json`); guard proved: **2 injections, 2 react** (`UPDATE hymns` string in `corpus.ts`; `WHERE locale = ?` in `listBibleTranslations`).
 - Operator labels: `Scripture`, `Resolve` (no hard-coded KJV).
 - Smokes: fresh DB resolves John 3:16; edited verse corrected on next boot.
-- Tests: **406** total, **405** pass, **1** skipped. `tsc` clean. ESLint zero new issues in touched core files (pre-existing EditForm/CreateForm effect warnings unchanged).
+- Tests: **413** total, **412** pass, **1** skipped after code-review patches (`scripture-api`, `corpus-reconcile` suites added).
+- Code review patches: route validates via `listBibleTranslations`; lightweight `listInstalledBibleTranslations`; reserved `data/local` excluded; `getDb` clears singleton on boot failure; AC-7/AC-14 automated; docs synced to unconditional reconcile.
 - **bmad-architecture Update handoff (do not perform here):** AD-25 gap bullet (bible reconcile closed); AD-25 closure bullet (guard exists); registry-shape bullet (`bible_translations` schema); AD-26 `[TARGET]` tag (partly built).
 - **bmad-ux handoff (do not perform here):** `EXPERIENCE.md:45` and `:80` status notes.
 
@@ -219,8 +220,11 @@ Composer
 - `scripts/verify-corpora.mjs`
 - `scripts/setup.mjs`
 - `tests/scripture.test.mjs`
+- `tests/scripture-api.test.mjs`
 - `tests/corpus.test.mjs`
 - `tests/corpus-closure.test.mjs`
+- `tests/corpus-reconcile.test.mjs`
+- `tests/ts-resolve-hook.mjs`
 - `package.json`
 - `README.md`
 - `ATTRIBUTIONS.md`
@@ -238,3 +242,24 @@ Composer
 ### Change Log
 
 - 2026-08-02: Story 21.2 — translation parameter, corpus path move, bible reconcile, closure guard, docs sync.
+- 2026-08-02: Code review — 14 patch findings applied; AC-7/AC-14 tests; route/registry/perf fixes.
+
+### Review Findings
+
+- [x] [Review][Patch] AC-7 negative test missing [`tests/corpus-reconcile.test.mjs`]
+- [x] [Review][Patch] README/data-models claim hash-skip reconcile but code reconciles every boot
+- [x] [Review][Patch] QUICKSTART still describes from-zero seeding
+- [x] [Review][Patch] 503 error text still says "seeds on first boot"
+- [x] [Review][Patch] `listInstalledBibleTranslations()` fully loads every corpus file on each request
+- [x] [Review][Patch] One invalid sibling corpus file 500s all scripture lookups
+- [x] [Review][Patch] `bibleCorpusPath()` throws during 503 when corpus file absent from disk
+- [x] [Review][Patch] No HTTP tests for `?translation=` (400/503/200)
+- [x] [Review][Patch] AC-14 reconcile smoke not automated
+- [x] [Review][Patch] `lookupScripture` does not normalize `translationCode` casing
+- [x] [Review][Patch] `getDb` singleton stays assigned if `reconcileBibleCorpus` throws mid-boot
+- [x] [Review][Patch] Epic 21 header still lists 21.2 as `ready-for-dev`
+- [x] [Review][Patch] `discoverBibleTranslationFiles` does not exclude reserved `data/local/`
+- [x] [Review][Patch] `listBibleTranslations()` exported but unused — wired in route validation
+- [x] [Review][Defer] Partial verse range returns incomplete passage without error — deferred, pre-existing
+- [x] [Review][Defer] Removed corpus file leaves stale registry rows — deferred, pre-existing
+- [x] [Review][Defer] `migrateBibleVersesTranslationCode` exotic legacy edge — deferred, pre-existing

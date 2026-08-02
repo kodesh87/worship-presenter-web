@@ -121,3 +121,9 @@ test('isBibleTranslationEmpty is per translation', () => {
   assert.equal(isBibleTranslationEmpty('TB'), false);
   assert.equal(isBibleTranslationEmpty('NIV'), true);
 });
+
+test('lookupScripture normalizes translation code casing', () => {
+  const passage = lookupScripture('John 4:23', 'kjv');
+  assert.ok(passage);
+  assert.equal(passage.translation, 'KJV');
+});

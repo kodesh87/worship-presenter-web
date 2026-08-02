@@ -158,7 +158,7 @@ Registry of installed bible translation corpora, projected from each corpus file
 | `locale` | `TEXT` | NOT NULL | Data locale declared by the corpus file. |
 | `licence` | `TEXT` | NOT NULL | Licence text from the corpus file. |
 | `provenance` | `TEXT` | NOT NULL | Provenance from the corpus file. |
-| `content_hash` | `TEXT` | | SHA-256 of the corpus file bytes; skips reconcile when unchanged. |
+| `content_hash` | `TEXT` | | SHA-256 of the corpus file bytes; recorded on reconcile (not used to skip reconcile). |
 
 ### 7. `bible_books`
 Index of the books of the Bible.

@@ -261,7 +261,7 @@ development_status:
   # already done by 21.1, and three operator-facing KJV labels were uncounted
   # (PresenterOperator.tsx:692 is assigned to this story by EXPERIENCE.md:45;
   # CreateForm.tsx:581 / EditForm.tsx:612 are a recorded scope call).
-  21-2-translation-is-a-parameter: review
+  21-2-translation-is-a-parameter: done
   # AMENDED 2026-08-01 (FR-24): owns default_bible_translation AND the shared
   # default_data_locale. The translation control opens on the default locale and
   # carries an always-present way to browse the others. settings.ts is the

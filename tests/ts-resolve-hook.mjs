@@ -19,6 +19,10 @@ function tryFile(base) {
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 export async function resolve(specifier, context, nextResolve) {
+  if (specifier === 'next/server') {
+    return nextResolve('next/server.js', context);
+  }
+
   const isAlias = specifier.startsWith('@/');
 
   if (

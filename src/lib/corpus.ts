@@ -63,6 +63,35 @@ export type SongBookCorpus = {
 
 const DATA_ROOT = path.join(process.cwd(), 'data');
 
+/** Not locale directories — git-ignored or non-corpus paths under `data/`. */
+const RESERVED_DATA_DIRS = new Set(['local', 'uploads']);
+
+/** Read translation metadata from a corpus file without validating book payloads. */
+function readBibleTranslationMeta(
+  corpusPath: string
+): BibleTranslationDescriptor | null {
+  try {
+    const raw = JSON.parse(fs.readFileSync(corpusPath, 'utf8')) as Record<
+      string,
+      unknown
+    >;
+    const meta = (raw?.translation ?? {}) as Record<string, unknown>;
+    const code = String(meta.code ?? '').toUpperCase();
+    if (!code) return null;
+    const locale = String(meta.locale ?? meta.language ?? '').trim();
+    return {
+      code,
+      name: String(meta.name ?? code),
+      locale,
+      licence: String(meta.licence ?? '').trim(),
+      provenance: String(meta.provenance ?? '').trim(),
+      corpusPath,
+    };
+  } catch {
+    return null;
+  }
+}
+
 /** Every installed bible translation file on disk, with locale from its directory. */
 export function discoverBibleTranslationFiles(): BibleTranslationDescriptor[] {
   const byCode = new Map<string, BibleTranslationDescriptor[]>();
@@ -70,6 +99,7 @@ export function discoverBibleTranslationFiles(): BibleTranslationDescriptor[] {
   if (!fs.existsSync(DATA_ROOT)) return [];
 
   for (const locale of fs.readdirSync(DATA_ROOT)) {
+    if (RESERVED_DATA_DIRS.has(locale)) continue;
     const localeDir = path.join(DATA_ROOT, locale);
     if (!fs.statSync(localeDir).isDirectory()) continue;
 
@@ -282,15 +312,9 @@ export function loadBibleCorpus(code = DEFAULT_TRANSLATION): BibleCorpus {
 /** Every installed bible translation with metadata projected from its corpus file. */
 export function listInstalledBibleTranslations(): BibleTranslationDescriptor[] {
   return discoverBibleTranslationFiles().map((descriptor) => {
-    const corpus = loadBibleCorpus(descriptor.code);
-    return {
-      code: corpus.code,
-      name: corpus.name,
-      locale: corpus.locale,
-      licence: corpus.licence,
-      provenance: corpus.provenance,
-      corpusPath: descriptor.corpusPath,
-    };
+    const meta = readBibleTranslationMeta(descriptor.corpusPath);
+    if (meta?.locale) return meta;
+    return descriptor;
   });
 }
 

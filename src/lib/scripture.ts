@@ -96,12 +96,13 @@ function resolveBookId(bookName: string): number | null {
 
 /** True when the named translation holds no verses in the table. */
 export function isBibleTranslationEmpty(translationCode: string): boolean {
+  const code = translationCode.trim().toUpperCase();
   const db = getDb();
   const row = db
     .prepare(
       `SELECT COUNT(*) AS n FROM bible_verses WHERE translation_code = ?`
     )
-    .get(translationCode) as { n: number };
+    .get(code) as { n: number };
   return !row || row.n === 0;
 }
 
@@ -113,6 +114,7 @@ export function lookupScripture(
   ref: string,
   translationCode: string
 ): ScripturePassage | null {
+  const code = translationCode.trim().toUpperCase();
   const parsed = parseScriptureRef(ref);
   if (!parsed) return null;
 
@@ -132,7 +134,7 @@ export function lookupScripture(
       parsed.chapter,
       parsed.verseStart,
       parsed.verseEnd,
-      translationCode
+      code
     ) as {
     verse: number;
     verse_text: string;
@@ -146,5 +148,5 @@ export function lookupScripture(
       ? `${parsed.book} ${parsed.chapter}:${parsed.verseStart}`
       : `${parsed.book} ${parsed.chapter}:${parsed.verseStart}-${parsed.verseEnd}`;
 
-  return { reference, text, translation: translationCode };
+  return { reference, text, translation: code };
 }

@@ -122,7 +122,7 @@ function migrateBibleVersesTranslationCode(database: Database.Database) {
  * Bible corpus reconciles from its committed file on every boot (AD-25).
  * Measured ~133-152 ms per reconcile on a developer machine (Story 21.2).
  */
-function reconcileBibleCorpus(database: Database.Database) {
+export function reconcileBibleCorpus(database: Database.Database) {
   const descriptors = discoverBibleTranslationFiles();
 
   const upsertRegistry = database.prepare(`
@@ -161,86 +161,83 @@ function reconcileBibleCorpus(database: Database.Database) {
 
   for (const descriptor of descriptors) {
     const corpusPath = descriptor.corpusPath;
-    let corpus;
     try {
-      corpus = loadBibleCorpus(descriptor.code);
+      const corpus = loadBibleCorpus(descriptor.code);
+      const contentHash = bibleCorpusContentHash(corpusPath);
+      const reconcileStart = Date.now();
+
+      const reconcileOne = database.transaction(() => {
+        upsertRegistry.run({
+          code: corpus.code,
+          name: corpus.name,
+          locale: corpus.locale,
+          licence: corpus.licence,
+          provenance: corpus.provenance,
+          content_hash: contentHash,
+        });
+
+        const fileKeys = new Set<string>();
+
+        for (const book of corpus.books) {
+          insertBook.run({
+            id: book.id,
+            name: book.name,
+            short_name: book.shortName,
+          });
+          book.chapters.forEach((verses, chapterIndex) => {
+            verses.forEach((verse_text, verseIndex) => {
+              const chapter = chapterIndex + 1;
+              const verse = verseIndex + 1;
+              fileKeys.add(`${book.id}:${chapter}:${verse}`);
+              upsertVerse.run({
+                book_id: book.id,
+                chapter,
+                verse,
+                verse_text,
+                translation_code: corpus.code,
+              });
+            });
+          });
+        }
+
+        const stored = database
+          .prepare(
+            `SELECT book_id, chapter, verse FROM bible_verses
+             WHERE translation_code = ?`
+          )
+          .all(corpus.code) as {
+          book_id: number;
+          chapter: number;
+          verse: number;
+        }[];
+
+        for (const row of stored) {
+          const key = `${row.book_id}:${row.chapter}:${row.verse}`;
+          if (!fileKeys.has(key)) {
+            deleteVerse.run({
+              translation_code: corpus.code,
+              book_id: row.book_id,
+              chapter: row.chapter,
+              verse: row.verse,
+            });
+          }
+        }
+      });
+
+      reconcileOne();
+
+      const elapsedMs = Date.now() - reconcileStart;
+      console.info(
+        `[corpus] reconciled ${corpus.counts.verses} ${corpus.code} verses across ` +
+          `${corpus.counts.books} books (${elapsedMs} ms)`
+      );
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       console.error(
         `[corpus] bible translation ${descriptor.code} at ${corpusPath} ` +
           `failed to load — table left unchanged: ${reason}`
       );
-      continue;
     }
-
-    const contentHash = bibleCorpusContentHash(corpusPath);
-    const reconcileStart = Date.now();
-
-    const reconcileOne = database.transaction(() => {
-      upsertRegistry.run({
-        code: corpus.code,
-        name: corpus.name,
-        locale: corpus.locale,
-        licence: corpus.licence,
-        provenance: corpus.provenance,
-        content_hash: contentHash,
-      });
-
-      const fileKeys = new Set<string>();
-
-      for (const book of corpus.books) {
-        insertBook.run({
-          id: book.id,
-          name: book.name,
-          short_name: book.shortName,
-        });
-        book.chapters.forEach((verses, chapterIndex) => {
-          verses.forEach((verse_text, verseIndex) => {
-            const chapter = chapterIndex + 1;
-            const verse = verseIndex + 1;
-            fileKeys.add(`${book.id}:${chapter}:${verse}`);
-            upsertVerse.run({
-              book_id: book.id,
-              chapter,
-              verse,
-              verse_text,
-              translation_code: corpus.code,
-            });
-          });
-        });
-      }
-
-      const stored = database
-        .prepare(
-          `SELECT book_id, chapter, verse FROM bible_verses
-           WHERE translation_code = ?`
-        )
-        .all(corpus.code) as {
-        book_id: number;
-        chapter: number;
-        verse: number;
-      }[];
-
-      for (const row of stored) {
-        const key = `${row.book_id}:${row.chapter}:${row.verse}`;
-        if (!fileKeys.has(key)) {
-          deleteVerse.run({
-            translation_code: corpus.code,
-            book_id: row.book_id,
-            chapter: row.chapter,
-            verse: row.verse,
-          });
-        }
-      }
-    });
-
-    reconcileOne();
-
-    const elapsedMs = Date.now() - reconcileStart;
-    console.info(
-      `[corpus] reconciled ${corpus.counts.verses} ${corpus.code} verses across ` +
-        `${corpus.counts.books} books (${elapsedMs} ms)`
-    );
   }
 }
 
@@ -272,12 +269,13 @@ export function getDb() {
 
     db = new Database(dbPath);
 
-    // Single-node production defaults (better-sqlite3)
-    db.pragma('journal_mode = WAL');
-    db.pragma('busy_timeout = 5000');
-    db.pragma('foreign_keys = ON');
+    try {
+      // Single-node production defaults (better-sqlite3)
+      db.pragma('journal_mode = WAL');
+      db.pragma('busy_timeout = 5000');
+      db.pragma('foreign_keys = ON');
 
-    db.exec(`
+      db.exec(`
       CREATE TABLE IF NOT EXISTS services (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         date TEXT NOT NULL,
@@ -466,6 +464,11 @@ export function getDb() {
     reconcileBibleCorpus(db);
     seedArtifactRegistry(db);
     bootstrapAdminIfEmpty(db);
+    } catch (err) {
+      db.close();
+      db = null;
+      throw err;
+    }
   }
 
   return db;
