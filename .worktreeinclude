@@ -4,7 +4,8 @@
 # Gitignore-style patterns, matched against `git ls-files --others --ignored`.
 # Only path NAMES live here — no secrets, no congregation data. Copies land
 # under .claude/worktrees/, which stays git-ignored. Cursor worktree setup
-# (.cursor/setup-worktree-*.ps1) reads this same list via ROOT_WORKTREE_PATH.
+# (.cursor/setup-worktree-*) reads this same list via ROOT_WORKTREE_PATH, as
+# literal paths — no glob patterns, no negations.
 # See AGENTS.md.
 
 # Runtime configuration
