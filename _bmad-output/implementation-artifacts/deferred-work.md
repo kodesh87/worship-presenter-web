@@ -298,3 +298,8 @@ were not, and each names where it belongs rather than asking for a story of its 
 - **`content_hash` is written and never read** (`src/lib/corpus.ts:197`). The column is fine as a forensic breadcrumb; the comment calling it "for reconcile skip" contradicts `data-models-monolith.md`, which correctly says it is not used to skip.
 - **O(n²) directory scans at boot** (`src/lib/corpus.ts:149-163`). `reconcileBibleCorpus` discovers once, then `loadBibleCorpus(code)` re-runs `discoverBibleTranslationFiles()` per descriptor — twice more when it throws. Inert at one corpus; a `loadBibleCorpusFromPath(descriptor.corpusPath)` overload removes it. Also note `bibleCorpusPath()` is no longer a pure path resolver and now throws, which makes `tests/corpus.test.mjs:31`'s `fs.existsSync(bibleCorpusPath(...))` assertion message unreachable.
 - **The `try` added to `getDb` left ~190 lines at the old indent** (`src/lib/db/index.ts`), and `db.close()` in the catch can throw and mask the original boot error. Cosmetic and near-cosmetic respectively, but the indent makes the boot path harder to read than it was.
+
+## Deferred from: code review of 24-1-string-catalogue-switcher-and-lang (2026-08-02)
+
+- Closure guard does not catch `getSetting('ui_locale')` bypass — guard checks direct `@/lib/i18n` imports and `getUiLocale` calls only; a projected module could read the raw settings key without failing the suite. No projected file does this today.
+- Duplicated hand-maintained `PROJECTED` list in `tests/i18n.test.mjs` — copies the six-entry list from `theme-chrome.test.mjs` instead of sharing one source; story explicitly chose the reuse approach over structural deduplication.
