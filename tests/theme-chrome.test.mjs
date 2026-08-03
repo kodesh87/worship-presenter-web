@@ -2259,6 +2259,213 @@ test('AC-1 behaviour: an unrecognised stored value reads as system', () => {
   assert.equal(asThemeChoice('dark'), 'dark');
 });
 
+// --- Story 17.2: light `muted-foreground` must clear WCAG AA on every host ---
+
+const WCAG_AA_NORMAL_TEXT = 4.5;
+/** `bg-primary/5` ambient glow — six operator routes, worst recorded light host. */
+const AMBIENT_GLOW_ALPHA = 0.05;
+
+/**
+ * Achromatic `oklch(L 0 0)` → nearest 8-bit sRGB, via CSS Color 4 OKLab → linear
+ * sRGB → transfer function. Matches the canvas byte comparison in DESIGN.md.
+ */
+function oklchAchromaticToSrgb8(L) {
+  const cube = L ** 3;
+  const linear = [cube, cube, cube];
+  const toSrgb = (c) =>
+    c <= 0.0031308 ? c * 12.92 : 1.055 * c ** (1 / 2.4) - 0.055;
+  return linear.map((c) => Math.round(Math.min(1, Math.max(0, toSrgb(c))) * 255));
+}
+
+function compositeOverSrgb8(fg, bg, alpha) {
+  return fg.map((channel, i) =>
+    Math.round(channel * alpha + bg[i] * (1 - alpha))
+  );
+}
+
+function relativeLuminanceSrgb8([r, g, b]) {
+  const channel = (c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  };
+  const [R, G, B] = [channel(r), channel(g), channel(b)];
+  return 0.2126 * R + 0.7152 * G + 0.0722 * B;
+}
+
+function contrastRatioSrgb8(fg, bg) {
+  const l1 = relativeLuminanceSrgb8(fg);
+  const l2 = relativeLuminanceSrgb8(bg);
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function tokenDeclarations(css, blockSelector) {
+  const blocks = [
+    ...css.matchAll(
+      blockSelector === ':root'
+        ? /:root\s*\{([^}]*)\}/g
+        : /\.dark\s*\{([^}]*)\}/g
+    ),
+  ];
+  assert.equal(
+    blocks.length,
+    1,
+    `expected exactly one ${blockSelector} token block in globals.css`
+  );
+  return Object.fromEntries(
+    [...blocks[0][1].matchAll(/^\s*(--[\w-]+):\s*([^;]+);/gm)].map(([, name, value]) => [
+      name,
+      value.trim(),
+    ])
+  );
+}
+
+function parseAchromaticOklchBlock(css, blockSelector, varName) {
+  const value = tokenDeclarations(css, blockSelector)[`--${varName}`];
+  const match = value?.match(/^oklch\(([\d.]+)\s+0\s+0\)$/);
+  assert.ok(
+    match,
+    `expected achromatic --${varName} in ${blockSelector} (oklch(L 0 0))`
+  );
+  return Number(match[1]);
+}
+
+function lightMutedForegroundHosts(css) {
+  const background = oklchAchromaticToSrgb8(parseAchromaticOklchBlock(css, ':root', 'background'));
+  const muted = oklchAchromaticToSrgb8(parseAchromaticOklchBlock(css, ':root', 'muted'));
+  const primary = oklchAchromaticToSrgb8(parseAchromaticOklchBlock(css, ':root', 'primary'));
+  const ambientGlow = compositeOverSrgb8(primary, background, AMBIENT_GLOW_ALPHA);
+  const mutedForeground = oklchAchromaticToSrgb8(
+    parseAchromaticOklchBlock(css, ':root', 'muted-foreground')
+  );
+  return {
+    mutedForeground,
+    surfaces: [
+      ['background', background],
+      ['muted', muted],
+      ['ambient glow (bg-primary/5)', ambientGlow],
+    ],
+  };
+}
+
+test('Story 17.2: light muted-foreground clears WCAG AA on every recorded host surface', () => {
+  const css = readRaw(GLOBALS_CSS);
+  const { mutedForeground, surfaces } = lightMutedForegroundHosts(css);
+  for (const [name, surface] of surfaces) {
+    const ratio = contrastRatioSrgb8(mutedForeground, surface);
+    assert.ok(
+      ratio >= WCAG_AA_NORMAL_TEXT,
+      `light --muted-foreground on ${name} must be >= ${WCAG_AA_NORMAL_TEXT}:1 ` +
+        `(measured ${ratio.toFixed(4)}:1 from globals.css tokens via OKLab→sRGB)`
+    );
+  }
+});
+
+test('Story 17.2: dark muted-foreground token and its passing pairs are unchanged', () => {
+  const css = readRaw(GLOBALS_CSS);
+  const darkL = parseAchromaticOklchBlock(css, '.dark', 'muted-foreground');
+  assert.equal(
+    darkL,
+    0.708,
+    'Story 17.2 adjusts :root alone; .dark --muted-foreground must stay oklch(0.708 0 0)'
+  );
+  const darkFg = oklchAchromaticToSrgb8(darkL);
+  const darkBg = oklchAchromaticToSrgb8(parseAchromaticOklchBlock(css, '.dark', 'background'));
+  const darkMuted = oklchAchromaticToSrgb8(parseAchromaticOklchBlock(css, '.dark', 'muted'));
+  const onBackground = contrastRatioSrgb8(darkFg, darkBg);
+  const onMuted = contrastRatioSrgb8(darkFg, darkMuted);
+  assert.ok(
+    onBackground >= 7.66,
+    `dark muted-foreground on background must stay >= 7.66:1 (measured ${onBackground.toFixed(2)}:1)`
+  );
+  assert.ok(
+    onMuted >= 5.855,
+    `dark muted-foreground on muted must stay >= 5.86:1 (measured ${onMuted.toFixed(2)}:1)`
+  );
+});
+
+const ROOT_TOKENS_UNCHANGED_BY_17_2 = {
+  '--background': 'oklch(1 0 0)',
+  '--foreground': 'oklch(0.145 0 0)',
+  '--card': 'oklch(1 0 0)',
+  '--card-foreground': 'oklch(0.145 0 0)',
+  '--popover': 'oklch(1 0 0)',
+  '--popover-foreground': 'oklch(0.145 0 0)',
+  '--primary': 'oklch(0.205 0 0)',
+  '--primary-foreground': 'oklch(0.985 0 0)',
+  '--secondary': 'oklch(0.97 0 0)',
+  '--secondary-foreground': 'oklch(0.205 0 0)',
+  '--muted': 'oklch(0.97 0 0)',
+  '--accent': 'oklch(0.97 0 0)',
+  '--accent-foreground': 'oklch(0.205 0 0)',
+  '--destructive': 'oklch(0.577 0.245 27.325)',
+  '--border': 'oklch(0.922 0 0)',
+  '--input': 'oklch(0.922 0 0)',
+  '--ring': 'oklch(0.708 0 0)',
+  '--chart-1': 'oklch(0.87 0 0)',
+  '--chart-2': 'oklch(0.556 0 0)',
+  '--chart-3': 'oklch(0.439 0 0)',
+  '--chart-4': 'oklch(0.371 0 0)',
+  '--chart-5': 'oklch(0.269 0 0)',
+  '--radius': '0.625rem',
+  '--sidebar': 'oklch(0.985 0 0)',
+  '--sidebar-foreground': 'oklch(0.145 0 0)',
+  '--sidebar-primary': 'oklch(0.205 0 0)',
+  '--sidebar-primary-foreground': 'oklch(0.985 0 0)',
+  '--sidebar-accent': 'oklch(0.97 0 0)',
+  '--sidebar-accent-foreground': 'oklch(0.205 0 0)',
+  '--sidebar-border': 'oklch(0.922 0 0)',
+  '--sidebar-ring': 'oklch(0.708 0 0)',
+};
+
+const DARK_TOKENS_UNCHANGED_BY_17_2 = {
+  '--background': 'oklch(0.145 0 0)',
+  '--foreground': 'oklch(0.985 0 0)',
+  '--card': 'oklch(0.205 0 0)',
+  '--card-foreground': 'oklch(0.985 0 0)',
+  '--popover': 'oklch(0.205 0 0)',
+  '--popover-foreground': 'oklch(0.985 0 0)',
+  '--primary': 'oklch(0.922 0 0)',
+  '--primary-foreground': 'oklch(0.205 0 0)',
+  '--secondary': 'oklch(0.269 0 0)',
+  '--secondary-foreground': 'oklch(0.985 0 0)',
+  '--muted': 'oklch(0.269 0 0)',
+  '--muted-foreground': 'oklch(0.708 0 0)',
+  '--accent': 'oklch(0.269 0 0)',
+  '--accent-foreground': 'oklch(0.985 0 0)',
+  '--destructive': 'oklch(0.704 0.191 22.216)',
+  '--border': 'oklch(1 0 0 / 10%)',
+  '--input': 'oklch(1 0 0 / 15%)',
+  '--ring': 'oklch(0.556 0 0)',
+  '--chart-1': 'oklch(0.87 0 0)',
+  '--chart-2': 'oklch(0.556 0 0)',
+  '--chart-3': 'oklch(0.439 0 0)',
+  '--chart-4': 'oklch(0.371 0 0)',
+  '--chart-5': 'oklch(0.269 0 0)',
+  '--sidebar': 'oklch(0.205 0 0)',
+  '--sidebar-foreground': 'oklch(0.985 0 0)',
+  '--sidebar-primary': 'oklch(0.488 0.243 264.376)',
+  '--sidebar-primary-foreground': 'oklch(0.985 0 0)',
+  '--sidebar-accent': 'oklch(0.269 0 0)',
+  '--sidebar-accent-foreground': 'oklch(0.985 0 0)',
+  '--sidebar-border': 'oklch(1 0 0 / 10%)',
+  '--sidebar-ring': 'oklch(0.556 0 0)',
+};
+
+test('Story 17.2: only the light muted-foreground token moves — other root and dark tokens stay put', () => {
+  const css = readRaw(GLOBALS_CSS);
+  const root = tokenDeclarations(css, ':root');
+  const { '--muted-foreground': mutedForeground, ...unaffectedRoot } = root;
+  assert.deepEqual(unaffectedRoot, ROOT_TOKENS_UNCHANGED_BY_17_2);
+  assert.deepEqual(tokenDeclarations(css, '.dark'), DARK_TOKENS_UNCHANGED_BY_17_2);
+  assert.notEqual(
+    mutedForeground,
+    'oklch(0.556 0 0)',
+    'the pre-story oklch(0.556 0 0) value fails on muted and ambient glow and must not return'
+  );
+});
+
 // --- AC-6: the measurements, and the shades that needed them ----------------
 
 const DESIGN_MD =
@@ -2404,20 +2611,20 @@ const CHROMATIC_TEXT = new RegExp(
 const UNPAIRED_CHROMATIC_TEXT = [
   // The two forms' warning and error banners, which paint a DARK-only shade on
   // a surface that is light by default — `text-amber-200` over `bg-amber-500/10`,
-  // `text-red-200` over `bg-red-500/10`. Round 2 measured these and deferred the
-  // light-theme failures to Story 17.2, which owns `--muted-foreground` and the
-  // untokenized-hue sweep (`DESIGN.md` Open Item 4). Cited so a reader can check
-  // the claim rather than take the file's word for it.
-  'src/app/services/[id]/EditForm.tsx: text-amber-200 [:471, Story 17.2]',
-  'src/app/services/[id]/EditForm.tsx: text-amber-300 [:473, Story 17.2]',
-  'src/app/services/[id]/EditForm.tsx: text-red-200 [:463, Story 17.2]',
-  'src/app/services/[id]/EditForm.tsx: text-red-500 [:911, Story 17.2]',
-  'src/app/services/new/CreateForm.tsx: text-amber-200 [:444, Story 17.2]',
-  'src/app/services/new/CreateForm.tsx: text-amber-200 [:481, Story 17.2]',
-  'src/app/services/new/CreateForm.tsx: text-amber-300 [:447, Story 17.2]',
-  'src/app/services/new/CreateForm.tsx: text-amber-300 [:483, Story 17.2]',
-  'src/app/services/new/CreateForm.tsx: text-red-200 [:473, Story 17.2]',
-  'src/app/services/new/CreateForm.tsx: text-red-500 [:880, Story 17.2]',
+  // `text-red-200` over `bg-red-500/10`. Round 2 measured these; the product
+  // decision for untokenized hues lives in `DESIGN.md` Open Item 4 (no story
+  // owner yet). Cited so a reader can check the claim rather than take the
+  // file's word for it.
+  'src/app/services/[id]/EditForm.tsx: text-amber-200 [:471, DESIGN.md Open Item 4]',
+  'src/app/services/[id]/EditForm.tsx: text-amber-300 [:473, DESIGN.md Open Item 4]',
+  'src/app/services/[id]/EditForm.tsx: text-red-200 [:463, DESIGN.md Open Item 4]',
+  'src/app/services/[id]/EditForm.tsx: text-red-500 [:911, DESIGN.md Open Item 4]',
+  'src/app/services/new/CreateForm.tsx: text-amber-200 [:444, DESIGN.md Open Item 4]',
+  'src/app/services/new/CreateForm.tsx: text-amber-200 [:481, DESIGN.md Open Item 4]',
+  'src/app/services/new/CreateForm.tsx: text-amber-300 [:447, DESIGN.md Open Item 4]',
+  'src/app/services/new/CreateForm.tsx: text-amber-300 [:483, DESIGN.md Open Item 4]',
+  'src/app/services/new/CreateForm.tsx: text-red-200 [:473, DESIGN.md Open Item 4]',
+  'src/app/services/new/CreateForm.tsx: text-red-500 [:880, DESIGN.md Open Item 4]',
   // Pinned dark, so it cannot express itself in `dark:` variants at all: the
   // Presenter renders dark under either theme (AC-3), which is why
   // `presenter-model.ts:48-54` keeps a second tone table instead of adding dark

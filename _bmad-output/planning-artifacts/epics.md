@@ -277,7 +277,7 @@ So that layouts can be extended without a code change.
 
 **Note:** seeded element IDs and any element marked `required` stay immutable — the save API rejects their removal or rename (400) and read-only base types (FullScreenImage, SongSet, Announcement) expose no add/delete affordances at all. Only elements authored in the editor may be deleted.
 
-### Epic 17: An operator surface that is readable and honest *(in-progress — Stories 17.1 and 17.8 done; 17.2 ready-for-dev; 17.3–17.7 backlog)*
+### Epic 17: An operator surface that is readable and honest *(in-progress — Stories 17.1, 17.2, and 17.8 done; 17.3–17.7 backlog)*
 
 Created 2026-07-29 from the implementation-readiness assessment's product defects, via the epic route rather than inline patching — the point of Correct Course that day was that inline is how the drift happened. Titled around what an operator gets, per the C5-1 remediation: the value standard applies to new epics from here.
 
@@ -290,10 +290,10 @@ So that a full-brightness white screen in my hands does not light up the room.
 
 **Corrected 2026-07-30 (`bmad-ux` Update):** this story previously ended *"…stops being dead code"*, inheriting a claim from the readiness assessment. The 33-token `.dark` palette is **not** dead — `PresenterOperator.tsx:449` and `SlideGridDialog.tsx:176` pin the class on their own wrappers and `globals.css:5` matches any descendant, so it renders today in the two surfaces an operator uses during a service. What is missing is **choice**, and the story's real constraint is to add it *without* disturbing those two deliberate opt-outs.
 
-#### Story 17.2: `muted-foreground` Contrast *(ready-for-dev)*
+#### Story 17.2: `muted-foreground` Contrast *(done — 2026-08-03, review closed)*
 As an operator reading secondary text,
 I want the muted foreground token to meet WCAG AA,
-So that labels, hints and timings are legible. Measured 2026-07-29 against the running app: **4.35:1 on `muted`, which fails AA (4.5:1)**, and 4.74:1 on `background`, passing by 0.24. Darkening `--muted-foreground` to about `#6b6b6b` clears both surfaces; no other token moves.
+So that labels, hints and timings are legible. Story 17.2 darkened `:root --muted-foreground` from `oklch(0.556 0 0)` to `oklch(0.543 0 0)` (`#6f6f6f`), clearing all three recorded light hosts at **5.02:1** on `background`, **4.61:1** on `muted`, and **4.53:1** on the ambient `bg-primary/5` glow. The `.dark` block, projected output, and untokenized hues (Open Item 4) were untouched. Evidence: [`DESIGN.md`](../planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/DESIGN.md) → *Contrast on load-bearing combinations*; regression in `tests/theme-chrome.test.mjs`.
 
 #### Story 17.3: The App Says Its Own Name *(backlog)*
 As anyone with the hub open,
