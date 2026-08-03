@@ -4,7 +4,7 @@ baseline_commit: 81b9e17
 
 # Story 23.1: A Fresh Clone Can Show a Finished Deck
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -28,28 +28,41 @@ so that I can see a generated deck without inventing a congregation first.
 
 ## Tasks / Subtasks
 
-- [ ] Add a testable server-side demo-seeding module (AC: 1-5)
-  - [ ] Create `src/lib/demo-seed.ts` with the authored-synthetic fixture and a named seeding function; keep the fixture in code, not in `data/local/`, an upload directory, or a generated deck.
-  - [ ] Check `SELECT COUNT(*)` on `services` before every write and return/throw one deliberate refusal for any non-empty result.
-  - [ ] Build the input with `narrowCreateBody()` and call `createService(db, input)` rather than duplicating rundown parsing, SQL insertion, structured-field normalisation, or announcement syncing.
-  - [ ] Treat an unexpectedly invalid narrowed payload or failed `createService()` result as a command failure; do not leave partial rows behind.
+- [x] Add a testable server-side demo-seeding module (AC: 1-5)
+  - [x] Create `src/lib/demo-seed.ts` with the authored-synthetic fixture and a named seeding function; keep the fixture in code, not in `data/local/`, an upload directory, or a generated deck.
+  - [x] Check `SELECT COUNT(*)` on `services` before every write and return/throw one deliberate refusal for any non-empty result.
+  - [x] Build the input with `narrowCreateBody()` and call `createService(db, input)` rather than duplicating rundown parsing, SQL insertion, structured-field normalisation, or announcement syncing.
+  - [x] Treat an unexpectedly invalid narrowed payload or failed `createService()` result as a command failure; do not leave partial rows behind.
 
-- [ ] Add the explicit command without changing normal setup (AC: 1, 4)
-  - [ ] Add `scripts/seed-demo.mjs`, following `scripts/setup.mjs`'s Node TypeScript-loader bridge and repository-root handling to invoke the server-side module.
-  - [ ] Add `seed:demo` to `package.json`; leave the `setup` script and `scripts/setup.mjs` free of any demo-seed invocation.
-  - [ ] Print a concise success result (service id/date and how to open it) or a clear empty-install refusal; return a non-zero exit status for refusal/failure.
+- [x] Add the explicit command without changing normal setup (AC: 1, 4)
+  - [x] Add `scripts/seed-demo.mjs`, following `scripts/setup.mjs`'s Node TypeScript-loader bridge and repository-root handling to invoke the server-side module.
+  - [x] Add `seed:demo` to `package.json`; leave the `setup` script and `scripts/setup.mjs` free of any demo-seed invocation.
+  - [x] Print a concise success result (service id/date and how to open it) or a clear empty-install refusal; return a non-zero exit status for refusal/failure.
 
-- [ ] Cover the command contract and privacy boundary (AC: 2-6)
-  - [ ] Add `tests/demo-seed.test.mjs`, using a newly created temporary directory and `DB_PATH` set before importing `getDb`; restore environment state and remove the temp directory after the suite.
-  - [ ] Assert exactly one service and its announcement rows after a first seed, valid parsed rundown data including zero failed hymns, and that the normal `buildSlidePlan` path can consume it.
-  - [ ] Snapshot row counts/content before a second seed; assert the command/module refuses and all service and announcement rows remain unchanged.
-  - [ ] Assert the demo command is opt-in (database initialization alone creates no demo service) and retain/extend `tests/public-repo-guard.test.mjs` coverage as needed. If a guard changes, inject its prohibited condition once and confirm it fails before finalizing.
-  - [ ] Register the new test file in the explicit `npm test` file list.
+- [x] Cover the command contract and privacy boundary (AC: 2-6)
+  - [x] Add `tests/demo-seed.test.mjs`, using a newly created temporary directory and `DB_PATH` set before importing `getDb`; restore environment state and remove the temp directory after the suite.
+  - [x] Run the actual `npm run seed:demo` command in the isolated database for both paths (spawn npm via `process.env.npm_execpath`, or `node_modules/npm/bin/npm-cli.js` as fallback, through `process.execPath` with `shell: false` — avoids unreliable Windows `.cmd` spawn without `shell: true`): first run exits zero and reports the created service; second run exits non-zero with the empty-install refusal.
+  - [x] Assert exactly one service and its announcement rows after a first seed, valid parsed rundown data including zero failed hymns, and the persisted-service media path `resolveSlideMediaForService(serviceId, images_payload)` to `buildSlidePlan(...)` includes the fixture's `announcements` header and flyer. Do not prove deck readiness with an empty media array or a demo-only adapter.
+  - [x] Snapshot row counts/content before the second command; assert refusal leaves all service and announcement rows unchanged.
+  - [x] Assert the demo command is opt-in (database initialization alone creates no demo service) and retain/extend `tests/public-repo-guard.test.mjs` coverage as needed. If a guard changes, inject its prohibited condition once and confirm it fails before finalizing.
+  - [x] Register the new test file in the explicit `npm test` file list.
 
-- [ ] Verify the scoped change (AC: 1-6)
-  - [ ] Run the focused demo-seed test and its related service/slide-plan tests.
-  - [ ] Run `npm test`, `npm run build`, and the mandatory public-repository guard.
-  - [ ] Confirm `git diff --check` is clean and no forbidden artifact is staged.
+- [x] Verify the scoped change (AC: 1-6)
+  - [x] Run the focused demo-seed test and its related service/slide-plan tests.
+  - [x] Run `npm test`, `npm run build`, and the mandatory public-repository guard.
+  - [x] Confirm `git diff --check` is clean and no forbidden artifact is staged.
+
+### Review Findings
+
+- [x] [Review][Decision] Test npm spawn — resolved 2026-08-03: story updated to document the `npm-cli.js` spawn pattern via `npm_execpath` (option A); avoids unreliable Windows `.cmd` spawn without `shell: true`.
+
+- [x] [Review][Patch] Reuse synthetic sermon speaker `Pastor Adam` [`src/lib/demo-seed.ts:19`]
+- [x] [Review][Patch] Catch `seedDemoService` throws in CLI wrapper for user-facing failure output [`scripts/seed-demo.mjs:10-17`]
+- [x] [Review][Patch] Assert exactly one announcement row after first seed [`tests/demo-seed.test.mjs:77`]
+- [x] [Review][Patch] Isolate test subprocess from parent `IMAGE_URL_ALLOWLIST` [`tests/demo-seed.test.mjs:33`]
+- [x] [Review][Patch] Remove stale "implementation has not started" completion note [`23-1-opt-in-demo-seed.md:139`]
+
+- [x] [Review][Defer] Concurrent `seed:demo` race on empty table could create two services [`src/lib/demo-seed.ts:46-48`] — deferred, pre-existing CLI pattern; negligible for opt-in demo CLI
 
 ## Dev Notes
 
@@ -80,6 +93,8 @@ so that I can see a generated deck without inventing a congregation first.
 
 - Use Node’s built-in `node:test` / `node:assert/strict` harness with `--import ./tests/register-ts-resolve.mjs --experimental-strip-types`; do not introduce Jest or Vitest.
 - Initialize each DB test with a distinct temporary `DB_PATH` **before** importing `getDb`; clean it up and restore environment changes in the same suite. Follow `tests/services-create.test.mjs` and `tests/slide-plan.test.mjs` patterns.
+- Exercise the package command, not only the exported seeding function: spawn npm through `process.env.npm_execpath` (fallback: `node_modules/npm/bin/npm-cli.js`) via `process.execPath` with `['run', 'seed:demo']` and `shell: false`. This exercises the same `seed:demo` script an operator runs, without shell execution or user-controlled arguments. On Windows, spawning `npm.cmd` directly with `shell: false` is unreliable; the `npm-cli.js` indirection is intentional.
+- For deck readiness, read the stored `images_payload` and resolve flyers through `resolveSlideMediaForService(serviceId, images_payload)` before calling `buildSlidePlan`. Assert the seeded announcement header and flyer node exist, so the test covers the same service-bound announcement resolution used by the PPTX route.
 - Any new `tests/*.test.mjs` file must be added to the explicit `package.json` `scripts.test` list or it will not execute locally/CI.
 - Required final checks: focused test, full `npm test`, `npm run build`, `git diff --check`, and `node --import ./tests/register-ts-resolve.mjs --test --experimental-strip-types tests/public-repo-guard.test.mjs`.
 
@@ -122,12 +137,32 @@ GPT-5.6-Codex
 
 - BMad create-story context analysis completed 2026-08-03.
 - Architecture, planning, repository, dependency, and current-version Node API review completed before story creation.
+- 2026-08-03: Red-green tests covered the missing package command and then the missing resolved verse text before the seeder implementation supplied both.
+
+### Implementation Plan
+
+- Keep the authored synthetic fixture in a server-side module, delegate all service writes to `narrowCreateBody()` and `createService()`, and wrap the call in an outer transaction so any unexpected failure rolls back.
+- Resolve the shipped KJV verse through `lookupScripture()` before creating the normal persisted service; the test exercises the package command and the real service-bound media resolver before `buildSlidePlan()`.
 
 ### Completion Notes List
 
 - Ultimate context engine analysis completed - comprehensive developer guide created.
-- Status set to `ready-for-dev`; implementation has not started.
+- Validation improvements applied 2026-08-03: the test contract executes the real opt-in command and verifies persisted service-bound announcement media reaches the normal slide-plan path.
+- Implemented the opt-in `seed:demo` command with one synthetic service, a KJV-resolved verse, valid SDAH hymns, and an `example.com` announcement flyer.
+- The command refuses non-empty installations before writing; the test spawns npm via `npm_execpath` / `npm-cli.js` with `shell: false` for both success and refusal paths.
+- Code review 2026-08-03: five patch items applied; npm spawn contract documented in story; concurrent-seed race deferred.
+- Validation passed: focused demo/service/slide-plan tests (14/14), `npm run build`, `npm test` (440 pass, 0 fail, 1 skipped), targeted ESLint, public-repository guard (5/5), and `git diff --check`.
 
 ### File List
 
 - `_bmad-output/implementation-artifacts/stories/23-1-opt-in-demo-seed.md` (new)
+- `_bmad-output/implementation-artifacts/sprint-status.yaml` (modified)
+- `package.json` (modified)
+- `scripts/seed-demo.mjs` (new)
+- `src/lib/demo-seed.ts` (new)
+- `tests/demo-seed.test.mjs` (new)
+
+## Change Log
+
+- 2026-08-03: Implemented the opt-in demo seeder, package command, and command-level deck-readiness tests; status moved to review.
+- 2026-08-03: Code review closed — patch items applied, npm spawn contract documented, status moved to done.
