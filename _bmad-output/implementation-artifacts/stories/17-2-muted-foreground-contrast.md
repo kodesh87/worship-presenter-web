@@ -28,7 +28,7 @@ so that labels, hints and timings are legible.
 5. **The visual authority documents describe the shipped result rather than an open defect.** In the same change set:
    - `DESIGN.md` updates its token inventory and before/after contrast evidence for all three light surfaces, closes Open Item 1 only after the implementation has earned the closure, and preserves the dark measurements;
    - `EXPERIENCE.md` updates the Accessibility Floor so it no longer claims that the light `muted-foreground` pair fails; and
-   - all recorded ratios name the measurement method and the resolved colours used, with no claim that this narrow change is a complete accessibility audit.
+   - `DESIGN.md` is the canonical measurement record: every ratio there names its method and resolved colours. `EXPERIENCE.md` may summarize the outcome and links to that evidence; it does not duplicate the measurement record. Neither document claims that this narrow change is a complete accessibility audit.
 
 6. **The unrelated chromatic-hue decision is not smuggled into this story.** The 90 untokenized `amber`/`emerald`/`red`/`indigo`/`sky` utilities, including the ten Create/Edit form entries in `UNPAIRED_CHROMATIC_TEXT`, are not recoloured or tokenized by Story 17.2. Their existing guard entries remain exact. Stale comments or prose that say Story 17.2 owns the untokenized-hue sweep are corrected to point to `DESIGN.md` Open Item 4, which remains explicitly product-decision-first and ownerless. This story does not choose warning-token versus greyscale semantics.
 
@@ -37,7 +37,7 @@ so that labels, hints and timings are legible.
 ## Tasks / Subtasks
 
 - [ ] Establish fail-first contrast regression coverage (AC: 1, 2, 3, 4)
-  - [ ] Extend `tests/theme-chrome.test.mjs` with a small, dependency-free contrast helper that reads the actual light and dark token declarations from `src/app/globals.css`, resolves the achromatic OKLCH values deterministically, applies alpha compositing for the measured light ambient surface where needed, and calculates WCAG relative luminance/contrast.
+  - [ ] Extend `tests/theme-chrome.test.mjs` with a small, dependency-free contrast helper that reads the actual light and dark token declarations from `src/app/globals.css`, parses achromatic `oklch(L 0 0)`, converts it through the CSS Color 4 OKLab-to-linear-sRGB and sRGB-transfer functions, and compares the nearest 8-bit sRGB channels used by the canvas measurement. Apply alpha compositing for the measured light ambient surface where needed, then calculate WCAG relative luminance/contrast.
   - [ ] Assert the light token against `background`, `muted`, and the recorded ambient-glow surface; assert that the `.dark` token/value and its two passing ratios are not changed by this story.
   - [ ] Before editing the production token, run the focused test and record the expected failure on the current 4.35:1/4.27:1 pairs. After the edit, record the passing run. Revert every temporary mutation/probe.
   - [ ] Keep the test property-based: do not make an exact replacement literal the only evidence of success.
@@ -54,7 +54,7 @@ so that labels, hints and timings are legible.
 
 - [ ] Synchronize UX authority and resolve the ownership contradiction (AC: 5, 6)
   - [ ] Update the `DESIGN.md` frontmatter token value, contrast table, Open Item 1, and ambient-glow evidence to match the measured implementation.
-  - [ ] Update `EXPERIENCE.md` Accessibility Floor to report the repaired light pairs while retaining the separate dark-hue and non-text-contrast caveats.
+  - [ ] Update `EXPERIENCE.md` Accessibility Floor to report the repaired light pairs while retaining the separate dark-hue and non-text-contrast caveats. Keep its ratios as a summary and point readers to `DESIGN.md` for the resolved-colour and method evidence.
   - [ ] Qualify live `DESIGN.md` / `EXPERIENCE.md` claims that the shadcn defaults are “unmodified”: primitives remain unmodified, but the project now deliberately overrides the light muted-foreground token.
   - [ ] Preserve `DESIGN.md` Open Item 4 as an unresolved product decision; remove claims in `DESIGN.md`, `deferred-work.md`, and `tests/theme-chrome.test.mjs` that assign its form-site/untokenized-hue sweep to Story 17.2. Retag the ten exact form exceptions to the decision item without changing their values or weakening the guard's two-way multiset check; do not remove them until a future owned story actually fixes the sites.
   - [ ] Do not update the architecture spine: this story changes no structural invariant, route/surface, storage target, schema, auth gate, slide-order source, or sync channel.
@@ -99,6 +99,7 @@ so that labels, hints and timings are legible.
   - `tests/theme-chrome.test.mjs` — contrast property and mutation-proof regression coverage; stale hue-ownership comment correction.
   - `_bmad-output/planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/DESIGN.md` — token inventory, measurements, Open Item 1 closure, Open Item 4 ownership repair.
   - `_bmad-output/planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/EXPERIENCE.md` — Accessibility Floor sync.
+  - `_bmad-output/planning-artifacts/epics.md` — keep the Epic 17 summary and Story 17.2 label synchronized with `ready-for-dev` / subsequent sprint status.
   - `_bmad-output/implementation-artifacts/deferred-work.md` — only the stale Story 17.2 hue attribution, if still present at development time.
   - this story and `sprint-status.yaml` — normal implementation tracking updates.
 - No new source module, dependency, route, component, API, database/schema change, architecture decision, UX surface, or design token is expected.
@@ -136,6 +137,8 @@ so that labels, hints and timings are legible.
 ### Story Context Completion
 
 Ultimate context engine analysis completed — comprehensive developer guide created and validated against the Epic 17, UX, architecture, project-context, current-code, and test-guard constraints.
+
+Validation amendments applied: Epic 17 tracking is synchronized with `ready-for-dev`; `DESIGN.md` is explicit as the canonical resolved-colour measurement record; and the regression helper's achromatic CSS Color 4 conversion and 8-bit canvas comparison are defined.
 
 ### Agent Model Used
 

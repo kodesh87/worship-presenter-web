@@ -277,7 +277,7 @@ So that layouts can be extended without a code change.
 
 **Note:** seeded element IDs and any element marked `required` stay immutable — the save API rejects their removal or rename (400) and read-only base types (FullScreenImage, SongSet, Announcement) expose no add/delete affordances at all. Only elements authored in the editor may be deleted.
 
-### Epic 17: An operator surface that is readable and honest *(in-progress — Stories 17.1 and 17.8 done; 17.2–17.7 backlog)*
+### Epic 17: An operator surface that is readable and honest *(in-progress — Stories 17.1 and 17.8 done; 17.2 ready-for-dev; 17.3–17.7 backlog)*
 
 Created 2026-07-29 from the implementation-readiness assessment's product defects, via the epic route rather than inline patching — the point of Correct Course that day was that inline is how the drift happened. Titled around what an operator gets, per the C5-1 remediation: the value standard applies to new epics from here.
 
@@ -290,7 +290,7 @@ So that a full-brightness white screen in my hands does not light up the room.
 
 **Corrected 2026-07-30 (`bmad-ux` Update):** this story previously ended *"…stops being dead code"*, inheriting a claim from the readiness assessment. The 33-token `.dark` palette is **not** dead — `PresenterOperator.tsx:449` and `SlideGridDialog.tsx:176` pin the class on their own wrappers and `globals.css:5` matches any descendant, so it renders today in the two surfaces an operator uses during a service. What is missing is **choice**, and the story's real constraint is to add it *without* disturbing those two deliberate opt-outs.
 
-#### Story 17.2: `muted-foreground` Contrast *(backlog)*
+#### Story 17.2: `muted-foreground` Contrast *(ready-for-dev)*
 As an operator reading secondary text,
 I want the muted foreground token to meet WCAG AA,
 So that labels, hints and timings are legible. Measured 2026-07-29 against the running app: **4.35:1 on `muted`, which fails AA (4.5:1)**, and 4.74:1 on `background`, passing by 0.24. Darkening `--muted-foreground` to about `#6b6b6b` clears both surfaces; no other token moves.
