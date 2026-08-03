@@ -27,8 +27,9 @@ execution gets here at all; any earlier HALT skips this entirely. Do the followi
 order, before finishing:
 
 1. INDEPENDENT VALIDATION — must run in a fresh, unbiased context, not this one.
-   Dispatch a brand-new subagent (Agent tool, model: sonnet) that has NOT seen this
-   conversation. Its ONLY instruction: invoke this same skill again as
+   Dispatch a brand-new subagent (Agent tool, subagent_type: "bmad-sonnet-high" — pins
+   Sonnet at high effort, same tier the outer create-story run is already on) that has
+   NOT seen this conversation. Its ONLY instruction: invoke this same skill again as
    `Skill(skill: "bmad-create-story", args: "validate {{story_key}}")`, then report
    back that invocation's full output verbatim — nothing else, no summarizing.
 
