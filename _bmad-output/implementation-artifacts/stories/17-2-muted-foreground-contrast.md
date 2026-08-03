@@ -1,6 +1,10 @@
+---
+baseline_commit: 2ff8d62e679b4660d4bd66be52e6c707a1fbe868
+---
+
 # Story 17.2: `muted-foreground` Contrast
 
-Status: ready-for-dev
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -36,36 +40,36 @@ so that labels, hints and timings are legible.
 
 ## Tasks / Subtasks
 
-- [ ] Establish fail-first contrast regression coverage (AC: 1, 2, 3, 4)
-  - [ ] Extend `tests/theme-chrome.test.mjs` with a small, dependency-free contrast helper that reads the actual light and dark token declarations from `src/app/globals.css`, parses achromatic `oklch(L 0 0)`, converts it through the CSS Color 4 OKLab-to-linear-sRGB and sRGB-transfer functions, and compares the nearest 8-bit sRGB channels used by the canvas measurement. Apply alpha compositing for the measured light ambient surface where needed, then calculate WCAG relative luminance/contrast.
-  - [ ] Assert the light token against `background`, `muted`, and the recorded ambient-glow surface; assert that the `.dark` token/value and its two passing ratios are not changed by this story.
-  - [ ] Before editing the production token, run the focused test and record the expected failure on the current 4.35:1/4.27:1 pairs. After the edit, record the passing run. Revert every temporary mutation/probe.
-  - [ ] Keep the test property-based: do not make an exact replacement literal the only evidence of success.
+- [x] Establish fail-first contrast regression coverage (AC: 1, 2, 3, 4)
+  - [x] Extend `tests/theme-chrome.test.mjs` with a small, dependency-free contrast helper that reads the actual light and dark token declarations from `src/app/globals.css`, parses achromatic `oklch(L 0 0)`, converts it through the CSS Color 4 OKLab-to-linear-sRGB and sRGB-transfer functions, and compares the nearest 8-bit sRGB channels used by the canvas measurement. Apply alpha compositing for the measured light ambient surface where needed, then calculate WCAG relative luminance/contrast.
+  - [x] Assert the light token against `background`, `muted`, and the recorded ambient-glow surface; assert that the `.dark` token/value and its two passing ratios are not changed by this story.
+  - [x] Before editing the production token, run the focused test and record the expected failure on the current 4.35:1/4.27:1 pairs. After the edit, record the passing run. Revert every temporary mutation/probe.
+  - [x] Keep the test property-based: do not make an exact replacement literal the only evidence of success.
 
-- [ ] Adjust only the light muted foreground token (AC: 1, 2, 3)
-  - [ ] Change `:root --muted-foreground` in `src/app/globals.css` to the smallest practical achromatic OKLCH adjustment that clears all three recorded surfaces.
-  - [ ] Confirm from the diff that no other `:root` token, no `.dark` token, and no projected/runtime surface changed.
-  - [ ] Do not compensate by moving `--muted`, `--background`, `--primary`, opacity utilities, individual component classes, or any chromatic hue utility.
+- [x] Adjust only the light muted foreground token (AC: 1, 2, 3)
+  - [x] Change `:root --muted-foreground` in `src/app/globals.css` to the smallest practical achromatic OKLCH adjustment that clears all three recorded surfaces.
+  - [x] Confirm from the diff that no other `:root` token, no `.dark` token, and no projected/runtime surface changed.
+  - [x] Do not compensate by moving `--muted`, `--background`, `--primary`, opacity utilities, individual component classes, or any chromatic hue utility.
 
-- [ ] Measure the running application with fresh browser-resolved colours (AC: 1, 2, 3, 5)
-  - [ ] Use the established canvas/computed-style method to resolve the shipped CSS colours to sRGB and calculate all three light ratios plus the two dark control ratios.
-  - [ ] Avoid Story 17.1's stale-style trap: switch/reload into the target theme or use fresh probe nodes before reading computed styles; do not reuse an element already measured through a `transition-all` state change.
-  - [ ] Record resolved colour pairs, ratios, date, and method in `DESIGN.md`; verify each light pair is `>= 4.5:1` without rounding a sub-threshold raw value up to a pass.
+- [x] Measure the running application with fresh browser-resolved colours (AC: 1, 2, 3, 5)
+  - [x] Use the established canvas/computed-style method to resolve the shipped CSS colours to sRGB and calculate all three light ratios plus the two dark control ratios.
+  - [x] Avoid Story 17.1's stale-style trap: switch/reload into the target theme or use fresh probe nodes before reading computed styles; do not reuse an element already measured through a `transition-all` state change.
+  - [x] Record resolved colour pairs, ratios, date, and method in `DESIGN.md`; verify each light pair is `>= 4.5:1` without rounding a sub-threshold raw value up to a pass.
 
-- [ ] Synchronize UX authority and resolve the ownership contradiction (AC: 5, 6)
-  - [ ] Update the `DESIGN.md` frontmatter token value, contrast table, Open Item 1, and ambient-glow evidence to match the measured implementation.
-  - [ ] Update `EXPERIENCE.md` Accessibility Floor to report the repaired light pairs while retaining the separate dark-hue and non-text-contrast caveats. Keep its ratios as a summary and point readers to `DESIGN.md` for the resolved-colour and method evidence.
-  - [ ] Qualify live `DESIGN.md` / `EXPERIENCE.md` claims that the shadcn defaults are “unmodified”: primitives remain unmodified, but the project now deliberately overrides the light muted-foreground token.
-  - [ ] Preserve `DESIGN.md` Open Item 4 as an unresolved product decision; remove claims in `DESIGN.md`, `deferred-work.md`, and `tests/theme-chrome.test.mjs` that assign its form-site/untokenized-hue sweep to Story 17.2. Retag the ten exact form exceptions to the decision item without changing their values or weakening the guard's two-way multiset check; do not remove them until a future owned story actually fixes the sites.
-  - [ ] Do not update the architecture spine: this story changes no structural invariant, route/surface, storage target, schema, auth gate, slide-order source, or sync channel.
+- [x] Synchronize UX authority and resolve the ownership contradiction (AC: 5, 6)
+  - [x] Update the `DESIGN.md` frontmatter token value, contrast table, Open Item 1, and ambient-glow evidence to match the measured implementation.
+  - [x] Update `EXPERIENCE.md` Accessibility Floor to report the repaired light pairs while retaining the separate dark-hue and non-text-contrast caveats. Keep its ratios as a summary and point readers to `DESIGN.md` for the resolved-colour and method evidence.
+  - [x] Qualify live `DESIGN.md` / `EXPERIENCE.md` claims that the shadcn defaults are “unmodified”: primitives remain unmodified, but the project now deliberately overrides the light muted-foreground token.
+  - [x] Preserve `DESIGN.md` Open Item 4 as an unresolved product decision; remove claims in `DESIGN.md`, `deferred-work.md`, and `tests/theme-chrome.test.mjs` that assign its form-site/untokenized-hue sweep to Story 17.2. Retag the ten exact form exceptions to the decision item without changing their values or weakening the guard's two-way multiset check; do not remove them until a future owned story actually fixes the sites.
+  - [x] Do not update the architecture spine: this story changes no structural invariant, route/surface, storage target, schema, auth gate, slide-order source, or sync channel.
 
-- [ ] Run supported verification and complete the record (AC: 4, 7)
-  - [ ] Run `node --import ./tests/register-ts-resolve.mjs --test --experimental-strip-types tests/theme-chrome.test.mjs`.
-  - [ ] Run `npx tsc --noEmit`.
-  - [ ] Run `node --import ./tests/register-ts-resolve.mjs --test --experimental-strip-types tests/public-repo-guard.test.mjs`.
-  - [ ] Run `npm test` on the supported Node 22 environment; use `npm ci` then `npm run build` first if the native dependency ABI/build state is stale.
-  - [ ] Run `npm run lint`, compare with the 31-problem baseline, and introduce zero new lint findings.
-  - [ ] Inspect the final diff for accidental generated output, private data, projected-surface changes, token drift, and leftover measurement probes; update the Dev Agent Record and File List.
+- [x] Run supported verification and complete the record (AC: 4, 7)
+  - [x] Run `node --import ./tests/register-ts-resolve.mjs --test --experimental-strip-types tests/theme-chrome.test.mjs`.
+  - [x] Run `npx tsc --noEmit`.
+  - [x] Run `node --import ./tests/register-ts-resolve.mjs --test --experimental-strip-types tests/public-repo-guard.test.mjs`.
+  - [x] Run `npm test` on the supported Node 22 environment; use `npm ci` then `npm run build` first if the native dependency ABI/build state is stale.
+  - [x] Run `npm run lint`, compare with the 31-problem baseline, and introduce zero new lint findings.
+  - [x] Inspect the final diff for accidental generated output, private data, projected-surface changes, token drift, and leftover measurement probes; update the Dev Agent Record and File List.
 
 ## Dev Notes
 
@@ -142,10 +146,42 @@ Validation amendments applied: Epic 17 tracking is synchronized with `ready-for-
 
 ### Agent Model Used
 
-TBD (implementation agent)
+claude-sonnet-5-thinking-high (Cursor)
 
 ### Debug Log References
 
+- Review closure (2026-08-03): a fresh Chrome load of `/login` in light mode resolved `#6f6f6f` on `#ffffff` / `#f5f5f5` / `#f3f3f3` at 5.0249:1 / 4.6090:1 / 4.5285:1. Node **22.23.2** then completed `npm ci`, `next build`, TypeScript, and the full registered suite: **439 pass, 0 fail, 1 skipped**. A temporary second `:root` block made the strengthened theme guard fail 2/57, then was reverted.
+
+- Fail-first: `tests/theme-chrome.test.mjs` failed 3/57 before token edit — light `muted` at 4.3492:1 and ambient glow below 4.5:1 with pre-story `oklch(0.556 0 0)`.
+- After `oklch(0.543 0 0)`: theme-chrome **57/57**; full suite **439/439** pass (1 skipped) after `npm run build` and `npm rebuild better-sqlite3` on Node 24.18.0 host.
+
 ### Completion Notes List
 
+- Darkened `:root --muted-foreground` from `oklch(0.556 0 0)` to `oklch(0.543 0 0)` (`#6f6f6f`) — smallest achromatic adjustment clearing all three light hosts at 5.02:1, 4.61:1, and 4.53:1.
+- Added dependency-free OKLab→sRGB contrast helpers and three Story 17.2 regression tests in `tests/theme-chrome.test.mjs`.
+- Closed `DESIGN.md` Open Item 1; synced `EXPERIENCE.md` Accessibility Floor; retagged `UNPAIRED_CHROMATIC_TEXT` form exceptions to Open Item 4.
+- Lint unchanged at 31 problems; TypeScript clean; public-repo guard green.
+
 ### File List
+
+- `src/app/globals.css`
+- `tests/theme-chrome.test.mjs`
+- `_bmad-output/planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/DESIGN.md`
+- `_bmad-output/planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/EXPERIENCE.md`
+- `_bmad-output/planning-artifacts/epics.md`
+- `_bmad-output/implementation-artifacts/deferred-work.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `_bmad-output/implementation-artifacts/stories/17-2-muted-foreground-contrast.md`
+
+## Change Log
+
+### Review Findings
+
+- [x] [Review][Patch] Record a fresh browser-resolved measurement before closing the contrast item [`_bmad-output/planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/DESIGN.md:104`].
+- [x] [Review][Patch] Guard the full one-token scope, not a subset of token declarations [`tests/theme-chrome.test.mjs:2373`].
+- [x] [Review][Patch] Reject duplicate overriding token blocks when parsing the effective stylesheet [`tests/theme-chrome.test.mjs:2303`].
+- [x] [Review][Patch] Synchronize the Foundation visual-identity summary with the deliberate token override [`_bmad-output/planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/EXPERIENCE.md:27`].
+- [x] [Review][Patch] Keep Epic 17/Story 17.2 tracking at review until the reviewer gate closes [`_bmad-output/planning-artifacts/epics.md:280`].
+- [x] [Review][Patch] Verify and record the required checks on Node 22.x [`_bmad-output/implementation-artifacts/stories/17-2-muted-foreground-contrast.md:154`].
+
+- 2026-08-03: Story 17.2 implemented — light `muted-foreground` token darkened; contrast regression added; UX authority docs synced; Open Item 1 closed.
