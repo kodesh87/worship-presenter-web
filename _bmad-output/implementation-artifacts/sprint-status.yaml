@@ -1,6 +1,6 @@
 # generated: 2026-07-10
-# last_updated: 2026-08-03 (Story 17.2 reviewed and moved to done;
-#   scope held to the light muted-foreground token and three measured surfaces)
+# last_updated: 2026-08-03 (Story 23.1 context created and ready for development;
+#   Epic 23 is active. Story 23.2 remains backlog, waiting on Stories 23.1 and 22.3.)
 # project: BIC Worship Presentation Automation
 # project_key: NOKEY
 # tracking_system: file-system
@@ -30,7 +30,7 @@
 #   - n/a: Not applicable — the epic was retired, so there is nothing to retro
 
 generated: 2026-07-10
-last_updated: 2026-08-03 # Story 17.2 created and ready-for-dev; light muted-foreground only, with background/muted/ambient contrast gates and the unrelated hue sweep explicitly excluded.
+last_updated: 2026-08-03 # Correct Course reconciled Epic 23 tracking; no product scope or implementation changed.
 project: BIC Worship Presentation Automation
 project_key: NOKEY
 tracking_system: file-system
@@ -340,18 +340,20 @@ development_status:
 
   # --- Epic 23: A fresh clone runs ---
   # Neither corpus family owns this; kept separate so scripts/, tests/ and docs/
-  # are not under two epics at once. Sequenced after 21.1 and 22.1.
+  # are not under two epics at once.
+  #
+  # Sequence: 23.1 first. Story 23.2 then waits on both 23.1's demo seed and
+  # Story 22.3's move from data/song-book/ to data/<locale>/song-book/. Story
+  # 22.3 remains gated on Story 20.7.
   epic-23: in-progress
-  23-1-opt-in-demo-seed: backlog
-  # partial 2026-08-01: the documentation criterion is delivered and enforced by
-  # tests/corpus.test.mjs — nothing under README.md, ATTRIBUTIONS.md, docs/, src/,
-  # scripts/ or package.json names a retired import command or data/hymns.json,
-  # asserted as the criterion rather than as the eight-file line list, which is
-  # the same rule Story 17.8 enforces. _bmad-output/ is deliberately out of that
-  # scope: plans and records describe the gap, they do not instruct a reader.
-  # STILL OPEN: the `npm install -> npm run setup -> npm run seed:demo` end-to-end
-  # assertion, which needs Story 23.1's demo seed to exist first.
-  23-2-fresh-clone-verified: in-progress
+  23-1-opt-in-demo-seed: ready-for-dev
+  # Partial work delivered 2026-08-01: tests/corpus.test.mjs rejects retired
+  # import commands, data/hymns.json, and data/bible/ in reader-facing tracked
+  # files. The FR-24 data/song-book/ criterion remains open until Story 22.3
+  # performs that path move. The fresh-clone end-to-end assertion also remains
+  # open until Story 23.1 supplies npm run seed:demo. No Story 23.2 file exists,
+  # and no implementation is active.
+  23-2-fresh-clone-verified: backlog
   epic-23-retrospective: optional
 
   # --- Epic 24: The interface speaks the operator's language ---
