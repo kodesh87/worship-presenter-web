@@ -622,6 +622,8 @@ Titled with the owner's own phrase. The work is neither corpus family's, and att
 
 **Owner decision, 2026-08-01: demo data is opt-in.** `npm run seed:demo` never runs by itself. A seeder that ran automatically would put synthetic worship data into a real congregation's install — the failure AD-17 exists to prevent in the registry, arriving through a different door.
 
+**Sequencing.** Story 23.1 precedes Story 23.2 because the verification path requires the demo seed it creates. Story 23.2 also follows Story 22.3 because its FR-24 documentation criterion cannot become true until the song-book corpus moves from `data/song-book/` to `data/<locale>/song-book/`. Story 22.3 remains gated on Story 20.7. The already-delivered documentation guards are credited as partial work; they do not place Story 23.2 in progress without its remaining prerequisites or a story file.
+
 #### Story 23.1: A Fresh Clone Can Show a Finished Deck *(backlog)*
 As someone evaluating or developing this product,
 I want one opt-in command that fills an empty install with a believable service,
