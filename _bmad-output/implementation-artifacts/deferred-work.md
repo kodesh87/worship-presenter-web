@@ -327,3 +327,7 @@ were not, and each names where it belongs rather than asking for a story of its 
 
 - Closure guard does not catch `getSetting('ui_locale')` bypass — guard checks direct `@/lib/i18n` imports and `getUiLocale` calls only; a projected module could read the raw settings key without failing the suite. No projected file does this today.
 - Duplicated hand-maintained `PROJECTED` list in `tests/i18n.test.mjs` — copies the six-entry list from `theme-chrome.test.mjs` instead of sharing one source; story explicitly chose the reuse approach over structural deduplication.
+
+## Deferred from: code review of 23-1-opt-in-demo-seed (2026-08-03)
+
+- Concurrent `seed:demo` race on empty table could create two services (`src/lib/demo-seed.ts:46-48`) — negligible for opt-in demo CLI; same collision semantics as normal `createService` under concurrent writes.

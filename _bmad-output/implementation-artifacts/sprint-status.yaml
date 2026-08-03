@@ -30,7 +30,7 @@
 #   - n/a: Not applicable — the epic was retired, so there is nothing to retro
 
 generated: 2026-07-10
-last_updated: 2026-08-03 # Correct Course reconciled Epic 23 tracking; no product scope or implementation changed.
+last_updated: 2026-08-03 # Story 23.1 code review closed; status moved to done.
 project: BIC Worship Presentation Automation
 project_key: NOKEY
 tracking_system: file-system
@@ -346,7 +346,7 @@ development_status:
   # Story 22.3's move from data/song-book/ to data/<locale>/song-book/. Story
   # 22.3 remains gated on Story 20.7.
   epic-23: in-progress
-  23-1-opt-in-demo-seed: ready-for-dev
+  23-1-opt-in-demo-seed: done
   # Partial work delivered 2026-08-01: tests/corpus.test.mjs rejects retired
   # import commands, data/hymns.json, and data/bible/ in reader-facing tracked
   # files. The FR-24 data/song-book/ criterion remains open until Story 22.3
