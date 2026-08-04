@@ -125,24 +125,6 @@ Google AI Pro / Antigravity (and similar “jump-to-code” agents) tend to skip
 
 When unsure whether work is “large”: treat it as large and use the BMad path.
 
-## Model / effort isolation for planning skills (mandatory)
-
-`bmad-create-story` (including its `validate` mode), `bmad-create-epics-and-stories`, and
-`bmad-correct-course` always run isolated on Sonnet at high effort — never inline in the
-active session, whatever model/effort that session is on. This holds for every invocation
-shape: slash command, natural-language request, or an automated `on_complete` chain step.
-
-Dispatch instead of calling the Skill tool directly:
-`Agent({subagent_type: "bmad-sonnet-high", run_in_background: false, prompt: "Invoke
-Skill(skill: '<name>', args: '<args>') and report its full output verbatim."})`.
-
-That subagent has no `AskUserQuestion`. If it ends its turn with an open question instead
-of finishing, relay the question to the user, then resume it (`SendMessage`, same
-subagent) with the answer, still foreground.
-
-This rule lives here, not in `_bmad/custom/*.toml` or any `SKILL.md`, so it survives a
-`bmad-method` update untouched.
-
 ## Sync rule for this file
 
 `CLAUDE.md` must remain `@AGENTS.md`. Keep `.agents/AGENTS.md` and `.cursorrules` **identical** to this file’s BMad gate + Next.js blocks so Antigravity / Cursor / Codex ChatGPT load the same rules.
