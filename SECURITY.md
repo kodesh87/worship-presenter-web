@@ -5,7 +5,7 @@
 Please do not open a public issue for a security problem.
 
 Report it privately through GitHub Security Advisories on this repository, or
-contact the maintainer through the profile at <https://github.com/kodesh87>.
+contact the maintainer through the org at <https://github.com/wiradigitalid>.
 
 You will get an acknowledgement, and a fix or an explanation of why it is not
 one. This is a volunteer-maintained project for congregations, so please allow

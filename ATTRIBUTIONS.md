@@ -32,8 +32,8 @@ licence — neither ours to give nor granted to us.
 ### Removal requests
 
 If you hold rights in this material and want it removed or changed, please open
-an issue at <https://github.com/kodesh87/worship-presenter-web/issues> or
-contact the maintainer through the profile at <https://github.com/kodesh87>.
+an issue at <https://github.com/wiradigitalid/worship-presenter-web/issues> or
+contact the maintainer through the org at <https://github.com/wiradigitalid>.
 Requests will be honoured promptly and without argument.
 
 Anyone adapting this project for another tradition should add their own corpus

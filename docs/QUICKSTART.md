@@ -7,7 +7,7 @@ From nothing to a running hub with a service on screen. Fifteen minutes.
 Node.js 20 or newer is the only prerequisite.
 
 ```bash
-git clone https://github.com/kodesh87/worship-presenter-web.git
+git clone https://github.com/wiradigitalid/worship-presenter-web.git
 cd worship-presenter-web
 npm install
 npm run setup

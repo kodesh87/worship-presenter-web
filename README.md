@@ -38,7 +38,7 @@ Node.js 20 or newer. Everything else installs with `npm install`. Storage is SQL
 ## Quickstart
 
 ```bash
-git clone https://github.com/kodesh87/worship-presenter-web.git
+git clone https://github.com/wiradigitalid/worship-presenter-web.git
 cd worship-presenter-web
 npm install
 npm run setup
