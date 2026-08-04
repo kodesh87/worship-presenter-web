@@ -620,6 +620,15 @@ export default function ArtifactEditor() {
       canvas.setActiveObject(obj);
       canvas.requestRenderAll();
       syncSelection(canvas);
+      // Redundant on paper — `canvas.add` above fires `object:added`, which the
+      // mutation listener already turns into this same call — and kept on
+      // purpose. `markDirty` is idempotent, and the four explicit-edit handlers
+      // are required to raise the flag themselves rather than inherit it from a
+      // listener registered elsewhere in the file: two of the four
+      // (`applyTextStyle`, `handleTextContentChange`) raise no Fabric event at
+      // all, so the set only reads consistently if all four are explicit. Not
+      // dead code; deleting it makes this handler depend on a registration two
+      // hundred lines away.
       markDirty();
       setStatus('idle');
       setMessage(null);
@@ -665,6 +674,9 @@ export default function ArtifactEditor() {
       }
       canvas.requestRenderAll();
       syncSelection(canvas);
+      // Same reason as `insertElement`: `canvas.remove` already fires
+      // `object:removed`, and this stays anyway so all four explicit-edit
+      // handlers raise the flag the same way.
       markDirty();
     }
 

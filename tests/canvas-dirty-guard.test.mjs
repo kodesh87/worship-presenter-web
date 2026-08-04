@@ -501,16 +501,27 @@ test('AC-1: the canvas stops accepting input while busy (code review 2026-08-04)
   );
   assert.ok(effect, 'expected an effect keyed on `busy` alone');
 
-  const body = effect.arguments[0].getText();
-  for (const [property, why] of [
-    ['selection', 'a marquee drag would still start a transform'],
-    ['selectable', 'an object could still be picked up'],
-    ['evented', 'an object could still receive the drag'],
+  // Assignments read off the AST, not matched in the effect's source text.
+  // The first form of this guard used `assert.match` over `getText()`, which
+  // made these the only three assertions in the file a comment could satisfy —
+  // `// canvas.selection = !busy` would have passed all of them. That is the
+  // exact defect this file's header claims is unreachable here, so it is read
+  // as `a = b` nodes instead. Raised by the PR's automated reviewer.
+  const assignments = nodes(
+    effect,
+    (node) =>
+      ts.isBinaryExpression(node) &&
+      node.operatorToken.kind === ts.SyntaxKind.EqualsToken
+  ).map((node) => `${node.left.getText()} = ${node.right.getText()}`);
+
+  for (const [target, why] of [
+    ['canvas.selection', 'a marquee drag would still start a transform'],
+    ['object.selectable', 'an object could still be picked up'],
+    ['object.evented', 'an object could still receive the drag'],
   ]) {
-    assert.match(
-      body,
-      new RegExp(`\\b${property}\\s*=\\s*!busy`),
-      `\`${property}\` must follow \`busy\` — otherwise ${why}`
+    assert.ok(
+      assignments.includes(`${target} = !busy`),
+      `\`${target}\` must follow \`busy\` — otherwise ${why}`
     );
   }
   assert.ok(
