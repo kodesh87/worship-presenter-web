@@ -8,6 +8,15 @@ import type {
   StoredArtifactTemplate,
 } from '@/lib/registry/types';
 import { READ_ONLY_BASE_TYPES } from '@/lib/registry/types';
+import {
+  beforeUnloadGuard,
+  CANVAS_MUTATION_EVENTS,
+  DISCARD_ON_SWITCH_CONFIRMATION,
+  mayDiscard,
+  nextDirtyState,
+  UNSAVED_INDICATOR_LABEL,
+} from '@/lib/canvas-dirty-guard';
+import { useNavigationBlocker } from '@/components/navigation-blocker';
 
 const CANVAS_WIDTH = 960;
 const CANVAS_HEIGHT = 540;
@@ -364,6 +373,19 @@ export default function ArtifactEditor() {
   /** Elements authored in this session, not yet persisted. */
   const addedElementsRef = useRef<Map<string, CanvasElement>>(new Map());
   const insertCounterRef = useRef(0);
+  /**
+   * Whether the mounted canvas carries authoring the server has not seen.
+   *
+   * In memory and nowhere else, per `AD-24`, which names this story as its live
+   * instance: a layout parked in `localStorage` would escape the whole registry
+   * write contract. This is a warning mechanism, not a recovery one.
+   */
+  const [isDirty, setIsDirty] = useState(false);
+  const { setIsBlocked } = useNavigationBlocker();
+
+  const markDirty = useCallback(() => {
+    setIsDirty((current) => nextDirtyState(current, 'mutated'));
+  }, []);
 
   /** Mirrors Fabric's active selection into React (uncontrolled canvas stays the source). */
   const syncSelection = useCallback((canvas: import('fabric').Canvas) => {
@@ -401,6 +423,13 @@ export default function ArtifactEditor() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to load template');
     setTemplate(data);
+    // A new server copy remounts the canvas, and a freshly mounted canvas is
+    // never dirty. This is the one place every remount comes through — the
+    // first load, a template switch, and the reload behind a 409 — so it clears
+    // here rather than in the mount effect. It is also the more accurate spot:
+    // a *failed* load leaves the previous canvas mounted with its unsaved work
+    // still on it, and that flag must survive.
+    setIsDirty((current) => nextDirtyState(current, 'template-changed'));
     setStatus('idle');
   }, []);
 
@@ -421,7 +450,7 @@ export default function ArtifactEditor() {
 
   useEffect(() => {
     let disposed = false;
-    let removeSelectionListeners: (() => void) | undefined;
+    let removeCanvasListeners: (() => void) | undefined;
 
     async function mountCanvas() {
       if (!canvasRef.current || !template) return;
@@ -449,8 +478,8 @@ export default function ArtifactEditor() {
 
       const disposeCanvasIfAborted = () => {
         if (!disposed) return false;
-        removeSelectionListeners?.();
-        removeSelectionListeners = undefined;
+        removeCanvasListeners?.();
+        removeCanvasListeners = undefined;
         if (fabricCanvasRef.current === canvas) {
           canvas.dispose();
           fabricCanvasRef.current = null;
@@ -493,10 +522,20 @@ export default function ArtifactEditor() {
       canvas.on('selection:created', onSelectionChange);
       canvas.on('selection:updated', onSelectionChange);
       canvas.on('selection:cleared', onSelectionChange);
-      removeSelectionListeners = () => {
+      // Registered here and not one line earlier: the paint loop above calls
+      // `canvas.add()` for every seed element, and `canvas.add()` fires
+      // `object:added`. Attached any sooner, a fresh mount would mark itself
+      // dirty and the guard would fire on a canvas nobody has touched.
+      for (const event of CANVAS_MUTATION_EVENTS) {
+        canvas.on(event, markDirty);
+      }
+      removeCanvasListeners = () => {
         canvas.off('selection:created', onSelectionChange);
         canvas.off('selection:updated', onSelectionChange);
         canvas.off('selection:cleared', onSelectionChange);
+        for (const event of CANVAS_MUTATION_EVENTS) {
+          canvas.off(event, markDirty);
+        }
       };
 
       if (disposeCanvasIfAborted()) return;
@@ -512,12 +551,15 @@ export default function ArtifactEditor() {
 
     return () => {
       disposed = true;
-      removeSelectionListeners?.();
-      removeSelectionListeners = undefined;
+      // Before `dispose()`, which is the existing order and now load-bearing
+      // twice over: a mutation listener still attached while the canvas tears
+      // itself down would mark the outgoing template dirty on its way out.
+      removeCanvasListeners?.();
+      removeCanvasListeners = undefined;
       fabricCanvasRef.current?.dispose();
       fabricCanvasRef.current = null;
     };
-  }, [template, syncSelection]);
+  }, [template, syncSelection, markDirty]);
 
   const insertElement = useCallback(
     async (kind: 'text' | 'shape') => {
@@ -578,10 +620,11 @@ export default function ArtifactEditor() {
       canvas.setActiveObject(obj);
       canvas.requestRenderAll();
       syncSelection(canvas);
+      markDirty();
       setStatus('idle');
       setMessage(null);
     },
-    [template, fontColor, fontSize, syncSelection]
+    [template, fontColor, fontSize, syncSelection, markDirty]
   );
 
   const handleDeleteSelected = useCallback(() => {
@@ -622,6 +665,7 @@ export default function ArtifactEditor() {
       }
       canvas.requestRenderAll();
       syncSelection(canvas);
+      markDirty();
     }
 
     if (refused.length > 0) {
@@ -635,7 +679,7 @@ export default function ArtifactEditor() {
     setMessage(
       `Removed ${removable.length} element${removable.length === 1 ? '' : 's'}. Save to persist.`
     );
-  }, [template, syncSelection]);
+  }, [template, syncSelection, markDirty]);
 
   const applyTextStyle = () => {
     const canvas = fabricCanvasRef.current;
@@ -647,7 +691,13 @@ export default function ArtifactEditor() {
       obj.set({ fill: fontColor, fontSize });
       updated = true;
     }
-    if (updated) canvas.requestRenderAll();
+    // `obj.set(...)` raises no canvas event, so the mutation listeners never see
+    // this; and pressing Apply with nothing selected changed nothing, so it must
+    // not claim otherwise.
+    if (updated) {
+      canvas.requestRenderAll();
+      markDirty();
+    }
   };
 
   /**
@@ -663,6 +713,9 @@ export default function ArtifactEditor() {
     if (texts.length !== 1) return;
     texts[0].set({ text: value });
     canvas.requestRenderAll();
+    // Same reason as `applyTextStyle`: a direct `set` is invisible to Fabric's
+    // canvas-level events.
+    markDirty();
   };
 
   const handleFontSizeInput = (raw: string) => {
@@ -731,6 +784,7 @@ export default function ArtifactEditor() {
       }
       if (!res.ok) throw new Error(data.error || 'Save failed');
       setTemplate(data);
+      setIsDirty((current) => nextDirtyState(current, 'saved'));
       setStatus('success');
       setMessage('Template saved');
       await loadList();
@@ -763,6 +817,7 @@ export default function ArtifactEditor() {
       }
       if (!res.ok) throw new Error(data.error || 'Reset failed');
       setTemplate(data);
+      setIsDirty((current) => nextDirtyState(current, 'reset'));
       setStatus('success');
       setMessage('Template reset from seed');
       await loadList();
@@ -773,7 +828,55 @@ export default function ArtifactEditor() {
   };
 
   const isEditable = template ? !READ_ONLY_BASE_TYPES.has(template.baseType) : false;
+
+  // The browser-level exits: closing the tab, reloading, typing a new URL. The
+  // listener is the registration itself — armed only while an editable canvas
+  // has something to lose, and removed on cleanup, so an operator who has only
+  // read a template meets nothing.
+  useEffect(() => {
+    if (!isDirty || !isEditable) return;
+    window.addEventListener('beforeunload', beforeUnloadGuard);
+    return () => {
+      window.removeEventListener('beforeunload', beforeUnloadGuard);
+    };
+  }, [isDirty, isEditable]);
+
+  // `beforeunload` cannot see a client-side route change, so the same state is
+  // published to the page's navigation blocker, which is what `Header`'s links
+  // read. Cleared on unmount: a blocked flag outliving this editor would put a
+  // confirmation in front of every link on the page it left behind.
+  useEffect(() => {
+    setIsBlocked(isDirty && isEditable);
+    return () => {
+      setIsBlocked(false);
+    };
+  }, [isDirty, isEditable, setIsBlocked]);
+
   const busy = status === 'loading' || status === 'saving' || status === 'resetting';
+
+  // The canvas stops accepting input while a request is in flight, the way the
+  // toolbar buttons already do.
+  //
+  // Without this there is a window with no good outcome. `handleSave` reads the
+  // canvas once, then awaits; a drag landing in that gap fires `object:modified`
+  // and sets the flag, but the edit is not in the payload, and the success path
+  // replaces `template` — which remounts the canvas from the server copy and
+  // throws that edit away. Clearing the flag then reports clean over work that
+  // was silently discarded, which is the exact failure this story exists to
+  // prevent. Discarding the active object closes the toolbar paths in the same
+  // move: with no selection, `applyTextStyle` changes nothing and the text field
+  // disables itself.
+  useEffect(() => {
+    const canvas = fabricCanvasRef.current;
+    if (!canvas) return;
+    if (busy) canvas.discardActiveObject();
+    canvas.selection = !busy;
+    for (const object of canvas.getObjects()) {
+      object.selectable = !busy;
+      object.evented = !busy;
+    }
+    canvas.requestRenderAll();
+  }, [busy]);
   const requiredElementIds = new Set(
     (template ? (getEditableLayout(template)?.elements ?? []) : [])
       .filter((element) => element.required)
@@ -794,7 +897,20 @@ export default function ArtifactEditor() {
             <li key={item.id}>
               <button
                 type="button"
-                onClick={() => setSelectedId(item.id)}
+                onClick={() => {
+                  // Re-clicking the row that is already open is not a switch,
+                  // and must not prompt. A different row re-enters mountCanvas,
+                  // which throws the added-element map away and disposes the
+                  // canvas — every unsaved edit goes with it.
+                  if (item.id === selectedId) return;
+                  const proceed = mayDiscard(
+                    isDirty && isEditable,
+                    DISCARD_ON_SWITCH_CONFIRMATION,
+                    (message) => window.confirm(message)
+                  );
+                  if (!proceed) return;
+                  setSelectedId(item.id);
+                }}
                 className={`w-full rounded-xl px-3 py-2 text-left text-sm transition ${
                   selectedId === item.id
                     ? 'bg-primary text-primary-foreground'
@@ -822,7 +938,15 @@ export default function ArtifactEditor() {
                 <h2 className="text-lg font-semibold">{template.label}</h2>
                 <p className="text-sm text-muted-foreground">{template.baseType}</p>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {isDirty && isEditable ? (
+                  <span
+                    role="status"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    {UNSAVED_INDICATOR_LABEL}
+                  </span>
+                ) : null}
                 <button
                   type="button"
                   onClick={handleSave}
