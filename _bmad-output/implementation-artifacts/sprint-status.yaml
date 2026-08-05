@@ -189,7 +189,7 @@ development_status:
   # 17.5 added 2026-07-30 by bmad-ux Update — the only finding of that run that was
   # a code gap rather than a documentation defect. EXPERIENCE.md had specified
   # "Lost sync" as a shipped state since 2026-07-19; no detection exists.
-  17-5-projector-liveness: review # 2026-08-05 LATEST: implemented, TWO CODE-REVIEW ROUNDS CLOSED, and MERGED to main as PR #33 with Node 22 CI green (run 31011350874, v22.23.1, 495/496 pass) — every AC now has its evidence, so only the owner's `done` call is left. See the CODE REVIEW and RECORD REPAIR entries at the end of this block. FIRST ENTRY, chronological: Story context created (bmad-create-story).
+  17-5-projector-liveness: done # 2026-08-06 CLOSED by the owner. Implemented, TWO CODE-REVIEW ROUNDS CLOSED, and MERGED to main as PR #33 with Node 22 CI green (run 31011350874, v22.23.1, 495/496 pass) — every AC has its evidence. See the CODE REVIEW and RECORD REPAIR entries at the end of this block. FIRST ENTRY, chronological: Story context created (bmad-create-story).
   #   Nine AC. TWO OWNER DECISIONS were escalated during context creation and answered the same
   #   day, because epics.md:320 permits two mechanisms and picking one fixes the AC.
   #   (1) MECHANISM: an acknowledgement on present-channel.ts is the PRIMARY liveness signal and

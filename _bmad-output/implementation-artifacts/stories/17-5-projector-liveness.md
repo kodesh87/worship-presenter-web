@@ -4,7 +4,7 @@ baseline_commit: 66bb33ba2d6b63542f6a9a6a54e40b0a51b3d28f
 
 # Story 17.5: The Presenter Knows When the Projector Is Gone
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
