@@ -39,11 +39,18 @@ reimplement `terminal create` → `wait` → `dispatch` inline here.
 ## Dev story
 
 - MUST dispatch the "dev story" role, initial intent.
-- MUST wait for `worker_done`.
-- On success, MUST set `phase: developed`. A dev worker's own review
-  findings, blockers, or fix rounds are the review-panel step's concern, not
-  this step's — this step only carries the story from `validated` to
-  `developed`.
+- MUST wait for `worker_done`. On `--outcome failed`, MUST apply the same
+  retry-once-then-escalate-under-5 rule as create and validate: the loop
+  MUST NOT advance to the review panel without an implementation to review —
+  a panel dispatched against an unimplemented story would burn five
+  reviewers to discover nothing was built — and a worker that fails the same
+  dispatch twice is past what this loop can resolve on its own, which is
+  exactly what condition 5 covers. This rule governs only the initial dev
+  dispatch failing to complete at all; it is distinct from the dev worker
+  completing and reporting review findings, blockers, or fix rounds, which
+  remain the review-panel step's concern, not this step's.
+- On success, MUST set `phase: developed`. This step only carries the story
+  from `validated` to `developed`.
 
 ## Mid-leg artifact repairs
 
@@ -70,8 +77,8 @@ reimplement `terminal create` → `wait` → `dispatch` inline here.
 This step MUST escalate under exactly two of the seven conditions, and MUST
 continue on any other outcome:
 
-- Condition 5 — a `--outcome failed` on create or validate that repeats after
-  one retry with the same role.
+- Condition 5 — a `--outcome failed` on create, validate, or the initial dev
+  dispatch that repeats after one retry with the same role.
 - Condition 6 — before any correct-course dispatch whose reported scope would
   move a PRD-level goal, retire an epic, or renumber an existing `AD-n`.
 
