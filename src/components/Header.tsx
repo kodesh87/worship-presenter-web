@@ -1,10 +1,10 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import LogoutButton from './LogoutButton';
 import ThemeToggle from './ThemeToggle';
+import { CustomLink } from './navigation-blocker';
 import { headerLinkClass, HEADER_CONTROL_BOX_BASE } from './header-chrome';
 
 interface HeaderProps {
@@ -55,7 +55,12 @@ export default function Header({ isAdmin = false, username = 'Operator' }: Heade
   return (
     <header className="mb-10 flex flex-col sm:flex-row justify-between items-start sm:items-center border-b border-border/80 pb-6 gap-4 relative">
       <div className="flex items-center gap-4">
-        <Link href="/" className="flex items-center gap-4 group">
+        {/* `CustomLink`, not `Link`, on all five: a surface below may be holding
+            unsaved work, and these are the operator's normal way off the page.
+            With no `NavigationBlockerProvider` above — which is every page but
+            `/admin/artifacts` — the context default is `isBlocked: false` and
+            these behave exactly as a plain `Link`. */}
+        <CustomLink href="/" className="flex items-center gap-4 group">
           <div className="flex items-center justify-center w-10 h-10 rounded-xl border border-border bg-card shadow-md text-primary group-hover:border-primary/50 transition-colors">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0h.5m-.5 0h-10.5m.5 0h-1.5" />
@@ -69,7 +74,7 @@ export default function Header({ isAdmin = false, username = 'Operator' }: Heade
               Manage presentation slides
             </p>
           </div>
-        </Link>
+        </CustomLink>
       </div>
       {/* `<nav>` ends where the links end. The theme control and the profile
           menu are settings, not navigation, and a screen-reader operator should
@@ -78,34 +83,34 @@ export default function Header({ isAdmin = false, username = 'Operator' }: Heade
           and the toggle made it six controls on a row that could not wrap. */}
       <div className="flex flex-wrap items-center justify-end gap-2">
         <nav className="flex flex-wrap items-center gap-2">
-          <Link
+          <CustomLink
             href="/"
             className={getLinkClass(pathname === '/')}
           >
             Dashboard
-          </Link>
-          <Link
+          </CustomLink>
+          <CustomLink
             href="/announcements"
             className={getLinkClass(pathname.startsWith('/announcements'))}
           >
             Announcements
-          </Link>
+          </CustomLink>
           {isAdmin && (
             <>
-              <Link
+              <CustomLink
                 href="/admin/artifacts"
                 className={getLinkClass(pathname.startsWith('/admin/artifacts'))}
               >
                 Artifacts
-              </Link>
-              <Link
+              </CustomLink>
+              <CustomLink
                 href="/admin"
                 className={getLinkClass(
                   pathname.startsWith('/admin') && !pathname.startsWith('/admin/artifacts')
                 )}
               >
                 Settings
-              </Link>
+              </CustomLink>
             </>
           )}
         </nav>

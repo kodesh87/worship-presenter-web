@@ -277,7 +277,7 @@ So that layouts can be extended without a code change.
 
 **Note:** seeded element IDs and any element marked `required` stay immutable — the save API rejects their removal or rename (400) and read-only base types (FullScreenImage, SongSet, Announcement) expose no add/delete affordances at all. Only elements authored in the editor may be deleted.
 
-### Epic 17: An operator surface that is readable and honest *(in-progress — Stories 17.1, 17.2, and 17.8 done; 17.3–17.7 backlog)*
+### Epic 17: An operator surface that is readable and honest *(in-progress — Stories 17.1, 17.2, 17.4, and 17.8 done; 17.3 and 17.5–17.7 backlog)*
 
 Created 2026-07-29 from the implementation-readiness assessment's product defects, via the epic route rather than inline patching — the point of Correct Course that day was that inline is how the drift happened. Titled around what an operator gets, per the C5-1 remediation: the value standard applies to new epics from here.
 
@@ -300,10 +300,10 @@ As anyone with the hub open,
 I want the browser tab and bookmarks to name this application,
 So that it is not filed as *Create Next App*. `src/app/layout.tsx` still exports the create-next-app `metadata`. One-line change; the wording is product-owned.
 
-#### Story 17.4: Unsaved Canvas Work Is Not Lost Silently *(backlog)*
+#### Story 17.4: Unsaved Canvas Work Is Not Lost Silently *(done — 2026-08-04, code review closed)*
 As an administrator editing an Artifact template,
 I want a dirty indicator and a navigation guard,
-So that leaving the canvas editor cannot discard layout work without warning. Today unsaved changes are invisible to the application (FR-20 surface).
+So that leaving the canvas editor cannot discard layout work without warning. Unsaved changes were invisible to the application (FR-20 surface); the editor now tracks a dirty flag in memory, shows it beside Save/Reset, and confirms before the three exits that discard it — tab close/reload (`beforeunload`), an in-editor template switch, and any `Header` link (Next 16's `onNavigate`). Logout stays uncovered by design: it is a `router.replace()` out of `onNavigate`'s reach, and belongs to [`EXPERIENCE.md`](../planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/EXPERIENCE.md) Open Item 5. Nothing is persisted — AD-24 names this story as its live instance of *unsaved editor state stays in memory*. Regression: `tests/canvas-dirty-guard.test.mjs`.
 
 #### Story 17.5: The Presenter Knows When the Projector Is Gone *(backlog)*
 As an operator presenting to a congregation,
