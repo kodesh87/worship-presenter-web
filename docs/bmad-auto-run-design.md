@@ -38,11 +38,33 @@ This is also the answer to "compact between stories": no tool can invoke
 `/compact`, so the design keeps the coordinator small structurally instead of
 relying on a compaction command that does not exist.
 
-**Workers are supervised Orca workers**, not in-process subagents
-(`orchestration worker-start`, each launched with its CLI's unattended flag).
-Two reasons: the review panel requires more than one CLI family, and the
-operator's global Orca Agent Dispatch rules require this path. Workers reach the
+**Workers are Orca terminals, dispatched**, not in-process subagents. Two
+reasons: the review panel requires more than one CLI family, and the operator's
+global Orca Agent Dispatch rules require this path. Workers reach the
 coordinator only through `orchestration ask`.
+
+The composed `orchestration worker-start` cannot be used here, and the reason
+should be stated so nobody later "simplifies" the loop back onto it. It accepts
+`--agent <id>` and exposes no flag for model, effort, or permission mode — the
+orchestration guide says so directly, naming custom agent argv as the case that
+requires the low-level path. Every worker in this design carries a model, an
+effort, and an unattended flag, so every worker takes that path:
+
+```
+orca terminal create --worktree active --title <role> --command "<exact argv>" --json
+orca terminal wait --terminal <handle> --for tui-idle --timeout-ms 60000 --json
+orca orchestration dispatch --task <task_id> --to <handle> --inject --json
+```
+
+One exception, already known to the operator's rules: `agy` cannot receive the
+injected orchestration preamble. Its four reviewers are dispatched **without**
+`--inject`, and their brief — carrying `taskId`, `dispatchId`, and the exact
+`worker_done` command verbatim — is delivered with `orca terminal send`.
+
+Because these terminals are coordinator-created rather than `worker-start`-owned,
+cleanup follows each receipt rather than an assumption: attempt
+`worker-release --dispatch <id>`, and where the receipt reports the terminal
+retained as pre-existing, close it explicitly.
 
 **Routing** follows the Orca Agent Dispatch table in the operator's global rules,
 which is loaded in every session. This design records only which alternative each
