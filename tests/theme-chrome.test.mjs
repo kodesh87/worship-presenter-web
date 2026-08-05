@@ -2650,10 +2650,14 @@ const UNPAIRED_CHROMATIC_TEXT = [
   // Presenter renders dark under either theme (AC-3), which is why
   // `presenter-model.ts:48-54` keeps a second tone table instead of adding dark
   // halves to the first. Not a defect and not deferred — the opposite surface.
-  'src/app/services/[id]/present/PresenterOperator.tsx: text-amber-300 [:483, pinned dark, AC-3]',
-  'src/app/services/[id]/present/PresenterOperator.tsx: text-amber-300 [:514, pinned dark, AC-3]',
-  'src/app/services/[id]/present/PresenterOperator.tsx: text-amber-300 [:596, pinned dark, AC-3]',
-  'src/app/services/[id]/present/PresenterOperator.tsx: text-amber-300 [:716, pinned dark, AC-3]',
+  'src/app/services/[id]/present/PresenterOperator.tsx: text-amber-300 [:583, pinned dark, AC-3]',
+  'src/app/services/[id]/present/PresenterOperator.tsx: text-amber-300 [:627, pinned dark, AC-3]',
+  'src/app/services/[id]/present/PresenterOperator.tsx: text-amber-300 [:709, pinned dark, AC-3]',
+  'src/app/services/[id]/present/PresenterOperator.tsx: text-amber-300 [:829, pinned dark, AC-3]',
+  // The lost-sync line (Story 17.5, AC-5/AC-7): reuses the same pinned-dark
+  // amber treatment as the four sites above rather than adding a new hue, so
+  // this is the fifth site sharing one already-filed exception, not a new one.
+  'src/app/services/[id]/present/PresenterOperator.tsx: text-amber-300 [:604, pinned dark, AC-3/Story 17.5 AC-5]',
   'src/app/services/[id]/present/presenter-model.ts: text-amber-200 [PRESENTER_TONE_CLASS, pinned dark, AC-3]',
   'src/app/services/[id]/present/presenter-model.ts: text-emerald-200 [PRESENTER_TONE_CLASS, pinned dark, AC-3]',
   'src/app/services/[id]/present/presenter-model.ts: text-indigo-200 [PRESENTER_TONE_CLASS, pinned dark, AC-3]',

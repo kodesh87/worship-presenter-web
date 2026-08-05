@@ -24,6 +24,21 @@ export type PresentMessage =
       transition: SlideTransition;
     }
   | { type: 'request-sync' }
+  /**
+   * The projector reporting its own liveness, and nothing else (`AD-29`).
+   * Sent unprompted by the projector window for as long as it is mounted;
+   * the presenter only ever observes it. It carries no `index`, no `blank`,
+   * no `transition` and no other shared state, which is what puts it outside
+   * this file's own header contract above rather than in tension with it —
+   * that contract governs every message that touches shared state, and this
+   * one touches none. `request-sync` already is the projector's first hello
+   * (`ProjectorClient.tsx`'s mount-time post), so this is not a second one:
+   * it is the same announcement, repeated for as long as the window lives.
+   * Idempotent by construction — two in one window, or one arriving late,
+   * both mean only "something was alive at that moment" — so no sequence
+   * number or request/response pairing may be layered over it.
+   */
+  | { type: 'projector-alive' }
   | { type: 'blank'; blank: boolean }
   /**
    * A live-only override of the deck's configured transition. Nothing stores
@@ -74,6 +89,21 @@ export function liveTransitionOf(msg: PresentMessage): SlideTransition | null {
   // sending window is the one thing that cannot be trusted to agree.
   const value: unknown = msg.transition;
   return value === undefined ? null : parseSlideTransition(value);
+}
+
+/**
+ * Whether `msg` is one the *projector* itself would send — the only two
+ * variants that may count as liveness evidence (`AD-29`, Review finding
+ * [High, blocking]). Every other variant on this channel is presenter-
+ * authored state (`sync`, `blank`, `transition`, `scripture`,
+ * `clear-scripture`); a second Presenter tab open on the same service
+ * broadcasts those too, on the same channel, and none of them is the
+ * projector answering. The presenter's liveness listener gates its
+ * acknowledgement on this predicate rather than treating every inbound
+ * object as evidence of life.
+ */
+export function isProjectorMessage(msg: PresentMessage): boolean {
+  return msg.type === 'request-sync' || msg.type === 'projector-alive';
 }
 
 export function presentChannelName(serviceId: number | string): string {
