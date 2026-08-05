@@ -9,9 +9,14 @@ just skipped a story and needs the next candidate.
 ## Selection rule (mirrors `bmad-create-story`)
 
 This is the same auto-discover rule `bmad-create-story` applies on its own
-activation. Stating it here — instead of merely resembling it — is what
-guarantees this skill never selects a story different from the one
-`bmad-create-story` would then discover for itself.
+activation. Matching that algorithm is necessary but not sufficient: a skip
+is recorded in this run's journal only, never in `sprint-status.yaml`, so
+that file keeps reading `backlog` for a story this step just rejected.
+Agreement between the two algorithms alone does not stop `bmad-create-story`
+from re-scanning that unchanged file and selecting the same blocked story
+back if it is ever left to run its own auto-discovery. The guarantee that
+this skill and `bmad-create-story` never disagree holds only together with
+the handoff rule below.
 
 - MUST read the complete `_bmad-output/implementation-artifacts/sprint-status.yaml`
   file, top to bottom, before selecting anything.
@@ -67,6 +72,19 @@ Once a candidate clears the dependency check:
 - MUST set the journal's top-level `epic: <n>` field to that story's epic
   number, taken from the leading digits of its key, so a later step can
   detect when the next selection crosses into a different epic.
+
+## Handoff to the create-story dispatch
+
+This step's selection is only as good as how the next step uses it:
+
+- The step that dispatches `bmad-create-story` (Task 3's
+  `step-03-create-story.md`) MUST pass this step's selected key to that
+  dispatch directly, as the story to create. It MUST NOT let
+  `bmad-create-story` run its own auto-discovery against
+  `sprint-status.yaml` in this run.
+- `sprint-status.yaml` MUST NOT be treated, by any step in this skill, as
+  reflecting this run's skips — the file has no field for them. The journal
+  is the only record of what this run has skipped.
 
 ## Escalation
 
