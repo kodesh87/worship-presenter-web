@@ -21,7 +21,9 @@ test('every step file is referenced, and every reference exists', () => {
     if (f === 'SKILL.md') continue;
     assert.ok(skill.includes(f), `${f} exists but SKILL.md never references it`);
   }
-  for (const ref of skill.match(/(?:step-\d\d-[a-z-]+|dispatch-recipes)\.md/g) ?? []) {
+  // Match any backticked bare filename. An allow-list of known prefixes goes blind
+  // the moment a file is added under a new name — which is how it missed one.
+  for (const [, ref] of skill.matchAll(/`([a-z][a-z0-9-]*\.md)`/g)) {
     assert.ok(existsSync(`${DIR}/${ref}`), `SKILL.md references missing ${ref}`);
   }
 });

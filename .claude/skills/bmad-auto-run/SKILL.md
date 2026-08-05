@@ -70,7 +70,9 @@ stories:
         family: <cli family>     # so a resumed run can honour "a different family than the creator"
         task: <task_id>
         dispatch: <dispatch_id>
-        terminal: <handle>       # so a HALT names the terminal it left live
+        terminal: <handle>       # the terminal a HALT names; live unless already closed
+        started: <timestamp>     # when this dispatch was sent, so its ceiling survives a resume
+        strikes: <n>             # classifications producing no new message, per dispatch
         outcome: succeeded|failed|pending|unsettled
         last_state: <one line>   # what was last observed, for an unsettled dispatch
 ```
@@ -82,7 +84,10 @@ defeating that rule outright. Without `orca_run`, a resumed run that creates
 a second Orca Run reads an empty mailbox and never receives a prior worker's
 report. Without `terminal` and `last_state`, a HALT's own record-and-leave-
 live rule has nothing to write — the journal the owner reads would never
-name which terminal was left running or why.
+name which terminal was left running or why. Without `started` and `strikes`,
+`worker-accounting.md`'s two per-dispatch bounds reset every time the run is
+interrupted, so both would hold within one run only and an unattended run
+resumed twice would never reach either.
 
 ## HALT protocol
 

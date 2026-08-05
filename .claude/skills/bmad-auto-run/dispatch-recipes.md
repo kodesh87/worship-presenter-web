@@ -75,26 +75,67 @@ release branch, never a transfer to a follow-up task on the same terminal.
 ## `dispatch(role, task_spec) -> dispatch_id`
 
 ```
-orca orchestration task-create --spec "<role>: <story key>" --json
+orca orchestration task-create --spec "<role>: <story key> — <the four elements below>" --json
 orca terminal create --worktree active --title "<role>" --command "<assembled argv>" --json
 orca terminal wait --terminal <handle> --for tui-idle --timeout-ms 60000 --json
 orca orchestration dispatch --task <task_id> --to <handle> --inject --json
 ```
 
-- MUST run `task-create` once per dispatch, naming the role and the exact
-  story key in `--spec` — never left for the worker to infer.
+- MUST run `task-create` once per dispatch. The `--spec` text is the whole of
+  what the worker will be told, so it MUST lead with the role and the exact
+  story key and MUST also carry, in that same text, all four of:
+  - the **owning BMad skill and its intent**, named explicitly as resolved
+    from the role map above. A worker handed only `validate story: <story
+    key>` cannot reliably derive that it must run `bmad-create-story`'s
+    validate intent rather than its create intent — that map is how the
+    coordinator routes and is not visible to the worker, so the resolved
+    skill and intent MUST be written into the spec rather than implied by the
+    role name.
+  - the **story key as the only target**, stated as the story to work on, so
+    the worker MUST NOT auto-discover one of its own.
+  - the **decision authority clause** the operator's global rules require of
+    every dispatched worker's brief: the worker decides routine matters
+    itself and reserves `orca orchestration ask` for a decision that would
+    change a contract, an AC, or an artifact's authority.
+    `worker-accounting.md`'s `question` and `escalation` branches both assume
+    workers use `ask` that way, so the spec MUST say it rather than leave it
+    to a worker's own defaults.
+  - the **repair-reporting expectation**: if the role cannot proceed until a
+    spec, architecture, or correct-course change happens, it MUST report that
+    need rather than making the change itself, since the mid-leg repair path
+    in `step-03-story-cycle.md` is what owns that change.
 - MUST wait for `tui-idle` before dispatching. A dispatch sent to a
   not-yet-ready TUI MUST NOT be recorded as that worker's `--outcome failed`,
   and a `tui-idle` match MUST NOT itself be taken as proof the worker has
   started the task — it only proves the terminal is ready to receive it.
+- If `task-create`, `terminal create`, or `dispatch` itself fails, no worker
+  exists yet and there is nothing to classify or release. MUST retry that one
+  command once, then MUST record the failure in the journal with its exact
+  error and escalate under condition 5. MUST NOT proceed to the next command
+  in the recipe with a missing task id or handle. Where a terminal was already
+  created before the failing command, MUST close it with
+  `orca terminal close --terminal <handle> --json` — no dispatch owns it, so
+  `worker-release` does not apply and leaving it would strand a terminal no
+  journal entry names.
+- On a `tui-idle` timeout the terminal is not ready and MUST NOT be
+  dispatched to. MUST re-wait once with the same command, since a slow CLI
+  start is ordinary; if it still never reaches `tui-idle`, MUST record the
+  attempt with a `last_state` naming the timeout and escalate under condition
+  5 — a CLI that will not come up is infrastructure down, and on an `agy`
+  terminal it is most often the workspace-trust gate `step-01-preflight.md`
+  checks. No dispatch exists yet, so `worker-release` does not apply and MUST
+  NOT be attempted; MUST close the terminal this recipe created with
+  `orca terminal close --terminal <handle> --json`.
 - MUST record this dispatch's `role`, `family` (the CLI family actually
-  used), `task`, `dispatch`, and `terminal` (the same `<handle>` this
-  recipe's own `terminal create` returned — `worker-show --dispatch <id>
-  --json`'s `worker.agent_terminal_handle` field confirms the same value
-  later if ever needed) in the journal's per-story `dispatches` list as soon
-  as each is known, with `outcome: pending` — so a resumed run can find and
-  account for a worker it did not itself start, can read which family an
-  earlier one used, and has the handle its liveness probes require.
+  used), `task`, `dispatch`, `terminal` (the same `<handle>` this recipe's own
+  `terminal create` returned — `worker-show --dispatch <id> --json`'s
+  `worker.agent_terminal_handle` field confirms the same value later if ever
+  needed), and `started` (the moment the `dispatch` call returned) in the
+  journal's per-story `dispatches` list as soon as each is known, with
+  `outcome: pending` and `strikes: 0` — so a resumed run can find and account
+  for a worker it did not itself start, can read which family an earlier one
+  used, has the handle its liveness probes require, and inherits both
+  per-dispatch bounds in `worker-accounting.md` instead of restarting them.
 
 ## The `agy` exception
 
@@ -107,6 +148,10 @@ worker:
   and that brief MUST carry the `taskId`, the `dispatchId`, and the exact
   `worker_done` command verbatim — without the injected preamble the worker
   has no other way to learn any of the three.
+- That brief MUST also carry everything the `--spec` above carries, all four
+  elements included. `--inject` is what would otherwise deliver the spec, so
+  an `agy` worker that receives only the three ids has been told the
+  lifecycle and not the task.
 
 ## Waiting, settlement, and retry
 

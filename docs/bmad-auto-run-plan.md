@@ -78,7 +78,9 @@ test('every step file is referenced, and every reference exists', () => {
     if (f === 'SKILL.md') continue;
     assert.ok(skill.includes(f), `${f} exists but SKILL.md never references it`);
   }
-  for (const ref of skill.match(/(?:step-\d\d-[a-z-]+|dispatch-recipes)\.md/g) ?? []) {
+  // Match any backticked bare filename. An allow-list of known prefixes goes blind
+  // the moment a file is added under a new name — which is how it missed one.
+  for (const [, ref] of skill.matchAll(/`([a-z][a-z0-9-]*\.md)`/g)) {
     assert.ok(existsSync(`${DIR}/${ref}`), `SKILL.md references missing ${ref}`);
   }
 });
@@ -146,7 +148,9 @@ stories:
         family: <cli family>     # so a resumed run can honour "a different family than the creator"
         task: <task_id>
         dispatch: <dispatch_id>
-        terminal: <handle>       # so a HALT names the terminal it left live
+        terminal: <handle>       # the terminal a HALT names; live unless already closed
+        started: <timestamp>     # when this dispatch was sent, so its ceiling survives a resume
+        strikes: <n>             # classifications producing no new message, per dispatch
         outcome: succeeded|failed|pending|unsettled
         last_state: <one line>   # what was last observed, for an unsettled dispatch
 ```
@@ -156,6 +160,8 @@ recorded family, a run resuming at `phase: created` cannot know which family
 created the story and would validate in the same one half the time — defeating
 the rule outright. Without `orca_run`, a resumed run that creates a second Orca
 Run reads an empty mailbox and never receives the prior workers' reports.
+Without `started` and `strikes`, the wall-clock ceiling and the classification
+bound reset on every interruption, so each holds within one run only.
 
 - **HALT protocol.** On any escalation the run MUST write the condition and the story's `phase` to the journal, MUST leave no worker terminal unaccounted for, and MUST stop without a further dispatch.
 - **`## Escalation`** — the seven conditions, numbered `1.` to `7.`, worded as in the design record.
@@ -227,14 +233,16 @@ MUST resolve every role's CLI, model, and effort from the per-skill routing tabl
 
 ```
 orca orchestration run-create --objective "bmad-auto-run <run id>" --json   # once per run; run-list is how a resume finds it
-orca orchestration task-create --spec "<role>: <story key>" --json
+orca orchestration task-create --spec "<role>: <story key> — <the four required elements>" --json
 orca terminal create --worktree active --title "<role>" --command "<assembled argv>" --json
 orca terminal wait --terminal <handle> --for tui-idle --timeout-ms 60000 --json
 orca orchestration dispatch --task <task_id> --to <handle> --inject --json
 orca orchestration check --wait --types worker_done,escalation,question --timeout-ms 900000 --json
 ```
 
-MUST state the `agy` exception: dispatch without `--inject`, then `orca terminal send --terminal <handle> --text "<brief with taskId, dispatchId, and the verbatim worker_done command>" --enter --json`.
+MUST state what the `--spec` carries, because it is the whole of what the worker is told: the role, the story key as its only target, the owning BMad skill **and intent** resolved from the role map — a worker handed only `validate story: <key>` cannot derive validate intent from create intent, and that map is the coordinator's routing, invisible to the worker — the operator's standing clause that the worker decides routine matters itself and reserves `orca orchestration ask` for a decision changing a contract, an AC, or an artifact's authority, and the expectation that it reports an artifact-repair need rather than making the change itself. The `question` and `escalation` branches both assume workers use `ask` that way.
+
+MUST state the `agy` exception: dispatch without `--inject`, then `orca terminal send --terminal <handle> --text "<brief with taskId, dispatchId, and the verbatim worker_done command>" --enter --json`. Because `--inject` is what would otherwise deliver the spec, that brief MUST also carry everything the `--spec` carries.
 
 MUST state the wait protocol, because every part of it fails silently when omitted. A `check --wait` returns one Delivery batch of up to 50 messages and **replays that same batch until it is acknowledged**, so each message MUST be matched by its `dispatch_id` against the dispatch being awaited before it is acted on, and the Delivery MUST be acknowledged with `check --ack <delivery_id> --wait --types ... --timeout-ms <n> --json` only after every message and every required release decision is handled. A timeout or `{count:0}` MUST be treated as a checkpoint and the wait rolled, never as a worker failure — real coding dispatches run 15 to 60 minutes, and the window is the floor of that range. Before any retry the worker's liveness MUST be checked, and a readiness match MUST NOT be taken as proof it started. A `question` MUST get an explicit branch: answer it with `orca orchestration reply --id <message_id> --body "<answer>" --json` when the answer is inside this loop's authority, and escalate when it would change a contract, an AC, or an artifact's authority.
 
@@ -244,11 +252,13 @@ MUST specify the retry mechanically: for a dispatch settled by `worker_done --ou
 
 MUST give a dispatch that never reports a terminating classification rather than an assumption: `worker-show --dispatch <id>` decides it, `failed` or `stopped` takes the retry path, and `outcome_unknown` takes `worker-stop` then a re-classification then `worker-abandon` with an escalation under condition 5. A `ready` verdict MUST NOT return a terminal that has provably exited or disappeared to another rolled wait — the guide names an exited terminal as a reason to stop waiting — and the number of classifications that produce no new message MUST be bounded, so no branch can spin silently. MUST state `worker-abandon`'s real effect: it fences the dispatch and performs no process or filesystem action, so resources may still be live and a journal record written after it MUST NOT imply a worker dealt with.
 
-MUST give `escalation` its own branch — the repair path, or a HALT under the condition it names, or one retry then condition 5 — and MUST account for the escalating worker on every one of those paths, not only on HALT, since it cannot be released. MUST state that a settled worker is accounted for before the next wait: attempt `orca orchestration worker-release --dispatch <id> --json`, and where the receipt reports the terminal retained as pre-existing, close it explicitly with the command the receipt names. MUST record every `dispatch_id` in the journal so a resumed run can read a worker it did not start. The release predicate itself is stated once, below, in both directions — it MUST NOT be restated here in a narrower form.
+MUST give `escalation` its own branch — the repair path, or a HALT under the condition it names, or one retry then condition 5 — and MUST account for the escalating worker on every one of those paths, not only on HALT, since it cannot be released. MUST state that a settled worker is accounted for before the next wait: attempt `orca orchestration worker-release --dispatch <id> --json`, and where the receipt reports the terminal retained as pre-existing, close it explicitly — this skill never reuses a terminal, so any terminal it created is safe to close, and the guide promises a follow-up recovery command only for a `release_pending` or `release_unknown` receipt, which MUST be followed exactly rather than substituted. MUST record every `dispatch_id` in the journal so a resumed run can read a worker it did not start. The release predicate itself is stated once, below, in both directions — it MUST NOT be restated here in a narrower form.
 
 - [ ] **Step 2: Write `step-03-story-cycle.md`**
 
-Three dispatches in order, each waited to `worker_done` before the next: create story; validate, which MUST run in a different session **and** a different CLI family than the creator; then dev. The create dispatch MUST name the story key step-02 selected, and MUST NOT let the create-story skill auto-discover its own target: a skip is recorded in the journal only, so `sprint-status.yaml` still shows a skipped story as `backlog` and an independent re-scan would select the very story step-02 rejected as blocked. A `--outcome failed` on create, validate, or dev MUST retry once with the same role, then escalate under condition 5. Dev is included deliberately: the loop MUST NOT advance to the review panel without an implementation, and a worker that fails the same dispatch twice is past what the loop can resolve on its own. MUST update `phase` after each. MUST dispatch the owning skill — never edit an artifact from the coordinator — when a worker reports it needs a spec update, an architecture update, or a correct course, then MUST resume the interrupted leg. MUST escalate under condition 6 before a correct-course dispatch that would move a PRD-level goal, retire an epic, or renumber an existing `AD-n`.
+Three dispatches in order, each waited to `worker_done` before the next: create story; validate, which MUST run in a different session **and** a different CLI family than the creator; then dev. The create dispatch MUST name the story key step-02 selected, and MUST NOT let the create-story skill auto-discover its own target: a skip is recorded in the journal only, so `sprint-status.yaml` still shows a skipped story as `backlog` and an independent re-scan would select the very story step-02 rejected as blocked. A `--outcome failed` on create, validate, or dev MUST retry once with the same role, then escalate under condition 5. Dev is included deliberately: the loop MUST NOT advance to the review panel without an implementation, and a worker that fails the same dispatch twice is past what the loop can resolve on its own. MUST update `phase` after each. MUST dispatch the owning skill — never edit an artifact from the coordinator — when a worker reports it needs a spec update, an architecture update, or a correct course, then MUST resume the interrupted leg. That cycle MUST be bounded in both shapes: a leg that reports the same repair need after the repair has already run MUST NOT be repaired again, and MUST escalate under condition 5 instead; and the total number of repairs per story MUST be capped, or a chain of technically-new needs cycles forever — an unbounded repair-then-resume cycle is the one loop with no human in it. A repair dispatch's own failure or dead classification MUST take the same retry-once path as any other dispatch, not an unstated one. When one report triggers both the repair path and a leg's retry rule, the precedence MUST be stated rather than left to the agent, and the resuming re-dispatch MUST NOT silently consume the leg's retry allowance.
+
+MUST state a wall-clock ceiling per dispatch. Every other bound in this design is a strike count, and a strike count cannot terminate a worker that stays alive and keeps emitting activity — so an unattended run has no terminating condition at all for that case. A dispatch exceeding its ceiling MUST escalate under condition 5 with its `last_state` recorded. MUST escalate under condition 6 before a correct-course dispatch that would move a PRD-level goal, retire an epic, or renumber an existing `AD-n`.
 
 - [ ] **Step 3: Run the structural test and commit**
 
