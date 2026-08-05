@@ -75,12 +75,29 @@ waited on and accounted for exactly as `worker-accounting.md` describes.
   instead dispatch the owning skill (`bmad-spec`, `bmad-architecture`, or
   `bmad-correct-course`) as its own worker, through the same recipe, and wait
   for its `worker_done`.
-- If the reported need arrived as a `question` message rather than inside a
-  `worker_done`, MUST close that question with
+- Whether the need arrived as a `question` or inside a `worker_done` decides
+  who still owns the interrupted leg, and the two MUST NOT be treated alike.
+  An `ask` blocks until answered: the asking worker is sitting at its prompt,
+  still owns its leg, and resumes it the moment the reply lands. A
+  `worker_done` means that worker finished and exited, leaving the leg with no
+  owner at all.
+- On the `question` path, MUST dispatch the repair first and reply only once
+  the repair settles, with
   `orca orchestration reply --id <message_id> --body "<answer>" --json`
-  (`worker-accounting.md`'s wait protocol) as part of initiating the repair.
-  MUST NOT dispatch the repair skill while leaving the asking worker's
-  question pending and unanswered.
+  carrying the repair's outcome so the asking worker can continue. MUST NOT
+  re-dispatch that leg on this path: the reply is what resumes it, and a
+  re-dispatch would put a second worker on the same story key and the same
+  story file while the first is still live. MUST keep that dispatch
+  `outcome: pending` with the question in `last_state`, per
+  `worker-accounting.md`'s asking-worker rule — never `unsettled`.
+- A worker's `ask` carries its own timeout and a repair can outlast it. The
+  guide states a timed-out question stays pending and is resumed by its
+  original message id, so the deferred reply above is still the answer to that
+  same question and MUST NOT be re-asked or re-sent as a new one. After
+  replying, MUST confirm the worker actually resumed using
+  `worker-accounting.md`'s liveness probes; one that never resumes MUST be
+  treated as a dispatch that never reports and MUST take that file's liveness
+  classification.
 - Before dispatching a `bmad-correct-course` repair, MUST read the reporting
   worker's stated scope for that correct-course and escalate under condition
   6 instead of dispatching when that scope would move a PRD-level goal,
@@ -90,8 +107,11 @@ waited on and accounted for exactly as `worker-accounting.md` describes.
 - Once the repair worker reports `worker_done` — and, for a correct-course
   repair, once condition 6 has been checked and not triggered — MUST resume
   the interrupted leg by re-dispatching the same role (create, validate, or
-  dev) that reported the need. The repair MUST NOT itself be treated as
-  satisfying that leg.
+  dev) that reported the need **only where that need arrived inside a
+  `worker_done`**, because that worker exited and the leg has no owner left.
+  Where it arrived as a `question`, the reply above is the resumption and MUST
+  NOT be followed by a re-dispatch. On either path the repair MUST NOT itself
+  be treated as satisfying the leg.
 - Every repair dispatch MUST be recorded in the journal's `dispatches` list
   with a `role` naming both the owning skill and the artifact it repaired, so
   the two bounds below survive a resume that reads the journal rather than
@@ -169,4 +189,7 @@ closed by a `worker-stop` during liveness classification, the record MUST say
 so rather than annotating it as left live, and MUST name
 `worker-read --dispatch <id> --json` as where its output is: `worker-accounting.md`
 holds this carve-out, and a record that sends the owner looking for a live
-process that is not there is worse than no record.
+process that is not there is worse than no record. Where a HALT lands while a
+question is still unanswered — a repair that failed on the `question` path — the
+record MUST name that question as outstanding, because a worker blocked on a
+reply that will now never come looks idle and is not.
