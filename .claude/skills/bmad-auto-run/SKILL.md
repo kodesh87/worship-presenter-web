@@ -53,6 +53,7 @@ introduce a `phase` outside the enum on the `phase:` line.
 
 ```yaml
 run: <date>-<n>
+orca_run: <orca run id>          # bound on resume, never re-created
 epic: <n>
 branch: <name>
 pr: <url|null>
@@ -64,7 +65,20 @@ stories:
     panel: { agy_pass: <n>, fifth_pass: <bool>, confirmation: passed|failed|pending }
     commit: <sha|null>
     note: <one line>
+    dispatches:
+      - role: <role>
+        family: <cli family>     # so a resumed run can honour "a different family than the creator"
+        task: <task_id>
+        dispatch: <dispatch_id>
+        outcome: succeeded|failed|pending
 ```
+
+`orca_run` and `dispatches` are not bookkeeping for its own sake. Without the
+recorded `family`, a run resuming at `phase: created` cannot know which
+family created the story and would validate in the same one half the time —
+defeating that rule outright. Without `orca_run`, a resumed run that creates
+a second Orca Run reads an empty mailbox and never receives a prior worker's
+report.
 
 ## HALT protocol
 

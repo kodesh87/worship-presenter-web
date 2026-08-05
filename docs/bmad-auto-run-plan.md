@@ -128,6 +128,7 @@ Frontmatter `name: bmad-auto-run` and a description naming the trigger. Then, ea
 
 ```yaml
 run: <date>-<n>
+orca_run: <orca run id>          # bound on resume, never re-created
 epic: <n>
 branch: <name>
 pr: <url|null>
@@ -139,7 +140,19 @@ stories:
     panel: { agy_pass: <n>, fifth_pass: <bool>, confirmation: passed|failed|pending }
     commit: <sha|null>
     note: <one line>
+    dispatches:
+      - role: <role>
+        family: <cli family>     # so a resumed run can honour "a different family than the creator"
+        task: <task_id>
+        dispatch: <dispatch_id>
+        outcome: succeeded|failed|pending
 ```
+
+`orca_run` and `dispatches` are not bookkeeping for its own sake. Without the
+recorded family, a run resuming at `phase: created` cannot know which family
+created the story and would validate in the same one half the time — defeating
+the rule outright. Without `orca_run`, a resumed run that creates a second Orca
+Run reads an empty mailbox and never receives the prior workers' reports.
 
 - **HALT protocol.** On any escalation the run MUST write the condition and the story's `phase` to the journal, MUST leave no worker terminal unaccounted for, and MUST stop without a further dispatch.
 - **`## Escalation`** — the seven conditions, numbered `1.` to `7.`, worded as in the design record.
@@ -218,7 +231,13 @@ orca orchestration dispatch --task <task_id> --to <handle> --inject --json
 orca orchestration check --wait --types worker_done,escalation,question --timeout-ms 900000 --json
 ```
 
-MUST state the `agy` exception: dispatch without `--inject`, then `orca terminal send --terminal <handle> --text "<brief with taskId, dispatchId, and the verbatim worker_done command>" --enter --json`. MUST state that a settled worker is accounted for before the next wait: attempt `orca orchestration worker-release --dispatch <id> --json`, and where the receipt reports the terminal retained as pre-existing, close it explicitly. MUST NOT release on a timeout, idle state, or rejected report. MUST record every `dispatch_id` in the journal so a resumed run can read a worker it did not start.
+MUST state the `agy` exception: dispatch without `--inject`, then `orca terminal send --terminal <handle> --text "<brief with taskId, dispatchId, and the verbatim worker_done command>" --enter --json`.
+
+MUST state the wait protocol, because every part of it fails silently when omitted. A `check --wait` returns one Delivery batch of up to 50 messages and **replays that same batch until it is acknowledged**, so each message MUST be matched by its `dispatch_id` against the dispatch being awaited before it is acted on, and the Delivery MUST be acknowledged with `check --ack <delivery_id> --wait --types ... --timeout-ms <n> --json` only after every message and every required release decision is handled. A timeout or `{count:0}` MUST be treated as a checkpoint and the wait rolled, never as a worker failure — real coding dispatches run 15 to 60 minutes, and the window is the floor of that range. Before any retry the worker's liveness MUST be checked, and a readiness match MUST NOT be taken as proof it started. A `question` MUST get an explicit branch: answer it with `orca orchestration reply --id <message_id> --body "<answer>" --json` when the answer is inside this loop's authority, and escalate when it would change a contract, an AC, or an artifact's authority.
+
+MUST state settlement precisely, in both directions. A `worker_done` with `--outcome failed` IS settled and MUST be released like a success. The forbidden releases are the guide's seven non-settlement states — timeout, TUI idle, heartbeat, status, question, escalation, and a rejected or stale `worker_done` — and a HALT under any escalation condition MUST account for a live worker by recording its `dispatch_id`, terminal handle, and last known state in the journal and leaving the terminal live for the owner, never by releasing it.
+
+MUST specify the retry mechanically: release the failed worker first, then create a **fresh task** for the second attempt rather than re-dispatching one Orca has already marked failed, recording both task ids. `worker-start --retry-of` is the guide's own retry path and is unavailable here for the same reason `worker-start` is, so the retry MUST be assembled from the low-level path. MUST state that a settled worker is accounted for before the next wait: attempt `orca orchestration worker-release --dispatch <id> --json`, and where the receipt reports the terminal retained as pre-existing, close it explicitly. MUST NOT release on a timeout, idle state, or rejected report. MUST record every `dispatch_id` in the journal so a resumed run can read a worker it did not start.
 
 - [ ] **Step 2: Write `step-03-story-cycle.md`**
 

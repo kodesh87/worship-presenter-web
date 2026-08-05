@@ -18,8 +18,10 @@ reimplement `terminal create` → `wait` → `dispatch` inline here.
   only, so `sprint-status.yaml` still reads that row as `backlog`, and an
   independent re-scan would select the very story just rejected.
 - MUST wait for `worker_done` before proceeding.
-- On `--outcome failed`, MUST retry once, dispatched fresh with the same role
-  and the same story key. MUST escalate under condition 5 if the retry also
+- On `--outcome failed`, MUST retry once using `dispatch-recipes.md`'s retry
+  mechanics — release the failed worker, then create a fresh task for the
+  same role and the same story key; MUST NOT re-dispatch the task Orca
+  already marked failed. MUST escalate under condition 5 if the retry also
   fails — a worker that cannot complete create-story twice in a row is
   infrastructure down, not a story problem.
 - On success, MUST set this story's `phase: created` in the journal.
@@ -30,17 +32,22 @@ reimplement `terminal create` → `wait` → `dispatch` inline here.
   the create dispatch's terminal or handle, since validation MUST run in a
   different session from the creator.
 - MUST pick, from the validate-story routing row, a CLI alternative from a
-  different CLI family than the one actually used for create — not merely a
-  different alternative within the same family.
+  different CLI family than the one recorded for create's dispatch in the
+  journal's `dispatches` list — not merely a different alternative within the
+  same family. MUST read the family from the journal rather than memory, so a
+  run resuming at `phase: created` honours this rule identically to a run
+  that never paused.
 - MUST wait for `worker_done`. On `--outcome failed`, MUST apply the same
-  retry-once-then-escalate-under-5 rule as create story.
+  retry-once-then-escalate-under-5 rule as create story, following
+  `dispatch-recipes.md`'s retry mechanics.
 - On success, MUST set `phase: validated`.
 
 ## Dev story
 
 - MUST dispatch the "dev story" role, initial intent.
 - MUST wait for `worker_done`. On `--outcome failed`, MUST apply the same
-  retry-once-then-escalate-under-5 rule as create and validate: the loop
+  retry-once-then-escalate-under-5 rule as create and validate, following
+  `dispatch-recipes.md`'s retry mechanics: the loop
   MUST NOT advance to the review panel without an implementation to review —
   a panel dispatched against an unimplemented story would burn five
   reviewers to discover nothing was built — and a worker that fails the same
@@ -60,6 +67,12 @@ reimplement `terminal create` → `wait` → `dispatch` inline here.
   instead dispatch the owning skill (`bmad-spec`, `bmad-architecture`, or
   `bmad-correct-course`) as its own worker, through the same recipe, and wait
   for its `worker_done`.
+- If the reported need arrived as a `question` message rather than inside a
+  `worker_done`, MUST close that question with
+  `orca orchestration reply --id <message_id> --body "<answer>" --json`
+  (`dispatch-recipes.md`'s wait protocol) as part of initiating the repair.
+  MUST NOT dispatch the repair skill while leaving the asking worker's
+  question pending and unanswered.
 - Before dispatching a `bmad-correct-course` repair, MUST read the reporting
   worker's stated scope for that correct-course and escalate under condition
   6 instead of dispatching when that scope would move a PRD-level goal,
@@ -83,6 +96,9 @@ continue on any other outcome:
   move a PRD-level goal, retire an epic, or renumber an existing `AD-n`.
 
 On either, MUST follow the HALT protocol in `SKILL.md`: write the condition
-and this story's current `phase` to the journal, leave no worker terminal
-unaccounted for (per `dispatch-recipes.md`'s accounting rule), and stop
-without a further dispatch.
+and this story's current `phase` to the journal, then account for every
+dispatch this leg opened — release a dispatch that already settled exactly
+as `dispatch-recipes.md` describes, and for a dispatch that never settled,
+record its `role`, `family`, `task`, `dispatch`, and last known state and
+leave its terminal live rather than releasing it — and stop without a
+further dispatch.
