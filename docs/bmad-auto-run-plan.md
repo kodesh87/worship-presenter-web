@@ -121,6 +121,7 @@ Expected: FAIL — `SKILL.md is missing`.
 
 Frontmatter `name: bmad-auto-run` and a description naming the trigger. Then, each as normative instructions:
 
+- **Invocation.** The only entry point is `/bmad-auto-run`, optionally with `dry-run`. The operator MUST NOT have to invoke the `orchestration` skill first, and this skill MUST NOT invoke it either: that skill is a discovery stub whose two required actions — resolving the Orca executable and loading the version-matched guide from the binary — are performed by `step-01-preflight.md`. Stating this prevents both a redundant load and a stale cached copy of the guide.
 - **Activation.** Resolve the journal for today; if one exists with unfinished stories, MUST resume from its last `phase` rather than restarting.
 - **Dry-run contract.** When invoked with `dry-run`, MUST execute step-01 and step-02 read-only, MUST print the planned dispatch sequence and gates, and MUST NOT create a terminal, write a file, or run a git command.
 - **Journal schema**, exactly:
@@ -146,7 +147,7 @@ stories:
 
 - [ ] **Step 4: Write `step-01-preflight.md`**
 
-Each check normative, all read-only, and each with the exact command: `orca status --json` reachable; the orchestration guide loaded with `orca skills get orchestration`; `gh auth status`; `git status --porcelain` empty; the `agy` workspace-trust gate cleared for this worktree path; and the baseline — `npm run build` then `npm test` green **before** the first story, so an inherited failure is never charged to it. MUST record `preflight:` in the journal. Any failed check MUST escalate under condition 5, except a red baseline, which MUST escalate under condition 1 or 2 by whichever failed.
+Each check normative, all read-only, and each with the exact command. First MUST resolve the Orca executable once and reuse it for every later command, in the order the orchestration stub gives: `ORCA_CLI_COMMAND` when set, then `orca-dev` in a dev checkout exposing `ORCA_DEV_REPO_ROOT`, then `orca-ide` on Linux outside an Orca terminal — where bare `orca` MUST NOT be run because it resolves to the GNOME screen reader and starts speech on the operator's machine — otherwise `orca`. If the resolved executable cannot run, MUST report its exact error and escalate rather than falling through to another, which could silently target a different Orca build. Then MUST load the version-matched guide with `<orca> skills get orchestration` and MUST NOT act on a remembered or cached copy of it. Then: `<orca> status --json` reachable; `gh auth status`; `git status --porcelain` empty; the `agy` workspace-trust gate cleared for this worktree path; and the baseline — `npm run build` then `npm test` green **before** the first story, so an inherited failure is never charged to it. MUST record `preflight:` in the journal. Any failed check MUST escalate under condition 5, except a red baseline, which MUST escalate under condition 1 or 2 by whichever failed.
 
 - [ ] **Step 5: Register the test and make it pass**
 
