@@ -88,10 +88,13 @@ orca orchestration dispatch --task <task_id> --to <handle> --inject --json
   and a `tui-idle` match MUST NOT itself be taken as proof the worker has
   started the task — it only proves the terminal is ready to receive it.
 - MUST record this dispatch's `role`, `family` (the CLI family actually
-  used), `task`, and `dispatch` in the journal's per-story `dispatches` list
-  as soon as each is known, with `outcome: pending` — so a resumed run can
-  find and account for a worker it did not itself start, and so a later
-  dispatch can read which family an earlier one used.
+  used), `task`, `dispatch`, and `terminal` (the same `<handle>` this
+  recipe's own `terminal create` returned — `worker-show --dispatch <id>
+  --json`'s `worker.agent_terminal_handle` field confirms the same value
+  later if ever needed) in the journal's per-story `dispatches` list as soon
+  as each is known, with `outcome: pending` — so a resumed run can find and
+  account for a worker it did not itself start, can read which family an
+  earlier one used, and has the handle its liveness probes require.
 
 ## The `agy` exception
 

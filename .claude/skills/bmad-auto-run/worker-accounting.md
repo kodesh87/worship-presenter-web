@@ -46,28 +46,43 @@ orca orchestration check --wait --types worker_done,escalation,question --timeou
 - If liveness instead shows the terminal exited, disappeared, or went idle
   without ever producing a report, MUST NOT guess what that means — MUST
   classify it with `orca orchestration worker-show --dispatch <id> --json`:
-  - `ready` — still alive; roll the wait again.
-  - `failed` or `stopped` — a failed attempt; take the retry path in
-    "Retrying a failed dispatch" below, using its never-settled branch — this
-    dispatch never sent `worker_done`, so there is nothing for
-    `worker-release` to act on.
+  - `ready`, with no independent sign the terminal has exited or
+    disappeared — MUST treat it as still alive and roll the wait again, up
+    to 3 classifications that produce no new message (matching this skill's
+    other three-strikes bounds), then MUST escalate under condition 5 so
+    this branch cannot spin silently.
+  - `ready`, but the terminal HAS been independently observed to have
+    exited or disappeared — MUST NOT roll another wait on `ready` alone; the
+    guide names an exited or disappeared terminal as a reason to *stop*
+    waiting, not continue. MUST instead take the `outcome_unknown` branch
+    below.
+  - `failed` or `stopped` — MUST treat it as a failed attempt and take the
+    retry path in "Retrying a failed dispatch" below, using its
+    never-settled branch — this dispatch never sent `worker_done`, so there
+    is nothing for `worker-release` to act on.
   - `outcome_unknown` — MUST run `orca orchestration worker-stop --dispatch
-    <id> --json` and classify again with `worker-show`. If it is still
-    `outcome_unknown` after that, MUST run
-    `orca orchestration worker-abandon --dispatch <id> --json` and escalate
-    under condition 5 — the loop can no longer prove the state of its own
-    worker.
+    <id> --json` and classify once more with `worker-show`. This second
+    classification is terminal, not another roll: a clean `failed`/`stopped`
+    takes the retry path above; anything else — including a stray `ready`,
+    which cannot be trusted against a terminal `worker-stop` just closed —
+    MUST run `orca orchestration worker-abandon --dispatch <id> --json` and
+    escalate under condition 5. `worker-abandon` fences the dispatch and
+    performs no process or filesystem action — resources may still be live —
+    so the journal's HALT record MUST NOT imply this worker was stopped or
+    cleaned up, only that the loop could no longer prove its state.
 - An `escalation` MUST also get an explicit branch, distinct from a
   `question` — a worker sends this only when ownership is valid and the
-  coordinator must intervene:
+  coordinator must intervene. On every one of the three sub-branches below,
+  MUST record the escalating worker's `role`, `family`, `task`, `dispatch`,
+  `terminal`, and `last_state` in the journal with `outcome: unsettled` — an
+  `escalation` is one of the seven non-settlement states, so this worker is
+  never released, whichever branch runs next:
   - If it reports that an artifact repair is needed, MUST take the calling
     step's repair-dispatch path for that artifact.
   - If it names one of the seven conditions, MUST follow the HALT protocol in
     `SKILL.md` under that condition.
   - Otherwise, MUST treat the leg as blocked, retry once, then escalate under
     condition 5.
-  MUST NOT release the escalating worker — an unactioned `escalation` is one
-  of the seven non-settlement states below.
 - A `question` MUST get an explicit branch: reply with
   `orca orchestration reply --id <message_id> --body "<answer>" --json` when
   the answer is inside this loop's own authority, or escalate — per the
@@ -88,21 +103,29 @@ orca orchestration check --wait --types worker_done,escalation,question --timeou
   these seven — none of them is settlement.
 - On a settled report, MUST attempt
   `orca orchestration worker-release --dispatch <id> --json` and record the
-  outcome (`succeeded`/`failed`) against that dispatch's journal entry. The
-  receipt itself names the command to use next — MUST follow that exact
-  recovery action rather than substitute one: where it reports the terminal
-  retained (for example as pre-existing), MUST run the close command the
-  receipt names; where it instead reports `release_pending` or
-  `release_unknown`, MUST follow that receipt's own recovery action, never
-  `terminal close`, and never guess.
-- MUST NOT attempt release for a dispatch that never settled — there is
-  nothing settled to release. This covers both a HALT reached while a
-  dispatch is still outstanding, and a dead dispatch classified `failed` or
-  `stopped` by `worker-show` above without ever sending `worker_done`. For
-  either, MUST instead record that dispatch's `role`, `family`, `task`,
-  `dispatch`, `terminal`, and `last_state` in the journal with
-  `outcome: unsettled`, and MUST leave the terminal live — the owner needs it
-  to diagnose the halt, and releasing it would destroy the evidence.
+  outcome (`succeeded`/`failed`) against that dispatch's journal entry. Where
+  the receipt reports the terminal retained (for example as pre-existing),
+  MUST close it explicitly with
+  `orca terminal close --terminal <handle> --json` — this skill never reuses
+  a terminal, so any terminal this recipe created is always safe to close
+  once its dispatch is settled, and the guide does not promise a follow-up
+  command for this case the way it does for the next one. Where the receipt
+  instead reports `release_pending` or `release_unknown`, MUST follow that
+  receipt's own recovery action exactly — MUST NOT substitute
+  `terminal close` there, and MUST NOT guess.
+- MUST NOT attempt release for a dispatch that never settled — the guide
+  forbids releasing a dispatch that has not settled; that is the reason, not
+  evidence preservation, since a released or closed worker's output stays
+  readable through `worker-read --dispatch <id> --json`. This covers both a
+  HALT reached while a dispatch is still outstanding, and a dead dispatch
+  classified `failed` or `stopped` by `worker-show` above without ever
+  sending `worker_done`. For either, MUST instead record that dispatch's
+  `role`, `family`, `task`, `dispatch`, `terminal`, and `last_state` in the
+  journal with `outcome: unsettled`. MUST leave the terminal live for the
+  owner to diagnose — unless `worker-stop` already closed it during
+  classification above, in which case there is no terminal left to leave
+  live, and the journal record plus `worker-read` is what preserves the
+  evidence instead.
 
 ## Retrying a failed dispatch
 
