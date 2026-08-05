@@ -44,6 +44,7 @@ Welcome to the documentation index for `worship-presenter-web`. This page acts a
 - **[Durable Server Deployment](./deploy.md):** Guidelines for standard deployments, WAL configurations, and server font dependencies.
 - **[Picoclaw Webhook Specifications](./picoclaw-webhook.md):** Request body contract for the bot webhook receiver.
 - **[LiveServer Implementation Plan](./liveserver-implementation-plan.md):** The WP1–WP8 design record behind the Docker / Cloudflare Tunnel deployment. Delivered under Story 13.1 — a historical plan, not operator instructions; use the two guides above for that.
+- **[BMad Auto-Run Design](./bmad-auto-run-design.md):** Design record for the `bmad-auto-run` skill, which drives the BMad cycle across stories and epics unattended. Agent tooling, not product behavior — it changes who sequences the work, never what the work is.
 
 ---
 
