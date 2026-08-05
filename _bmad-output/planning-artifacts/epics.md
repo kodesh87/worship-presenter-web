@@ -277,7 +277,7 @@ So that layouts can be extended without a code change.
 
 **Note:** seeded element IDs and any element marked `required` stay immutable — the save API rejects their removal or rename (400) and read-only base types (FullScreenImage, SongSet, Announcement) expose no add/delete affordances at all. Only elements authored in the editor may be deleted.
 
-### Epic 17: An operator surface that is readable and honest *(in-progress — Stories 17.1, 17.2, 17.3, 17.4, and 17.8 done; 17.5 and 17.6 in review; 17.7 and 17.9 backlog)*
+### Epic 17: An operator surface that is readable and honest *(in-progress — Stories 17.1, 17.2, 17.3, 17.4, 17.6, and 17.8 done; 17.5 in review; 17.7 and 17.9 backlog)*
 
 Created 2026-07-29 from the implementation-readiness assessment's product defects, via the epic route rather than inline patching — the point of Correct Course that day was that inline is how the drift happened. Titled around what an operator gets, per the C5-1 remediation: the value standard applies to new epics from here.
 
@@ -319,7 +319,7 @@ So that I cannot advance a deck for the rest of a service with nothing on the se
 
 **Constraint, resolved:** AD-10 forbids a server realtime channel, so this is solved locally, and the owner resolved the two mechanisms `epics.md` had permitted either/or to **both, with the acknowledgement primary** — the `closed` poll on the retained window handle feeds the same evaluator a new acknowledgement added to `present-channel.ts` reads, never two mechanisms with two verdicts. Ratified by the `bmad-architecture` Update run that added **`AD-29`** (2026-08-05) ahead of the code, fixing the ack's shape (one variant, state-free), who may send it (the projector only, unprompted, while mounted), and that the presenter remains the single authority — see `present-channel.ts`'s own header contract and `ARCHITECTURE-SPINE.md`'s `AD-29`.
 
-#### Story 17.6: The Toast Channel Two Documents Describe Does Not Exist *(review — decided 2026-08-05, no operator-visible change shipped)*
+#### Story 17.6: The Toast Channel Two Documents Describe Does Not Exist *(done — decided 2026-08-05, closed by the owner 2026-08-06, no operator-visible change shipped)*
 As an operator completing an action,
 I want the transient confirmation channel this product's design documents describe to be decided, dated and owned rather than described as shipped,
 So that no artifact in this repository promises a channel that cannot fire, and the story that wires it knows exactly what rule it is wiring.
