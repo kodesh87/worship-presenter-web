@@ -277,7 +277,7 @@ So that layouts can be extended without a code change.
 
 **Note:** seeded element IDs and any element marked `required` stay immutable — the save API rejects their removal or rename (400) and read-only base types (FullScreenImage, SongSet, Announcement) expose no add/delete affordances at all. Only elements authored in the editor may be deleted.
 
-### Epic 17: An operator surface that is readable and honest *(in-progress — Stories 17.1, 17.2, 17.3, 17.4, and 17.8 done; 17.5–17.7 backlog)*
+### Epic 17: An operator surface that is readable and honest *(in-progress — Stories 17.1, 17.2, 17.3, 17.4, and 17.8 done; 17.5 in review; 17.6–17.7 backlog)*
 
 Created 2026-07-29 from the implementation-readiness assessment's product defects, via the epic route rather than inline patching — the point of Correct Course that day was that inline is how the drift happened. Titled around what an operator gets, per the C5-1 remediation: the value standard applies to new epics from here.
 
@@ -305,10 +305,10 @@ As an administrator editing an Artifact template,
 I want a dirty indicator and a navigation guard,
 So that leaving the canvas editor cannot discard layout work without warning. Unsaved changes were invisible to the application (FR-20 surface); the editor now tracks a dirty flag in memory, shows it beside Save/Reset, and confirms before the three exits that discard it — tab close/reload (`beforeunload`), an in-editor template switch, and any `Header` link (Next 16's `onNavigate`). Logout stays uncovered by design: it is a `router.replace()` out of `onNavigate`'s reach, and belongs to [`EXPERIENCE.md`](../planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/EXPERIENCE.md) Open Item 5. Nothing is persisted — AD-24 names this story as its live instance of *unsaved editor state stays in memory*. Regression: `tests/canvas-dirty-guard.test.mjs`.
 
-#### Story 17.5: The Presenter Knows When the Projector Is Gone *(backlog)*
+#### Story 17.5: The Presenter Knows When the Projector Is Gone *(review — implemented 2026-08-05, pending code review)*
 As an operator presenting to a congregation,
 I want the presenter to tell me the moment the projector window stops answering,
-So that I cannot advance a deck for the rest of a service with nothing on the second screen.
+So that I cannot advance a deck for the rest of a service with nothing on the second screen. `PresentMessage` gains one state-free `projector-alive` acknowledgement (`AD-29`), sent by the projector on an interval and only ever observed by the presenter. A single pure evaluator (`src/lib/projector-liveness.ts`) turns that acknowledgement and the retained handle's `closed` read into one `never-opened`/`live`/`lost` verdict — the acknowledgement primary and authoritative for `live`, the handle a corroborating fast path authoritative for an immediate `lost` on a clean close. The presenter header shows a persistent, self-clearing line while `lost`, independent of the popup-blocked banner and silent in `never-opened`. Regression: `tests/projector-liveness.test.mjs`, extended `tests/present-channel.test.mjs`.
 
 **This block is the single source for the evidence** — `EXPERIENCE.md` Open Item 1 points here rather than repeating it. `EXPERIENCE.md` had specified *Lost sync* as a shipped state since 2026-07-19; verified against `src/` on 2026-07-30, **no detection of any kind exists:**
 
@@ -317,7 +317,7 @@ So that I cannot advance a deck for the rest of a service with nothing on the se
 - `projectorRef.current.closed` is read only inside `openProjector` (`PresenterOperator.tsx:271-276`) — only if the operator clicks the button again;
 - the only surfaced projector state is `projectorBlocked`, which is the popup blocker.
 
-**Constraint:** AD-10 forbids a server realtime channel, so this is solved locally or not at all — a `closed` poll on the retained window handle, or an acknowledgement added to `present-channel.ts`. Extending `PresentMessage` is a wire change, and the presenter must stay the single authority (see that file's header contract).
+**Constraint, resolved:** AD-10 forbids a server realtime channel, so this is solved locally, and the owner resolved the two mechanisms `epics.md` had permitted either/or to **both, with the acknowledgement primary** — the `closed` poll on the retained window handle feeds the same evaluator a new acknowledgement added to `present-channel.ts` reads, never two mechanisms with two verdicts. Ratified by the `bmad-architecture` Update run that added **`AD-29`** (2026-08-05) ahead of the code, fixing the ack's shape (one variant, state-free), who may send it (the projector only, unprompted, while mounted), and that the presenter remains the single authority — see `present-channel.ts`'s own header contract and `ARCHITECTURE-SPINE.md`'s `AD-29`.
 
 #### Story 17.6: The Toast Channel Two Documents Describe Does Not Exist *(backlog)*
 As an operator completing an action,

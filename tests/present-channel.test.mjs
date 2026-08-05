@@ -21,6 +21,7 @@ const {
   liveTransitionOf,
   openPresentChannel,
   presentChannelName,
+  isProjectorMessage,
 } = await import(
   pathToFileURL(path.join(root, 'src', 'lib', 'present-channel.ts')).href
 );
@@ -142,6 +143,51 @@ test('messages that say nothing about the style leave it alone', () => {
     liveTransitionOf({ type: 'scripture', reference: 'John 4:23', text: '...' }),
     null
   );
+});
+
+test('projector-alive says nothing about blank or transition (AD-29, Story 17.5)', () => {
+  // The liveness ack is the projector reporting its own condition and nothing
+  // else — no index, no blank, no transition, no other deck state. Both
+  // readers must resolve it to "says nothing about it", which is what lets
+  // the ack sit outside the header contract governing shared-state messages
+  // rather than in tension with it.
+  const msg = { type: 'projector-alive' };
+  assert.equal(blankStateOf(msg), null);
+  assert.equal(liveTransitionOf(msg), null);
+});
+
+test('projector-alive is idempotent by construction (AD-29)', () => {
+  // Two in one window, or one arriving late, both mean the same thing:
+  // something was alive at that moment. No sequence number, no request/
+  // response pairing — the message carries nothing that could distinguish
+  // one occurrence from another.
+  const msg = { type: 'projector-alive' };
+  assert.equal(blankStateOf(msg), blankStateOf(msg));
+  assert.equal(liveTransitionOf(msg), liveTransitionOf(msg));
+  assert.deepEqual(Object.keys(msg), ['type']);
+});
+
+test('Review [High, blocking 1]: only the projector\'s own two message types are liveness evidence', () => {
+  // A second Presenter tab on the same service shares this channel and
+  // broadcasts its own state (`sync`, `blank`, `transition`, `scripture`,
+  // `clear-scripture`) — none of those is the projector answering, and none
+  // may count toward the presenter's liveness verdict. Only `request-sync`
+  // (the projector's mount-time hello) and `projector-alive` (its heartbeat)
+  // are messages the projector itself ever sends.
+  assert.equal(isProjectorMessage({ type: 'request-sync' }), true);
+  assert.equal(isProjectorMessage({ type: 'projector-alive' }), true);
+  assert.equal(
+    isProjectorMessage({ type: 'sync', index: 0, blank: false, transition: 'fade' }),
+    false,
+    'a second Presenter tab\'s own mount-time sync must not read as a live projector'
+  );
+  assert.equal(isProjectorMessage({ type: 'blank', blank: true }), false);
+  assert.equal(isProjectorMessage({ type: 'transition', transition: 'fade' }), false);
+  assert.equal(
+    isProjectorMessage({ type: 'scripture', reference: 'John 4:23', text: '...' }),
+    false
+  );
+  assert.equal(isProjectorMessage({ type: 'clear-scripture' }), false);
 });
 
 test('a sync with no transition field leaves the projector on its own setting', () => {

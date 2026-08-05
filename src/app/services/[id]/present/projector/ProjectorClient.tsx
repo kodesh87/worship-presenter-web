@@ -9,6 +9,7 @@ import {
   openPresentChannel,
   type PresentMessage,
 } from '@/lib/present-channel';
+import { PROJECTOR_HEARTBEAT_INTERVAL_MS } from '@/lib/projector-liveness';
 import { transitionLayerStyle, type SlideTransition } from '@/lib/transitions';
 import { useProjectedShell } from '@/lib/use-projected-shell';
 import { useSlideTransition } from '@/lib/use-slide-transition';
@@ -81,7 +82,19 @@ export default function ProjectorClient({
 
     ch.addEventListener('message', onMessage);
     ch.postMessage({ type: 'request-sync' });
+
+    // The projector's own liveness heartbeat (`AD-29`): an unprompted,
+    // state-free `projector-alive` for as long as this window is mounted.
+    // Registered and cleared in this same effect rather than a second one —
+    // a heartbeat effect keyed on anything but `serviceId` would tear this
+    // channel down and reopen it on every live transition change, which is
+    // exactly what `goToRef` above exists to avoid.
+    const heartbeat = setInterval(() => {
+      ch.postMessage({ type: 'projector-alive' });
+    }, PROJECTOR_HEARTBEAT_INTERVAL_MS);
+
     return () => {
+      clearInterval(heartbeat);
       ch.removeEventListener('message', onMessage);
       ch.close();
     };

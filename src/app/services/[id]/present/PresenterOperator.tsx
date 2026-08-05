@@ -34,7 +34,17 @@ import Link from 'next/link';
 import type { SlidePlanItem } from '@/lib/slide-plan';
 import type { ParsedItem } from '@/lib/parser';
 import SlideView from '@/components/SlideView';
-import { openPresentChannel, type PresentMessage } from '@/lib/present-channel';
+import {
+  isProjectorMessage,
+  openPresentChannel,
+  type PresentMessage,
+} from '@/lib/present-channel';
+import {
+  INITIAL_LIVENESS_STATE,
+  nextLivenessState,
+  type LivenessEvent,
+  type LivenessState,
+} from '@/lib/projector-liveness';
 import {
   parseSlideTransition,
   SLIDE_TRANSITIONS,
@@ -101,6 +111,19 @@ const PANEL_CLASS = 'rounded-lg border border-border bg-card/40';
  * already make most browsers open a window; `popup` states the intent.
  */
 const PROJECTOR_FEATURES = 'popup=1,width=1280,height=720,left=120,top=120';
+
+/**
+ * How often the retained handle's `.closed` is read, and how often a stale
+ * acknowledgement is checked for even when nothing new arrives (`AD-29`).
+ * Deliberately **not** exported alongside the shared cadence pair in
+ * `projector-liveness.ts`: the heartbeat interval and the freshness window
+ * are the one pair both windows must agree on, but this poll cadence is a
+ * purely local implementation detail of *how* the presenter drives the
+ * evaluator, never a value the projector needs to know. Sub-second so a clean
+ * window close is reported "in well under a second" (AC-4), well inside the
+ * freshness window so it never itself causes a false `lost`.
+ */
+const LIVENESS_POLL_INTERVAL_MS = 200;
 
 /**
  * Stable per service, so a second click — or a Presenter reload that lost the
@@ -250,6 +273,11 @@ export default function PresenterOperator({
   const [scriptureBusy, setScriptureBusy] = useState(false);
   const [scriptureError, setScriptureError] = useState<string | null>(null);
   const [projectorBlocked, setProjectorBlocked] = useState(false);
+  // The liveness verdict (`AD-29`): whether the projector is answering. Never
+  // a second flag alongside it — the whole point of `nextLivenessState` is
+  // that this is the only place the verdict is decided, so a boundary added
+  // here is a boundary added to the shared evaluator, not a local shortcut.
+  const [liveness, setLiveness] = useState<LivenessState>(INITIAL_LIVENESS_STATE);
   const channelRef = useRef<BroadcastChannel | null>(null);
   const indexRef = useRef(0);
   const blankRef = useRef(false);
@@ -257,6 +285,10 @@ export default function PresenterOperator({
   const activeRowRef = useRef<HTMLButtonElement | null>(null);
   const activeFrameRef = useRef<HTMLButtonElement | null>(null);
   const projectorRef = useRef<Window | null>(null);
+  // Mirrors `liveness` for the same reason `indexRef`/`blankRef`/`transitionRef`
+  // exist: the message listener and the poll below are installed once per
+  // service and would otherwise close over mount-time state.
+  const livenessRef = useRef<LivenessState>(INITIAL_LIVENESS_STATE);
 
   const projectorUrl = `/services/${serviceId}/present/projector`;
 
@@ -264,14 +296,47 @@ export default function PresenterOperator({
   const rows = useMemo(() => buildPresenterRows(entries), [entries]);
 
   /**
+   * The one place `nextLivenessState` is called. Every signal that can move
+   * the verdict — an inbound projector message, the closed poll, the
+   * freshness tick — comes through here rather than keeping its own copy of
+   * the precedence rules.
+   */
+  const dispatchLiveness = useCallback((event: LivenessEvent) => {
+    const next = nextLivenessState(livenessRef.current, event, Date.now());
+    if (next === livenessRef.current) return;
+    // An `ack` always returns a fresh object (it refreshes `lastAckAtMs`
+    // every time, live or not), but the render below reads only
+    // `liveness.verdict` — re-rendering on every heartbeat while the verdict
+    // does not change would cost a render every 2s for the whole session.
+    // The ref always holds the latest state either way, so the next `tick`
+    // or `handle-closed` still sees the refreshed `lastAckAtMs`.
+    const verdictChanged = next.verdict !== livenessRef.current.verdict;
+    livenessRef.current = next;
+    if (verdictChanged) setLiveness(next);
+  }, []);
+
+  /**
    * Focus the projector if it is already up, otherwise open it. Never a second
    * one: the live handle answers first, and the stable window name catches the
    * case where this component was remounted and lost it.
+   *
+   * An open-but-not-answering handle (`existing.closed === false` while the
+   * liveness verdict is `lost`) is exactly AC-4's crashed/frozen/navigated-away
+   * case — the window still exists, so `.closed` never trips, but nothing is
+   * going to answer it either. `.focus()` alone cannot revive that window, so
+   * this is the one case that also navigates it back to the projector route
+   * before focusing (Review finding [High, blocking]): the recovery the header
+   * advertises must actually be able to reattach a frozen projector, not just
+   * bring an unresponsive window to the front.
    */
   const openProjector = useCallback(() => {
     const existing = projectorRef.current;
     if (existing && !existing.closed) {
+      if (livenessRef.current.verdict === 'lost') {
+        existing.location.href = projectorUrl;
+      }
       existing.focus();
+      dispatchLiveness({ type: 'opened' });
       return;
     }
     const opened = window.open(
@@ -284,7 +349,12 @@ export default function PresenterOperator({
     // leaving the operator clicking a button that does nothing.
     setProjectorBlocked(opened === null);
     opened?.focus();
-  }, [projectorUrl, serviceId]);
+    // Records the attempt so a projector that opens and never sends its
+    // first ack ages out of `never-opened` into `lost` after the freshness
+    // window, instead of staying silently unopened for the rest of the
+    // service (`AD-29`, Review finding [High, blocking]).
+    dispatchLiveness({ type: 'opened' });
+  }, [projectorUrl, serviceId, dispatchLiveness]);
 
   const broadcast = useCallback((msg: PresentMessage) => {
     channelRef.current?.postMessage(msg);
@@ -361,6 +431,18 @@ export default function PresenterOperator({
     const onMessage = (ev: MessageEvent<PresentMessage>) => {
       const msg = ev.data;
       if (!msg || typeof msg !== 'object') return;
+      // Only a genuine projector-originated message is evidence of life
+      // (`AD-29`) — the heartbeat and `request-sync` alike, recorded here
+      // without changing how `request-sync` is answered below. A second
+      // Presenter tab on the same service shares this channel too, and its
+      // own broadcast state (`sync`, `blank`, `transition`, ...) must never
+      // be mistaken for the projector answering (Review finding
+      // [High, blocking]) — `isProjectorMessage` is the one place that
+      // distinction is made, so it cannot drift from `present-channel.ts`'s
+      // own account of who sends what.
+      if (isProjectorMessage(msg)) {
+        dispatchLiveness({ type: 'ack' });
+      }
       if (msg.type === 'request-sync') {
         ch.postMessage(currentState());
       }
@@ -372,7 +454,25 @@ export default function PresenterOperator({
       ch.close();
       channelRef.current = null;
     };
-  }, [serviceId]);
+  }, [serviceId, dispatchLiveness]);
+
+  // The retained handle's `closed` poll, and the freshness tick, feeding the
+  // same evaluator as the listener above (`AD-29`) — never a second liveness
+  // mechanism. A `null` handle is not evidence of anything and raises no
+  // event; only an explicit, non-null `closed === true` reading may move the
+  // verdict toward `lost` ahead of the freshness window, which is what makes
+  // a clean window close reportable in well under a second rather than after
+  // a timeout.
+  useEffect(() => {
+    const poll = setInterval(() => {
+      if (projectorRef.current && projectorRef.current.closed) {
+        dispatchLiveness({ type: 'handle-closed' });
+      } else {
+        dispatchLiveness({ type: 'tick' });
+      }
+    }, LIVENESS_POLL_INTERVAL_MS);
+    return () => clearInterval(poll);
+  }, [dispatchLiveness]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -492,6 +592,19 @@ export default function PresenterOperator({
               open the projector in a tab
             </a>
             .
+          </p>
+        ) : null}
+        {/* Independent of `projectorBlocked` above — either, both or neither
+            may show (AC-5). Silent in `never-opened`: a presenter opened
+            without a projector must not warn about one, or the line trains
+            the operator to ignore it before it has ever meant anything.
+            States the recovery, never the cause — the operator is told what
+            to do, never that a heartbeat timed out. */}
+        {liveness.verdict === 'lost' ? (
+          <p role="status" className="basis-full text-xs text-amber-300">
+            The projector is not answering. Use{' '}
+            <span className="font-medium">Open projector</span> above to
+            reconnect it.
           </p>
         ) : null}
       </header>
