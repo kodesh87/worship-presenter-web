@@ -18,12 +18,14 @@ reimplement `terminal create` → `wait` → `dispatch` inline here.
   only, so `sprint-status.yaml` still reads that row as `backlog`, and an
   independent re-scan would select the very story just rejected.
 - MUST wait for `worker_done` before proceeding.
-- On `--outcome failed`, MUST retry once using `dispatch-recipes.md`'s retry
-  mechanics — release the failed worker, then create a fresh task for the
-  same role and the same story key; MUST NOT re-dispatch the task Orca
-  already marked failed. MUST escalate under condition 5 if the retry also
-  fails — a worker that cannot complete create-story twice in a row is
-  infrastructure down, not a story problem.
+- On `--outcome failed`, or on a dispatch `dispatch-recipes.md`'s liveness
+  classification resolves to `failed`/`stopped` without it ever reporting,
+  MUST retry once using `dispatch-recipes.md`'s retry mechanics — release the
+  failed worker if it settled, or simply record it if it never did, then
+  either way create a fresh task for the same role and the same story key;
+  MUST NOT re-dispatch the task Orca already marked failed. MUST escalate
+  under condition 5 if the retry also fails — a worker that cannot complete
+  create-story twice in a row is infrastructure down, not a story problem.
 - On success, MUST set this story's `phase: created` in the journal.
 
 ## Validate story
@@ -32,12 +34,15 @@ reimplement `terminal create` → `wait` → `dispatch` inline here.
   the create dispatch's terminal or handle, since validation MUST run in a
   different session from the creator.
 - MUST pick, from the validate-story routing row, a CLI alternative from a
-  different CLI family than the one recorded for create's dispatch in the
-  journal's `dispatches` list — not merely a different alternative within the
-  same family. MUST read the family from the journal rather than memory, so a
-  run resuming at `phase: created` honours this rule identically to a run
-  that never paused.
-- MUST wait for `worker_done`. On `--outcome failed`, MUST apply the same
+  different CLI family than the one recorded on the create dispatch entry
+  whose `outcome` is `succeeded` in the journal's `dispatches` list — a create
+  retry can leave more than one create entry, possibly in different families,
+  and only the succeeded one is the creator. MUST read the family from the
+  journal rather than memory, so a run resuming at `phase: created` honours
+  this rule identically to a run that never paused.
+- MUST wait for `worker_done`. On `--outcome failed`, or on a dispatch
+  `dispatch-recipes.md`'s liveness classification resolves to
+  `failed`/`stopped` without it ever reporting, MUST apply the same
   retry-once-then-escalate-under-5 rule as create story, following
   `dispatch-recipes.md`'s retry mechanics.
 - On success, MUST set `phase: validated`.
@@ -45,7 +50,9 @@ reimplement `terminal create` → `wait` → `dispatch` inline here.
 ## Dev story
 
 - MUST dispatch the "dev story" role, initial intent.
-- MUST wait for `worker_done`. On `--outcome failed`, MUST apply the same
+- MUST wait for `worker_done`. On `--outcome failed`, or on a dispatch
+  `dispatch-recipes.md`'s liveness classification resolves to
+  `failed`/`stopped` without it ever reporting, MUST apply the same
   retry-once-then-escalate-under-5 rule as create and validate, following
   `dispatch-recipes.md`'s retry mechanics: the loop
   MUST NOT advance to the review panel without an implementation to review —
@@ -90,8 +97,14 @@ reimplement `terminal create` → `wait` → `dispatch` inline here.
 This step MUST escalate under exactly two of the seven conditions, and MUST
 continue on any other outcome:
 
-- Condition 5 — a `--outcome failed` on create, validate, or the initial dev
-  dispatch that repeats after one retry with the same role.
+- Condition 5 (infrastructure is down — `SKILL.md` holds the full
+  definition; this bullet only cites it, never restates it) — this step
+  raises it when: a `--outcome failed`, or a dead dispatch `worker-show`
+  classifies `failed`/`stopped`, repeats after one retry on create, validate,
+  or the initial dev dispatch; when a dispatch `worker-show` still reports
+  `outcome_unknown` after both `worker-stop` and `worker-abandon`; or when a
+  worker `escalation` on any of the three names no repair need and no
+  specific condition, after one retry.
 - Condition 6 — before any correct-course dispatch whose reported scope would
   move a PRD-level goal, retire an epic, or renumber an existing `AD-n`.
 
@@ -99,6 +112,6 @@ On either, MUST follow the HALT protocol in `SKILL.md`: write the condition
 and this story's current `phase` to the journal, then account for every
 dispatch this leg opened — release a dispatch that already settled exactly
 as `dispatch-recipes.md` describes, and for a dispatch that never settled,
-record its `role`, `family`, `task`, `dispatch`, and last known state and
-leave its terminal live rather than releasing it — and stop without a
-further dispatch.
+record its `role`, `family`, `task`, `dispatch`, `terminal`, and `last_state`
+with `outcome: unsettled` and leave its terminal live rather than releasing
+it — and stop without a further dispatch.

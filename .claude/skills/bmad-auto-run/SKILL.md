@@ -70,7 +70,9 @@ stories:
         family: <cli family>     # so a resumed run can honour "a different family than the creator"
         task: <task_id>
         dispatch: <dispatch_id>
-        outcome: succeeded|failed|pending
+        terminal: <handle>       # so a HALT names the terminal it left live
+        outcome: succeeded|failed|pending|unsettled
+        last_state: <one line>   # what was last observed, for an unsettled dispatch
 ```
 
 `orca_run` and `dispatches` are not bookkeeping for its own sake. Without the
@@ -78,7 +80,9 @@ recorded `family`, a run resuming at `phase: created` cannot know which
 family created the story and would validate in the same one half the time —
 defeating that rule outright. Without `orca_run`, a resumed run that creates
 a second Orca Run reads an empty mailbox and never receives a prior worker's
-report.
+report. Without `terminal` and `last_state`, a HALT's own record-and-leave-
+live rule has nothing to write — the journal the owner reads would never
+name which terminal was left running or why.
 
 ## HALT protocol
 

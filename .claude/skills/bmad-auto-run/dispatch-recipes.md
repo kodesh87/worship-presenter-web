@@ -110,16 +110,47 @@ orca orchestration check --wait --types worker_done,escalation,question --timeou
   orca orchestration check --ack <delivery_id> --wait --types worker_done,escalation,question --timeout-ms 900000 --json
   ```
 
+  When a leg ends with nothing further to wait for, MUST acknowledge in the
+  standalone form instead of fusing it to another wait:
+
+  ```
+  orca orchestration check --ack <delivery_id> --json
+  ```
+
 - A timeout or `{count: 0}` MUST be treated as a checkpoint, never as a
   worker failure — real coding dispatches run 15 to 60 minutes, and the
   900000ms window is the floor of that range, not a deadline. MUST NOT retry
   or escalate on a bare timeout. Before rolling the wait again, MUST check
   liveness with `orca orchestration task-list --json`,
   `orca terminal read --terminal <handle> --json`, or
-  `orca terminal wait --terminal <handle> --for tui-idle` — a worker still
-  visibly active MUST get another rolled wait, never a retry. Only a
-  terminal that has exited, disappeared, or gone idle without ever producing
-  a report is a genuine failure.
+  `orca terminal wait --terminal <handle> --for tui-idle --timeout-ms 60000
+  --json`. A worker still visibly active MUST get another rolled wait, never
+  a retry.
+- If liveness instead shows the terminal exited, disappeared, or went idle
+  without ever producing a report, MUST NOT guess what that means — MUST
+  classify it with `orca orchestration worker-show --dispatch <id> --json`:
+  - `ready` — still alive; roll the wait again.
+  - `failed` or `stopped` — a failed attempt; take the retry path in
+    "Retrying a failed dispatch" below, using its never-settled branch — this
+    dispatch never sent `worker_done`, so there is nothing for
+    `worker-release` to act on.
+  - `outcome_unknown` — MUST run `orca orchestration worker-stop --dispatch
+    <id> --json` and classify again with `worker-show`. If it is still
+    `outcome_unknown` after that, MUST run
+    `orca orchestration worker-abandon --dispatch <id> --json` and escalate
+    under condition 5 — the loop can no longer prove the state of its own
+    worker.
+- An `escalation` MUST also get an explicit branch, distinct from a
+  `question` — a worker sends this only when ownership is valid and the
+  coordinator must intervene:
+  - If it reports that an artifact repair is needed, MUST take the calling
+    step's repair-dispatch path for that artifact.
+  - If it names one of the seven conditions, MUST follow the HALT protocol in
+    `SKILL.md` under that condition.
+  - Otherwise, MUST treat the leg as blocked, retry once, then escalate under
+    condition 5.
+  MUST NOT release the escalating worker — an unactioned `escalation` is one
+  of the seven non-settlement states below.
 - A `question` MUST get an explicit branch: reply with
   `orca orchestration reply --id <message_id> --body "<answer>" --json` when
   the answer is inside this loop's own authority, or escalate — per the
@@ -152,20 +183,21 @@ worker:
   these seven — none of them is settlement.
 - On a settled report, MUST attempt
   `orca orchestration worker-release --dispatch <id> --json` and record the
-  outcome (`succeeded`/`failed`) against that dispatch's journal entry. Where
-  the receipt reports the terminal retained (for example as pre-existing),
-  MUST close it explicitly — this skill never reuses a terminal, so any
-  terminal this recipe created is always safe to close once its dispatch is
-  settled. Where the receipt instead reports `release_pending` or
-  `release_unknown`, MUST NOT substitute `terminal close` — MUST follow the
-  exact recovery action the receipt itself returns.
-- MUST NOT attempt release for a dispatch that never settled. A worker down,
-  or any HALT reached while a dispatch is still outstanding, is exactly that
-  case — there is nothing settled to release. For those, MUST instead record
-  that dispatch's `role`, `family`, `task`, `dispatch`, and last known state
-  in the journal with `outcome: pending`, and MUST leave the terminal live —
-  the owner needs it to diagnose the halt, and releasing it would destroy
-  the evidence.
+  outcome (`succeeded`/`failed`) against that dispatch's journal entry. The
+  receipt itself names the command to use next — MUST follow that exact
+  recovery action rather than substitute one: where it reports the terminal
+  retained (for example as pre-existing), MUST run the close command the
+  receipt names; where it instead reports `release_pending` or
+  `release_unknown`, MUST follow that receipt's own recovery action, never
+  `terminal close`, and never guess.
+- MUST NOT attempt release for a dispatch that never settled — there is
+  nothing settled to release. This covers both a HALT reached while a
+  dispatch is still outstanding, and a dead dispatch classified `failed` or
+  `stopped` by `worker-show` above without ever sending `worker_done`. For
+  either, MUST instead record that dispatch's `role`, `family`, `task`,
+  `dispatch`, `terminal`, and `last_state` in the journal with
+  `outcome: unsettled`, and MUST leave the terminal live — the owner needs it
+  to diagnose the halt, and releasing it would destroy the evidence.
 
 ## Retrying a failed dispatch
 
@@ -173,8 +205,13 @@ worker:
   failed, so a retry MUST NOT re-dispatch the task that already failed.
   `worker-start --retry-of` is the guide's own retry path and is unavailable
   here for the same reason `worker-start` is.
-- MUST retry mechanically as: release the failed worker first (per the
-  settlement rule above), then create a **fresh task** with `task-create` for
-  the second attempt, then dispatch it through this same recipe from
-  `terminal create` onward. MUST record both task ids in the journal's
-  `dispatches` list, each with its own `dispatch` id and `outcome`.
+- For a dispatch settled by `worker_done --outcome failed`, MUST release the
+  failed worker first (per the settlement rule above), then create a
+  **fresh task** with `task-create` for the second attempt, then dispatch it
+  through this same recipe from `terminal create` onward.
+- For a dispatch that never settled — classified `failed` or `stopped` by
+  `worker-show` above — MUST skip the release attempt (nothing settled
+  exists to release) and go straight from recording it (`outcome: unsettled`)
+  to the fresh `task-create`.
+- Either way, MUST record both task ids in the journal's `dispatches` list,
+  each with its own `dispatch` id and `outcome`.
