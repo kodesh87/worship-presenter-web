@@ -112,3 +112,5 @@ this directory to be referenced.
 
 1. `step-01-preflight.md` — read-only environment and baseline checks, run
    once before the first story of the run.
+2. `step-02-select-story.md` — pick the next backlog story, skipping any
+   whose dependency is unmet, run each time the loop needs a new story.
