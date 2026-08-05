@@ -334,7 +334,7 @@ were not, and each names where it belongs rather than asking for a story of its 
 
 ## Deferred from: code review of 17-3-app-metadata (2026-08-05)
 
-- Stale header comment block in `sprint-status.yaml` (lines 2–5) still says Epic 17 remains in-progress alongside ready-for-dev Story 17.3, which contradicts the body rows — pre-existing at HEAD; not introduced or worsened by the Story 17.3 change set. Left for a tracking-hygiene pass rather than mixed into this story's review close.
+- ~~Stale header comment block in `sprint-status.yaml` (lines 2–5) still says Epic 17 remains in-progress alongside ready-for-dev Story 17.3, which contradicts the body rows — pre-existing at HEAD; not introduced or worsened by the Story 17.3 change set. Left for a tracking-hygiene pass rather than mixed into this story's review close.~~ **Resolved 2026-08-05**, during Story 17.5's record repair — which edited that same file and would otherwise have left it dated two days before its own newest entry. The header now states 17.3 and 17.4 as `done` and 17.5 at `review`, and says in its own text that it had gone stale, so the next reader sees the repair rather than trusting a date.
 
 ## Deferred from: code review of 17-4-canvas-dirty-state-guard (2026-08-04)
 

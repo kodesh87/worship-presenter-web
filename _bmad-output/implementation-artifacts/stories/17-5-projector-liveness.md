@@ -116,6 +116,11 @@ so that I cannot advance a deck for the rest of a service with nothing on the se
 
 ### Review Findings
 
+Two rounds ran. **Round 1** raised the three `[High, blocking]` items below, all fixed in the
+`bmad-dev-story` FIX-mode round recorded in the Dev Agent Record. **Round 2** re-read the fixed tree,
+confirmed all three closed, and raised the fourth item — a citation-accuracy defect the fix round had
+itself created. No round-2 finding touched behaviour.
+
 - [x] [Review][Patch] **[High, blocking] Non-projector channel traffic is accepted as a liveness acknowledgement** [src/app/services/[id]/present/PresenterOperator.tsx:408] — the listener dispatches `ack` for every object received, before it inspects `msg.type`. A second Presenter tab on the same service posts its mount-time `sync` at `:414`; the first tab receives that presenter-authored state message and becomes/remains `live` with no projector. This violates AD-29's projector-only sender rule and its false-`live` prohibition. Record liveness only for the two projector-originated protocol types (`request-sync` and `projector-alive`) and add a regression case with two Presenter endpoints/no projector.
   - **Fixed:** added `isProjectorMessage(msg)` to `src/lib/present-channel.ts` (the wire's own owner of "who sends what") and gated the `ack` dispatch in `PresenterOperator.tsx`'s `onMessage` on it, so `sync`/`blank`/`transition`/`scripture`/`clear-scripture` — a second Presenter tab's own broadcasts — never register as evidence of a live projector. Corrected the false `AD-29` comment that claimed every inbound object was evidence of life. **Proof:** `tests/present-channel.test.mjs` — `isProjectorMessage` unit test (RED without the export: `TypeError: isProjectorMessage is not a function`; GREEN after) exercises all seven message variants including the exact two-Presenter-tabs case. `tests/projector-liveness.test.mjs` — an AST assertion confirms the `ack` dispatch is reached only through a guard naming `isProjectorMessage` (RED against the unconditional call; GREEN after).
 
@@ -124,6 +129,9 @@ so that I cannot advance a deck for the rest of a service with nothing on the se
 
 - [x] [Review][Patch] **[High, blocking] The advertised recovery action cannot reconnect a nonresponding window whose handle remains open** [src/app/services/[id]/present/PresenterOperator.tsx:313] — the exact crashed/frozen/navigated-away case AC-4 identifies can keep `existing.closed === false` while acknowledgements stop. Once the evaluator correctly reports `lost`, clicking the header's instructed recovery merely calls `existing.focus()` and returns [src/app/services/[id]/present/PresenterOperator.tsx:314-316]; it neither navigates that named window back to `projectorUrl` nor opens a replacement. Make `Open projector` reattach/navigate when the liveness verdict is `lost`, and cover a stale-ack + `closed === false` handle.
   - **Fixed:** `openProjector` now checks `livenessRef.current.verdict === 'lost'` in the open-but-not-closed branch and, only then, sets `existing.location.href = projectorUrl` (same-origin navigation of the retained handle) before `.focus()`, reattaching a frozen/crashed/navigated-away window instead of merely bringing it to the front. A healthy (`live`) handle is unaffected — it is still just focused, with no unnecessary reload. **Proof:** `tests/projector-liveness.test.mjs` new AST assertion confirms `openProjector`'s source both tests `verdict === 'lost'` and reads `existing.location` (RED against the original focus-and-return body; GREEN after).
+
+- [x] [Review][Round 2][Patch] **[Low, AC-7 accuracy] The guard's own bracket citations rotted a second time, under the fix round's edits** [tests/theme-chrome.test.mjs:2653-2660] — the implementation pass had repaired the four `UNPAIRED_CHROMATIC_TEXT` citations for `PresenterOperator.tsx` to `:546`/`:590`/`:672`/`:792` and filed the new lost-sync entry at `:567`. The fix round then added the `opened` event dispatch, the `isProjectorMessage` guard and the reattach branch to the same file, pushing every one of those five lines down again. The guard still passed — it matches on the class names, and the bracket text is deliberately stripped before comparison (`:2694`) — so nothing failed, which is exactly why a reviewer had to catch it: AC-7's requirement is that a reader can *check* the claim, and five citations pointing at the wrong lines defeat that silently.
+  - **Fixed:** all five entries repaired to `:583`, `:604` (the lost-sync line), `:627`, `:709`, `:829`. **Proof:** not a test — the guard structurally cannot react to a stale bracket, and weakening it to parse citations was out of scope for this story. Verified by direct measurement instead: `grep -n "text-amber-300" src/app/services/[id]/present/PresenterOperator.tsx` returns exactly those five lines and no sixth, re-run at record-repair time on 2026-08-05. Recorded here as an uncovered narrowness rather than as a passing claim; no `deferred-work.md` entry was filed for it, because that file is held at zero `owner: unassigned` entries (Story 17.1's closing condition) and choosing an owner is not this record repair's call.
 
 ## Dev Notes
 
@@ -384,9 +392,12 @@ Log table.
 cannot express a `dark:` half at all, per its own precedent). This is the fifth site sharing one
 already-filed exception, not a new one, but it **is** a new occurrence of the pattern the guard
 counts per-site, so `UNPAIRED_CHROMATIC_TEXT` needed a fifth entry regardless. The four existing
-bracket citations had rotted (this story's edits shifted every line below the header) and are
-repaired to their current lines (`:546`, `:590`, `:672`, `:792`); the new entry
-(`:567`) carries the citation `pinned dark, AC-3/Story 17.5 AC-5`. Confirmed green for the right
+bracket citations had rotted (this story's edits shifted every line below the header) and were
+repaired — **twice**: first to this pass's lines (`:546`, `:590`, `:672`, `:792`, new entry `:567`),
+and again in review round 2, which found the fix round had shifted every one of them a second time.
+The five entries now read `:583`, `:604` (the new lost-sync line, cited
+`pinned dark, AC-3/Story 17.5 AC-5`), `:627`, `:709` and `:829`, each re-verified against
+`PresenterOperator.tsx` on 2026-08-05 rather than recomputed on paper. Confirmed green for the right
 reason: `tests/theme-chrome.test.mjs` 58/58 (57 pre-existing scope + 1 unchanged assertion count —
 no new site slipped past unpinned; a probe of a sixth, unregistered site turned it red before
 being reverted, see Debug Log #10).
@@ -434,7 +445,9 @@ route or surface).
   appear anywhere in the 32-problem list, on either side of the stash.
 - **Node version:** this machine has only Node 24.18.0 available (no version manager, no Node 22
   install found). Per Story 17.3's precedent, this is **disclosure, not proof** — the PR's Node 22
-  CI run is this AC's actual evidence, and that should be confirmed once the PR is opened. Not run
+  CI run is this AC's actual evidence, and that should be confirmed once the PR is opened. **It has
+  been — see the round-2 section below: PR #33's run `31011350874` on `node: v22.23.1`, 495/496 pass.
+  This bullet is left as written because it was accurate when written; the closure lives there.** Not run
   here: a real-browser pass (no DOM harness in this repo per Testing Standards; the wiring gap that
   would otherwise need one is covered by the AST assertions in `tests/projector-liveness.test.mjs`).
 
@@ -481,11 +494,11 @@ Summary of the mechanism, since all three land in the same two files:
   `serviceId` prop change either, so a fix scoped only to `liveness` would have been inconsistent
   with the rest of the component's own, pre-existing assumption.)
 
-Verification after all four items: `tests/projector-liveness.test.mjs` (30/30, up from 17 — 4 new
-reducer tests for blocking 2, 2 new AST wiring tests for blocking 1 and blocking 3, plus 7
+Verification after all four items: `tests/projector-liveness.test.mjs` (23/23, up from 17 — 4 new
+reducer tests for blocking 2, 2 new AST wiring tests for blocking 1 and blocking 3, and the 17
 pre-existing tests still green with no changes needed) + `tests/present-channel.test.mjs` (15/15, up
 from 14 — 1 new test for `isProjectorMessage`) + `tests/theme-chrome.test.mjs` (58/58, unchanged) =
-**103/103**; `npx tsc --noEmit` clean; `tests/public-repo-guard.test.mjs` 5/5; full `npm test`
+**96/96**; `npx tsc --noEmit` clean; `tests/public-repo-guard.test.mjs` 5/5; full `npm test`
 **495/496 pass, 1 pre-existing skip** (496 = 489 recorded at the prior implementation pass + 7 new
 this round); `npm run lint` **32 problems, identical** to the pre-fix-round baseline measured on
 this same tree before any of this round's edits — none of the five touched files
@@ -497,6 +510,55 @@ fix round too. `npm run build` was re-run before the full suite because `tests/a
 refuses to run against a build older than the source (correctly: it caught this round's edits as
 staleness) — the rebuild succeeded with no new warnings beyond the one pre-existing, unrelated
 `turbopackIgnore` note in `pptx-cache.ts`.
+
+### Review round 2, and this record's own repair (2026-08-05)
+
+**Round 2 ran and closed; this section was written afterwards, which is the defect it starts by
+admitting.** The fix round above left the Change Log ending on *"Status stays `review`, pending
+re-review of this fix round"*, and round 2 then ran without amending it. For a day the only place
+round 2 existed was the body of commit `5d8100d` — not the story file, not
+`sprint-status.yaml` — so every artifact a reader would consult said a re-review was still owed.
+Story 17.3 spent three of its own review rounds on exactly this class of defect (stale prose in the
+story file), which is why this is recorded as a finding about the record rather than quietly fixed.
+
+- **What round 2 found.** All three `[High, blocking]` round-1 items confirmed closed against the
+  fixed tree. One new item, `[Low, AC-7 accuracy]` — the five rotted guard citations, now the fourth
+  entry under *Review Findings* — fixed before the commit.
+- **Reviewer provenance.** `5d8100d` records four independent reviewers across four model families
+  (`claude:sonnet@high`, `agy:gemini-3.1-pro-low`, `agy:gemini-3.6-flash-high`,
+  `codex:gpt-5.6-terra@high`) across **two** rounds. The per-round split — which of the four re-read
+  the fixed tree in round 2 — was not preserved anywhere at the time, and this repair does **not**
+  invent one. The round-1 union of three blocking findings is attributable to that set; round 2's
+  single finding is attributable only to "round 2".
+- **Numbers corrected, not re-asserted.** The fix round's verification paragraph claimed
+  `projector-liveness.test.mjs` at **30/30** and the focused trio at **103/103**. Both were wrong:
+  the round's 7 new tests were added to the file's own total *and* counted in the breakdown. Measured
+  on this tree today: `projector-liveness.test.mjs` **23** (`grep -c "^test("` agrees at 23, so no
+  subtests are hiding), `present-channel.test.mjs` **15**, `theme-chrome.test.mjs` **58** — focused
+  **96/96 pass, 0 fail**. `17 + 4 + 2 = 23` is the arithmetic the record should have carried.
+- **The full-suite figure was checked, not trusted.** `npm run build` (clean, exit 0, needed because
+  `tests/auth-http.test.mjs` refuses a stale build) then `npm test`: **496 tests, 495 pass, 0 fail, 1
+  skipped** — the recorded `495/496 pass, 1 pre-existing skip` is correct as written, so it stands
+  unchanged. `theme-chrome.test.mjs` was also measured at 58 tests *before* this story
+  (`66bb33b`'s copy of the file, run against the current source in a reverted probe: 58 tests,
+  57 pass, 1 fail — the chromatic guard correctly reacting to the then-unpinned lost-sync site),
+  confirming the "58/58, count unchanged" claim in AC-7.
+- **AC-9's Node 22 evidence — observed, so this AC is now closed on evidence rather than on a
+  promise.** This machine still has Node 24.18.0 only, and that half stands as disclosure per Story
+  17.3's precedent. The proof AC-9 actually asks for exists and was read: **PR #33** (merged
+  2026-08-05T13:47:48Z), workflow *Node.js CI*, run
+  [31011350874](https://github.com/wiradigitalid/worship-presenter-web/actions/runs/31011350874) —
+  step *Use Node.js 22* reports `node: v22.23.1`, and `npm test` there returns **496 tests / 495 pass
+  / 0 fail / 1 skipped**, the same four numbers measured locally on Node 24. Both supported versions
+  therefore agree, which is more than AC-9 required. The `test` check and the Greptile review both
+  passed.
+- **The story's code is already on `main`.** PR #33 merged before this repair was written, so
+  `git diff HEAD main` over the whole tree is empty — this branch's tip is content-identical to
+  `main`. The repair below is documentation-only and travels as its own change set, following Story
+  17.3's precedent of recording a CI result in a separate `docs:` commit.
+- **Status.** Stays `review`. Two rounds are complete, every finding is closed, and AC-9's last
+  outstanding piece of evidence is now in hand — but `done` is the owner's call in this project
+  (Story 17.1's row states the precedent) and this repair does not make it.
 
 ### File List
 
@@ -515,7 +577,7 @@ staleness) — the rebuild succeeded with no new warnings beyond the one pre-exi
   adds four reducer tests (blocking finding 2) and two AST wiring tests (blocking findings 1 and 3),
   30 total.
 - `tests/theme-chrome.test.mjs` — UPDATE: `UNPAIRED_CHROMATIC_TEXT` citations repaired, one entry
-  added.
+  added; repaired a second time in review round 2 after the fix round shifted all five lines again.
 - `package.json` — UPDATE: `scripts.test` gains `tests/projector-liveness.test.mjs`.
 - `_bmad-output/planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/EXPERIENCE.md` —
   UPDATE: `:153`, `:157`, `:240`, `:310-312`.
@@ -524,9 +586,12 @@ staleness) — the rebuild succeeded with no new warnings beyond the one pre-exi
 - `_bmad-output/planning-artifacts/epics.md` — UPDATE: Epic 17 summary line, Story 17.5 label and
   body, Constraint paragraph.
 - `_bmad-output/implementation-artifacts/sprint-status.yaml` — UPDATE: `17-5-projector-liveness` →
-  `review`, implementation record appended.
+  `review`, implementation record appended; the record repair adds the two review rounds, which the
+  row had never carried.
 - `_bmad-output/implementation-artifacts/stories/17-5-projector-liveness.md` — UPDATE: this file
-  (frontmatter citation repairs, tasks checked, Dev Agent Record, Change Log, Status).
+  (frontmatter citation repairs, tasks checked, Dev Agent Record, Change Log, Status); the record
+  repair adds the round-2 finding and section and corrects two test-count figures and AC-7's
+  citations.
 
 ## Change Log
 
@@ -564,7 +629,32 @@ staleness) — the rebuild succeeded with no new warnings beyond the one pre-exi
   liveness mechanism was introduced. Verification: `tsc` clean; full suite 495/496 pass/0 fail/1
   pre-existing skip (496 total, 7 new this round: 1 in `present-channel.test.mjs`, 6 in
   `projector-liveness.test.mjs`); focused suite (`projector-liveness` + `present-channel` +
-  `theme-chrome`) 103/103; public-repo-guard 5/5; lint 32 problems, identical to this round's own
+  `theme-chrome`) 96/96 (corrected from an arithmetic error in the original entry — see the Dev Agent
+  Record's round-2 section); public-repo-guard 5/5; lint 32 problems, identical to this round's own
   freshly re-measured pre-fix baseline (0 introduced). Node 24.18.0 in-worktree, no Node 22
   available — disclosure per Story 17.3's precedent, PR CI remains the AC-9 evidence of record.
   Status stays `review`, pending re-review of this fix round.
+- 2026-08-05: **Review round 2 — closed.** All three round-1 blocking items confirmed closed against
+  the fixed tree; one new `[Low, AC-7 accuracy]` finding raised and fixed — the five
+  `UNPAIRED_CHROMATIC_TEXT` citations for `PresenterOperator.tsx` had rotted a *second* time under the
+  fix round's own edits (`:546`/`:567`/`:590`/`:672`/`:792` → `:583`/`:604`/`:627`/`:709`/`:829`). The
+  guard could not react — it strips bracket text before comparing — so this was a reviewer catch, and
+  the resulting blind spot is now named in the Review Findings entry rather than left implicit. No
+  behavioural change in this round. Status stays `review`.
+- 2026-08-05: **Record repair.** Round 2 had been recorded only in commit `5d8100d`'s body, so the
+  story file and `sprint-status.yaml` both still read as though a re-review were owed, and the fix
+  round's verification paragraph carried two wrong figures. Repaired here, with every number
+  re-measured on this tree rather than recomputed: the round-2 Review Findings entry and Dev Agent
+  Record section added; `projector-liveness.test.mjs` **30/30 → 23/23** and the focused trio
+  **103/103 → 96/96** (the round's 7 new tests had been double-counted); AC-7's completion note
+  corrected to the citations the guard actually carries; `sprint-status.yaml`'s `17-5` row given its
+  first review entry. Verified rather than asserted: `npm run build` clean, `npm test` **496 tests /
+  495 pass / 0 fail / 1 pre-existing skip** (confirming the recorded full-suite figure was right),
+  focused trio **96/96**, the five amber citations measured against the file. No source file was
+  touched — this change set is documentation only. **AC-9 closed on evidence in the same pass:** the
+  Node 22 CI run this story had been deferring to already existed and was read rather than assumed —
+  PR #33's *Node.js CI* run `31011350874` on `node: v22.23.1`, `npm test` **496 / 495 pass / 0 fail /
+  1 skipped**, identical to the local Node 24 figures. PR #33 is also already **merged**, so the
+  story's code is on `main` and this repair is a separate `docs:` change set, per Story 17.3's
+  precedent. Status stays `review`: every finding is closed and every AC now has its evidence, but
+  `done` is the owner's call.
