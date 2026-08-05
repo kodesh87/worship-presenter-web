@@ -332,6 +332,10 @@ were not, and each names where it belongs rather than asking for a story of its 
 
 - Concurrent `seed:demo` race on empty table could create two services (`src/lib/demo-seed.ts:46-48`) — negligible for opt-in demo CLI; same collision semantics as normal `createService` under concurrent writes.
 
+## Deferred from: code review of 17-3-app-metadata (2026-08-05)
+
+- Stale header comment block in `sprint-status.yaml` (lines 2–5) still says Epic 17 remains in-progress alongside ready-for-dev Story 17.3, which contradicts the body rows — pre-existing at HEAD; not introduced or worsened by the Story 17.3 change set. Left for a tracking-hygiene pass rather than mixed into this story's review close.
+
 ## Deferred from: code review of 17-4-canvas-dirty-state-guard (2026-08-04)
 
 - **Browser Back/Forward bypasses the unsaved-canvas guard** (`src/components/navigation-blocker.tsx`). `<Link onNavigate>` covers link clicks and `beforeunload` covers tab close/reload, but a same-document `popstate` triggers neither, so the browser's Back button leaves the Artifact editor with unsaved work and no prompt. The App Router ships no supported hook for blocking history navigation — Next's own documented answer to this problem is the `onNavigate` pattern Story 17.4 implements — so closing it means either an unsupported `history` interception or accepting the gap. AC-4 scoped Story 17.4 to the three exits it named, and this is a fourth. Not a regression: nothing guarded any exit before that story. Adjacent to `EXPERIENCE.md` Open Item 5, which already owns the general mid-edit-interruption question.

@@ -277,7 +277,7 @@ So that layouts can be extended without a code change.
 
 **Note:** seeded element IDs and any element marked `required` stay immutable — the save API rejects their removal or rename (400) and read-only base types (FullScreenImage, SongSet, Announcement) expose no add/delete affordances at all. Only elements authored in the editor may be deleted.
 
-### Epic 17: An operator surface that is readable and honest *(in-progress — Stories 17.1, 17.2, 17.4, and 17.8 done; 17.3 and 17.5–17.7 backlog)*
+### Epic 17: An operator surface that is readable and honest *(in-progress — Stories 17.1, 17.2, 17.3, 17.4, and 17.8 done; 17.5–17.7 backlog)*
 
 Created 2026-07-29 from the implementation-readiness assessment's product defects, via the epic route rather than inline patching — the point of Correct Course that day was that inline is how the drift happened. Titled around what an operator gets, per the C5-1 remediation: the value standard applies to new epics from here.
 
@@ -295,10 +295,10 @@ As an operator reading secondary text,
 I want the muted foreground token to meet WCAG AA,
 So that labels, hints and timings are legible. Story 17.2 darkened `:root --muted-foreground` from `oklch(0.556 0 0)` to `oklch(0.543 0 0)` (`#6f6f6f`), clearing all three recorded light hosts at **5.02:1** on `background`, **4.61:1** on `muted`, and **4.53:1** on the ambient `bg-primary/5` glow. The `.dark` block, projected output, and untokenized hues (Open Item 4) were untouched. Evidence: [`DESIGN.md`](../planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/DESIGN.md) → *Contrast on load-bearing combinations*; regression in `tests/theme-chrome.test.mjs`.
 
-#### Story 17.3: The App Says Its Own Name *(backlog)*
+#### Story 17.3: The App Says Its Own Name *(done — 2026-08-05, code review closed)*
 As anyone with the hub open,
 I want the browser tab and bookmarks to name this application,
-So that it is not filed as *Create Next App*. `src/app/layout.tsx` still exports the create-next-app `metadata`. One-line change; the wording is product-owned.
+So that it is not filed as *Create Next App*. `src/app/layout.tsx` `metadata` now ships `title: "Worship Presenter Web"` and `description: "Operator hub for preparing and projecting a worship service."` (product-owned strings from `DESIGN.md` frontmatter). Regression: `tests/theme-chrome.test.mjs`.
 
 #### Story 17.4: Unsaved Canvas Work Is Not Lost Silently *(done — 2026-08-04, code review closed)*
 As an administrator editing an Artifact template,
