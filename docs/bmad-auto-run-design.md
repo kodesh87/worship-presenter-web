@@ -190,7 +190,8 @@ inherited failure is never charged to the story that happened to run next.
 ## Escalation: the complete list
 
 1. The public-repo guard fails.
-2. The same test fails identically after three fix rounds.
+2. The same test fails identically after three fix rounds, or the pre-flight
+   baseline is red before the first story is even selected.
 3. The fifth reviewer still reports a blocker after three fix rounds.
 4. Every remaining backlog story is dependency-blocked.
 5. Infrastructure is down — Orca, a worker, an expired auth, the `agy` trust gate.

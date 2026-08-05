@@ -45,9 +45,11 @@ When invoked with `dry-run`:
 
 ## Journal schema
 
-Every run MUST write one journal in exactly this shape. Every later step MUST
-write only a value already present below, and MUST NOT introduce a `phase`
-outside the enum on the `phase:` line.
+Every run MUST write one journal at
+`_bmad-output/implementation-artifacts/auto-run/<date>-journal.md` — the same
+file Activation resolves as "today's journal" — in exactly this shape. Every
+later step MUST write only a value already present below, and MUST NOT
+introduce a `phase` outside the enum on the `phase:` line.
 
 ```yaml
 run: <date>-<n>
@@ -81,7 +83,8 @@ recommendation is ceremony, and ceremony is the cost this skill exists to
 remove.
 
 1. The public-repo guard fails.
-2. The same test fails identically after three fix rounds.
+2. The same test fails identically after three fix rounds, or the pre-flight
+   baseline is red before the first story is even selected.
 3. The fifth reviewer still reports a blocker after three fix rounds.
 4. Every remaining backlog story is dependency-blocked.
 5. Infrastructure is down — Orca, a worker, an expired auth, the `agy` trust
@@ -101,11 +104,11 @@ node --import ./tests/register-ts-resolve.mjs --test --experimental-strip-types 
 
 ## Step index
 
-Read and follow each step file fully, in the order the run reaches it. This
-index MUST grow by exactly one entry per task that adds a step file, because
-the structural test in `tests/bmad-auto-run-skill.test.mjs` requires every
-file this skill references to exist, and every `.md` file in this directory
-to be referenced.
+The run MUST read and follow each step file fully, in the order the run
+reaches it. This index MUST grow by exactly one entry per task that adds a
+step file, because the structural test in `tests/bmad-auto-run-skill.test.mjs`
+requires every file this skill references to exist, and every `.md` file in
+this directory to be referenced.
 
 1. `step-01-preflight.md` — read-only environment and baseline checks, run
    once before the first story of the run.
