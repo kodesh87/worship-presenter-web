@@ -143,7 +143,7 @@ stories:
 
 - **HALT protocol.** On any escalation the run MUST write the condition and the story's `phase` to the journal, MUST leave no worker terminal unaccounted for, and MUST stop without a further dispatch.
 - **`## Escalation`** — the seven conditions, numbered `1.` to `7.`, worded as in the design record.
-- **Step index** naming `step-01-preflight.md` through `step-06-epic-boundary.md` and `dispatch-recipes.md`.
+- **Step index** naming `step-01-preflight.md` only. The index MUST grow one entry per task, because the structural test requires every referenced file to exist — a forward reference to a file Task 2 has not written yet fails this task. Tasks 2 to 6 each append their own entry.
 
 - [ ] **Step 4: Write `step-01-preflight.md`**
 
