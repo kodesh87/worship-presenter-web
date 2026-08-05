@@ -134,4 +134,5 @@ this directory to be referenced.
    whose dependency is unmet, run each time the loop needs a new story.
 3. `step-03-story-cycle.md` — dispatch create story, validate, and dev in
    order for the selected story, following the recipe in
-   `dispatch-recipes.md`.
+   `dispatch-recipes.md` and the wait/settlement/retry rules in
+   `worker-accounting.md`.
