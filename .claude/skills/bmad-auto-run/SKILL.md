@@ -114,3 +114,6 @@ this directory to be referenced.
    once before the first story of the run.
 2. `step-02-select-story.md` — pick the next backlog story, skipping any
    whose dependency is unmet, run each time the loop needs a new story.
+3. `step-03-story-cycle.md` — dispatch create story, validate, and dev in
+   order for the selected story, following the recipe in
+   `dispatch-recipes.md`.

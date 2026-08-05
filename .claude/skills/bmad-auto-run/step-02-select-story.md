@@ -78,7 +78,7 @@ Once a candidate clears the dependency check:
 This step's selection is only as good as how the next step uses it:
 
 - The step that dispatches `bmad-create-story` (Task 3's
-  `step-03-create-story.md`) MUST pass this step's selected key to that
+  `step-03-story-cycle.md`) MUST pass this step's selected key to that
   dispatch directly, as the story to create. It MUST NOT let
   `bmad-create-story` run its own auto-discovery against
   `sprint-status.yaml` in this run.
