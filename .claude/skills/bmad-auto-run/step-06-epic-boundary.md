@@ -82,8 +82,8 @@ Runs once per `phase: committed` event from `step-05-commit-gate.md`.
   triggers only on `push` to `main` and `pull_request` to `main`, so a
   feature-branch push alone produces no CI signal at all; opening this draft
   PR right after the epic's *first* commit, not at its end, is what gives
-  every later story in the epic a live CI signal (Greptile's check included)
-  while still fresh, instead of the run staying blind until the epic closes
+  every later story in the epic a live CI signal (Greptile's check and its
+  review both) while still fresh, instead of staying blind until the epic closes
   and inheriting a pile of failures from many stories at once. This reason
   applies every epic, not only this one — MUST NOT be "tidied" into a later
   trigger.

@@ -208,6 +208,19 @@ With one, Node.js CI and the Greptile review run per push and a failure surfaces
 while its story is still fresh. CI or Greptile findings enter the same
 dev-fix-then-review cycle.
 
+**Greptile is watched twice, and the reason is a defect this project already
+shipped.** A review-based detector was removed from the loop on the strength of
+PR #35, where Greptile posted only a status check. PR #36 disproved the
+generalisation: the `Greptile Review` check passed while Greptile posted a review
+as `greptile-apps`, state `COMMENTED`, body empty, carrying a correct P1 security
+finding as an inline comment — the very defect above, which a check-only detector
+had no way to see. So the loop gates on the check rollup *and* reads the reviews:
+the review body is not the findings, the inline comments are, they come from
+`pulls/<n>/comments` where the author login is `greptile-apps[bot]` rather than
+`greptile-apps`, and routed comment ids are recorded so a closed finding is not
+re-found. Two observations of one integration were enough to be wrong twice; the
+detector is now keyed on verified fields, not on inference.
+
 ## Pre-flight, once per run
 
 Orca reachable; the version-matched orchestration guide read from the binary;
