@@ -35,7 +35,8 @@ Every task's requirements implicitly include these. Values are verbatim.
 | `.../step-05-commit-gate.md` | Build/test/guard, journal write, commit, push |
 | `.../step-06-epic-boundary.md` | Branch and draft PR lifecycle, CI watch, next epic |
 | `.../dispatch-recipes.md` | How to assemble worker argv and dispatch by role, without naming models — getting a worker running |
-| `.../worker-accounting.md` | Waiting, ack discipline, liveness classification, settlement, release, recovery, retry — accounting for a worker that has stopped or will not. Split out of the recipes file once three rounds of findings landed exclusively here, and reused unchanged by every later step that dispatches |
+| `.../worker-waiting.md` | Waiting, ack discipline, the `worker_done`/`escalation`/`question` branches, liveness classification, and the wall-clock ceiling — everything the loop does while a dispatch is still outstanding |
+| `.../worker-accounting.md` | Settlement, release, and retry — accounting for a dispatch once it stops being outstanding. Split out of the recipes file once three rounds of findings landed exclusively here, then split again along the waiting/accounting seam when the same pressure returned; both halves are reused unchanged by every later step that dispatches |
 | `tests/bmad-auto-run-skill.test.mjs` | Fails when the skill drifts from the constraints above |
 | `package.json` | Register the new test |
 

@@ -7,7 +7,8 @@ panel step runs.
 
 Every dispatch below MUST use the recipe in `dispatch-recipes.md` — MUST NOT
 reimplement `terminal create` → `wait` → `dispatch` inline here — and MUST be
-waited on and accounted for exactly as `worker-accounting.md` describes.
+waited on exactly as `worker-waiting.md` describes and accounted for exactly
+as `worker-accounting.md` describes.
 
 ## Create story
 
@@ -19,7 +20,7 @@ waited on and accounted for exactly as `worker-accounting.md` describes.
   only, so `sprint-status.yaml` still reads that row as `backlog`, and an
   independent re-scan would select the very story just rejected.
 - MUST wait for `worker_done` before proceeding.
-- On `--outcome failed`, or on a dispatch `worker-accounting.md`'s liveness
+- On `--outcome failed`, or on a dispatch `worker-waiting.md`'s liveness
   classification resolves to `failed`/`stopped` without it ever reporting,
   MUST retry once using `worker-accounting.md`'s retry mechanics — release the
   failed worker if it settled, or simply record it if it never did, then
@@ -42,7 +43,7 @@ waited on and accounted for exactly as `worker-accounting.md` describes.
   journal rather than memory, so a run resuming at `phase: created` honours
   this rule identically to a run that never paused.
 - MUST wait for `worker_done`. On `--outcome failed`, or on a dispatch
-  `worker-accounting.md`'s liveness classification resolves to
+  `worker-waiting.md`'s liveness classification resolves to
   `failed`/`stopped` without it ever reporting, MUST apply the same
   retry-once-then-escalate-under-5 rule as create story, following
   `worker-accounting.md`'s retry mechanics.
@@ -52,7 +53,7 @@ waited on and accounted for exactly as `worker-accounting.md` describes.
 
 - MUST dispatch the "dev story" role, initial intent.
 - MUST wait for `worker_done`. On `--outcome failed`, or on a dispatch
-  `worker-accounting.md`'s liveness classification resolves to
+  `worker-waiting.md`'s liveness classification resolves to
   `failed`/`stopped` without it ever reporting, MUST apply the same
   retry-once-then-escalate-under-5 rule as create and validate, following
   `worker-accounting.md`'s retry mechanics: the loop
@@ -89,13 +90,13 @@ waited on and accounted for exactly as `worker-accounting.md` describes.
   re-dispatch would put a second worker on the same story key and the same
   story file while the first is still live. MUST keep that dispatch
   `outcome: pending` with the question in `last_state`, per
-  `worker-accounting.md`'s asking-worker rule — never `unsettled`.
+  `worker-waiting.md`'s asking-worker rule — never `unsettled`.
 - A worker's `ask` carries its own timeout and a repair can outlast it. The
   guide states a timed-out question stays pending and is resumed by its
   original message id, so the deferred reply above is still the answer to that
   same question and MUST NOT be re-asked or re-sent as a new one. After
   replying, MUST confirm the worker actually resumed using
-  `worker-accounting.md`'s liveness probes; one that never resumes MUST be
+  `worker-waiting.md`'s liveness probes; one that never resumes MUST be
   treated as a dispatch that never reports and MUST take that file's liveness
   classification.
 - Before dispatching a `bmad-correct-course` repair, MUST read the reporting
@@ -161,7 +162,7 @@ reaching for a third:
   - a dispatch `worker-show` still reports `outcome_unknown` after both
     `worker-stop` and `worker-abandon`, or `worker-show` cannot resolve it at
     all;
-  - a dispatch exceeds the wall-clock ceiling in `worker-accounting.md`;
+  - a dispatch exceeds the wall-clock ceiling in `worker-waiting.md`;
   - a leg reports a repair need already repaired for this story, or a fourth
     repair would be dispatched for one story;
   - a worker `escalation` on any of the three legs names no repair need and no
@@ -169,7 +170,7 @@ reaching for a third:
 - Condition 6 — before any correct-course dispatch whose reported scope would
   move a PRD-level goal, retire an epic, or renumber an existing `AD-n`.
 - A worker `question` MUST NOT be left waiting on a condition that does not
-  exist. When its answer is inside this loop's authority, `worker-accounting.md`
+  exist. When its answer is inside this loop's authority, `worker-waiting.md`
   requires a `reply`. When it would change a contract, an AC, or an artifact's
   authority, MUST escalate under condition 6 if its scope is one of that
   condition's three; otherwise MUST treat it as a reported repair need and
@@ -188,7 +189,7 @@ it — and stop without a further dispatch. Where that terminal was already
 closed by a `worker-stop` during liveness classification, the record MUST say
 so rather than annotating it as left live, and MUST name
 `worker-read --dispatch <id> --json` as where its output is: `worker-accounting.md`
-holds this carve-out, and a record that sends the owner looking for a live
+holds that carve-out, and a record that sends the owner looking for a live
 process that is not there is worse than no record. Where a HALT lands while a
 question is still unanswered — a repair that failed on the `question` path — the
 record MUST name that question as outstanding, because a worker blocked on a

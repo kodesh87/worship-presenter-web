@@ -5,8 +5,8 @@ create the Orca Run and start a worker. `step-03-story-cycle.md` uses it for
 create, validate, and dev; later steps reuse it unchanged for the review
 panel, the adjudicator, and any artifact-repair dispatch. A step file MUST
 NOT reimplement this recipe inline — it MUST point back here instead. Once a
-worker is started, waiting on it and accounting for it is
-`worker-accounting.md`'s job, not this file's — see the closing section
+worker is started, waiting on it is `worker-waiting.md`'s job and accounting
+for it is `worker-accounting.md`'s, not this file's — see the closing section
 below.
 
 ## Why the low-level path, not `worker-start`
@@ -97,7 +97,7 @@ orca orchestration dispatch --task <task_id> --to <handle> --inject --json
     every dispatched worker's brief: the worker decides routine matters
     itself and reserves `orca orchestration ask` for a decision that would
     change a contract, an AC, or an artifact's authority.
-    `worker-accounting.md`'s `question` and `escalation` branches both assume
+    `worker-waiting.md`'s `question` and `escalation` branches both assume
     workers use `ask` that way, so the spec MUST say it rather than leave it
     to a worker's own defaults.
   - the **repair-reporting expectation**: if the role cannot proceed until a
@@ -135,7 +135,7 @@ orca orchestration dispatch --task <task_id> --to <handle> --inject --json
   `outcome: pending` and `strikes: 0` — so a resumed run can find and account
   for a worker it did not itself start, can read which family an earlier one
   used, has the handle its liveness probes require, and inherits both
-  per-dispatch bounds in `worker-accounting.md` instead of restarting them.
+  per-dispatch bounds in `worker-waiting.md` instead of restarting them.
 
 ## The `agy` exception
 
@@ -155,10 +155,11 @@ worker:
 
 ## Waiting, settlement, and retry
 
-Every dispatch this recipe starts MUST be waited on and accounted for
-exactly as `worker-accounting.md` describes — the Delivery/`--ack`
-discipline, the `worker_done`/`escalation`/`question` branches, liveness
-classification for a dispatch that never reports, settlement and release,
-and the retry mechanics. That file is reused unchanged by every later step
-that dispatches a worker; MUST NOT restate it inline here or in any step
-file.
+Every dispatch this recipe starts MUST be waited on exactly as
+`worker-waiting.md` describes — the Delivery/`--ack` discipline, the
+`worker_done`/`escalation`/`question` branches, liveness classification for a
+dispatch that never reports, and the wall-clock ceiling — and MUST then be
+accounted for exactly as `worker-accounting.md` describes: settlement,
+release, and the retry mechanics. Both files are reused unchanged by every
+later step that dispatches a worker; MUST NOT restate either inline here or in
+any step file.

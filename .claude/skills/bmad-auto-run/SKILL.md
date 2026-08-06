@@ -85,7 +85,7 @@ a second Orca Run reads an empty mailbox and never receives a prior worker's
 report. Without `terminal` and `last_state`, a HALT's own record-and-leave-
 live rule has nothing to write — the journal the owner reads would never
 name which terminal was left running or why. Without `started` and `strikes`,
-`worker-accounting.md`'s two per-dispatch bounds reset every time the run is
+`worker-waiting.md`'s two per-dispatch bounds reset every time the run is
 interrupted, so both would hold within one run only and an unattended run
 resumed twice would never reach either.
 
@@ -139,5 +139,6 @@ this directory to be referenced.
    whose dependency is unmet, run each time the loop needs a new story.
 3. `step-03-story-cycle.md` — dispatch create story, validate, and dev in
    order for the selected story, following the recipe in
-   `dispatch-recipes.md` and the wait/settlement/retry rules in
+   `dispatch-recipes.md`, the wait, classification, and ceiling rules in
+   `worker-waiting.md`, and the settlement and retry rules in
    `worker-accounting.md`.
