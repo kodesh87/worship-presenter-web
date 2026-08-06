@@ -2,10 +2,11 @@
 
 Carries one story from `phase: developed` to `phase: reviewed`, populating
 the journal's `panel` block and `fix_rounds` count. This step MUST NOT run
-until the journal records `phase: developed` for this story from
-`step-03-story-cycle.md`, and MUST read that story's succeeded dev dispatch
-entry from the journal to learn the dev role's `family` before dispatching
-anything.
+until the journal records `phase: developed` for this story — set either by
+`step-03-story-cycle.md` or by `step-06-epic-boundary.md` routing a
+post-commit CI finding back here — and MUST read that story's succeeded dev
+dispatch entry from the journal to learn the dev role's `family` before
+dispatching anything.
 
 Every dispatch below MUST use the recipe in `dispatch-recipes.md` — MUST NOT
 reimplement `terminal create` → `wait` → `dispatch` inline here — and MUST be
@@ -19,6 +20,22 @@ twice is infrastructure down, not a finding to adjudicate. A reported need for
 a spec, architecture, or correct-course repair from any dispatch in this step
 MUST be routed through `artifact-repairs.md`'s mechanism unchanged, by
 reference — MUST NOT be reimplemented here.
+
+## Entering from a post-commit CI finding
+
+- A story arriving here with a `ci_rounds` above zero and CI findings recorded
+  in its journal `note` by `step-06-epic-boundary.md` has already been reviewed
+  and committed once, so MUST NOT start with a fresh panel: MUST dispatch one
+  dev-fix worker carrying those recorded findings exactly as the Fix round
+  section below describes, incrementing `fix_rounds` by that section's own rule,
+  and only then re-run the full five-reviewer panel on the fixed tree.
+- MUST NOT reset `fix_rounds` on this entry. The cap and both escalation
+  conditions below count a post-commit round exactly as a pre-commit one, so a
+  story whose three rounds are already spent MUST escalate under condition 3
+  without dispatching a fourth fix.
+- MUST read `panel.confirmation` as `pending` on this path, never as the
+  `passed` recorded for the tree the CI finding superseded, so the confirmation
+  reviewer runs again before the commit gate accepts the new tree.
 
 ## Dispatching the panel in parallel
 

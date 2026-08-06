@@ -121,9 +121,23 @@ design exists to surface.
   same fix-then-panel cycle `step-04-review-panel.md` owns, reusing that
   step's `fix_rounds` count, three-round cap, and adjudication for this story
   exactly as written there — MUST NOT re-derive the loop, the cap, or the
-  adjudication here. A fix lands as a **new** commit through
-  `step-05-commit-gate.md` for the same story key — MUST NOT amend or
-  rewrite the commit already on this branch — and this step then runs again
+  adjudication here.
+- Routing it MUST be a **recorded phase transition**, never an implied one,
+  because every step downstream gates on the phase and at this moment the
+  story reads `committed`: MUST record the failing checks' own reported names
+  and output in this story's journal `note`, MUST increment its `ci_rounds` by
+  one, MUST set `panel.confirmation: pending`, and MUST set
+  `phase: developed` — the one transition out of `committed` — leaving
+  `fix_rounds` as it stands so that step's three-round cap keeps binding
+  across the boundary. Without this transition the fix is unreachable:
+  `step-04-review-panel.md` MUST NOT run below `phase: developed` and
+  `step-05-commit-gate.md` MUST NOT run below `phase: reviewed`, so a red
+  check would have nothing that could ever turn it green.
+- A fix lands as a **new** commit through `step-05-commit-gate.md` for the
+  same story key — MUST NOT amend or rewrite the commit already on this
+  branch — and that step's resume check reads `ci_rounds` to know how many
+  code commits this story is expected to carry, so the incremented value MUST
+  be in the journal before the story is handed back. This step then runs again
   on that new `phase: committed` event: push, watch again. When the cap is
   exhausted, MUST escalate under exactly the condition
   `step-04-review-panel.md`'s Fix round section names for it — never a

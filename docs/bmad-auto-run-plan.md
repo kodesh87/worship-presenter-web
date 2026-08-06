@@ -142,8 +142,9 @@ stories:
   - key: <sprint-status key>
     phase: selected|created|validated|developed|reviewed|committed|skipped|escalated
     fix_rounds: <n>
+    ci_rounds: <n>                 # post-commit CI fix cycles routed back to review
     panel: { agy_pass: <n>, fifth_pass: <bool>, confirmation: passed|failed|pending }
-    commit: <sha|null>
+    commit: <sha|null>             # the most recent code commit for this story
     note: <one line>
     dispatches:
       - role: <role>
@@ -347,7 +348,7 @@ Expected: the verbatim-guard test passes because the gate quotes the command exa
 
 - [ ] **Step 1: Write `step-06-epic-boundary.md`**
 
-MUST keep one branch per epic, named `<git user>/epic-<n>-auto-<date>`, created from the repo default base. After the epic's first commit MUST push and open a draft PR with `gh pr create --draft --base main --fill`, because CI triggers only on `main` and a feature-branch push otherwise produces no signal. After each later push MUST watch with `gh pr checks --watch` and MUST treat a failing check or a Greptile finding as findings entering the same fix-then-panel cycle in step-04. When the epic's last backlog story is committed MUST mark the PR ready with `gh pr ready`, then MUST create the next epic's branch and continue without asking. MUST NOT force-push, rewrite history, or delete an artifact — those escalate under condition 7. MUST NOT merge a PR; the merge is the owner's.
+MUST keep one branch per epic, named `<git user>/epic-<n>-auto-<date>`, created from the repo default base. After the epic's first commit MUST push and open a draft PR with `gh pr create --draft --base main --fill`, because CI triggers only on `main` and a feature-branch push otherwise produces no signal. After each later push MUST watch with `gh pr checks --watch`. Greptile posts only a status check with no separate review object — verified against this repository's own PR #35 — so it MUST be gated by that rollup like any other reported check and MUST NOT get a second, review-based mechanism watching it. A failing check MUST enter the same fix-then-panel cycle in step-04, and routing it there MUST be a **recorded phase transition** — `committed` back to `developed`, `ci_rounds` incremented, `panel.confirmation` reset to `pending`, `fix_rounds` carried — because step-04 MUST NOT run below `phase: developed` and step-05 MUST NOT run below `phase: reviewed`: without the transition the fix is unreachable and a red check can never turn green. That fix's own commit is a *second* code commit for the same story key, so step-05's resume check MUST count code commits against `ci_rounds` rather than read the second one as an ambiguity to escalate on. When the epic's last backlog story is committed MUST mark the PR ready with `gh pr ready`, then MUST hand control back — the next epic's branch is created reactively by this step's own branch section once selection has cleared that story's dependency check, never guessed ahead of it. MUST NOT force-push, rewrite history, or delete an artifact — those escalate under condition 7. MUST NOT merge a PR; the merge is the owner's.
 
 - [ ] **Step 2: Run the structural test and commit**
 

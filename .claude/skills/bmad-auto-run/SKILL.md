@@ -62,8 +62,9 @@ stories:
   - key: <sprint-status key>
     phase: selected|created|validated|developed|reviewed|committed|skipped|escalated
     fix_rounds: <n>
+    ci_rounds: <n>                 # post-commit CI fix cycles routed back to review
     panel: { agy_pass: <n>, fifth_pass: <bool>, confirmation: passed|failed|pending }
-    commit: <sha|null>
+    commit: <sha|null>             # the most recent code commit for this story
     note: <one line>
     dispatches:
       - role: <role>
@@ -76,6 +77,14 @@ stories:
         outcome: succeeded|failed|pending|unsettled
         last_state: <one line>   # what was last observed, for an unsettled dispatch
 ```
+
+`ci_rounds` is what makes a story's *second* trip through the cycle legible.
+A post-commit CI finding sends a committed story back to
+`step-04-review-panel.md` and returns it to `step-05-commit-gate.md` for a
+further code commit under the same story key, so that step's resume check MUST
+count commits against `ci_rounds` rather than assume one — see
+`step-06-epic-boundary.md`'s failing-check rule. An absent `ci_rounds` MUST be
+read as zero.
 
 `orca_run` and `dispatches` are not bookkeeping for its own sake. Without the
 recorded `family`, a run resuming at `phase: created` cannot know which
