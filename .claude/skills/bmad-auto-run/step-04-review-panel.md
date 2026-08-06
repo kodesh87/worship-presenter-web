@@ -17,8 +17,8 @@ completes — `--outcome failed`, or a liveness classification of
 cannot finish the same review, adjudication, fix, or confirmation dispatch
 twice is infrastructure down, not a finding to adjudicate. A reported need for
 a spec, architecture, or correct-course repair from any dispatch in this step
-MUST be routed through `step-03-story-cycle.md`'s mid-leg artifact repair
-mechanism unchanged, by reference — MUST NOT be reimplemented here.
+MUST be routed through `artifact-repairs.md`'s mechanism unchanged, by
+reference — MUST NOT be reimplemented here.
 
 ## Dispatching the panel in parallel
 
@@ -163,7 +163,7 @@ MUST continue on any other outcome:
   this step's own retry-once threshold, mirrored from
   `step-03-story-cycle.md`, not a rule `dispatch-recipes.md` or
   `worker-accounting.md` itself sets; or a repair need routed through
-  `step-03-story-cycle.md`'s mechanism escalates under 5 there.
+  `artifact-repairs.md`'s mechanism escalates under 5 there.
 
 On any of these, MUST follow the HALT protocol in `SKILL.md`: write the
 condition and this story's current `phase` to the journal, account for every

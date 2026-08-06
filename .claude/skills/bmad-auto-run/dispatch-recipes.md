@@ -102,8 +102,8 @@ orca orchestration dispatch --task <task_id> --to <handle> --inject --json
     to a worker's own defaults.
   - the **repair-reporting expectation**: if the role cannot proceed until a
     spec, architecture, or correct-course change happens, it MUST report that
-    need rather than making the change itself, since the mid-leg repair path
-    in `step-03-story-cycle.md` is what owns that change.
+    need rather than making the change itself, since the repair path in
+    `artifact-repairs.md` is what owns that change.
 - MUST wait for `tui-idle` before dispatching. A dispatch sent to a
   not-yet-ready TUI MUST NOT be recorded as that worker's `--outcome failed`,
   and a `tui-idle` match MUST NOT itself be taken as proof the worker has

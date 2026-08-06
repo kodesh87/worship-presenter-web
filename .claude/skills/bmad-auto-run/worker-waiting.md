@@ -111,10 +111,10 @@ orca orchestration check --wait --types worker_done,escalation,question --timeou
   `family`, `task`, `dispatch`, `terminal`, and `last_state` with
   `outcome: unsettled` — an `escalation` is one of the seven non-settlement
   states, so it is never released whichever branch runs next:
-  - If it reports that an artifact repair is needed, MUST take the calling
-    step's repair-dispatch path for that artifact, including that path's own
-    bounds on repeating a repair — this branch MUST NOT be read as a way into
-    an unbounded repair-then-resume cycle.
+  - If it reports that an artifact repair is needed, MUST take
+    `artifact-repairs.md`'s repair-dispatch path for that artifact, including
+    that path's own bounds on repeating a repair — this branch MUST NOT be read
+    as a way into an unbounded repair-then-resume cycle.
   - If it names one of the seven conditions, MUST follow the HALT protocol in
     `SKILL.md` under that condition.
   - Otherwise, MUST treat the leg as blocked, retry once, then escalate under

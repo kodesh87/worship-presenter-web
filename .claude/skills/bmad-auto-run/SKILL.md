@@ -143,8 +143,9 @@ this directory to be referenced.
 3. `step-03-story-cycle.md` — dispatch create story, validate, and dev in
    order for the selected story, following the recipe in
    `dispatch-recipes.md`, the wait, classification, and ceiling rules in
-   `worker-waiting.md`, and the settlement and retry rules in
-   `worker-accounting.md`.
+   `worker-waiting.md`, the settlement and retry rules in
+   `worker-accounting.md`, and the repair-then-resume rules in
+   `artifact-repairs.md`.
 4. `step-04-review-panel.md` — dispatch the five-reviewer panel, adjudicate,
    run fix rounds, and confirm, carrying the story from `phase: developed`
    to `phase: reviewed`, run once the dev dispatch in `step-03-story-cycle.md`
