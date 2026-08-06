@@ -1,0 +1,199 @@
+# Step 4: The review panel — dispatch, adjudicate, fix, confirm
+
+Carries one story from `phase: developed` to `phase: reviewed`, populating
+the journal's `panel` block and `fix_rounds` count. This step MUST NOT run
+until the journal records `phase: developed` for this story — set either by
+`step-03-story-cycle.md` or by `step-06-epic-boundary.md` routing a
+post-commit CI finding back here — and MUST read that story's succeeded dev
+dispatch entry from the journal to learn the dev role's `family` before
+dispatching anything.
+
+Every dispatch below MUST use the recipe in `dispatch-recipes.md` — MUST NOT
+reimplement `terminal create` → `wait` → `dispatch` inline here — and MUST be
+waited on exactly as `worker-waiting.md` describes and accounted for exactly as
+`worker-accounting.md` describes. Any dispatch here that never completes —
+`--outcome failed`, or a liveness classification of `failed`/`stopped` — MUST
+take the same retry-once-then-escalate-under-5 path `step-03-story-cycle.md`
+applies to create, validate, and dev: a worker that cannot finish the same
+review, adjudication, fix, or confirmation dispatch twice is infrastructure
+down, not a finding to adjudicate. A reported repair need from any dispatch here
+MUST be routed through `artifact-repairs.md` unchanged, never reimplemented.
+
+## Entering from a post-commit CI finding
+
+- A story arriving here with a `ci_rounds` above zero and CI findings recorded
+  in its journal `note` by `step-06-epic-boundary.md` has already been reviewed
+  and committed once, so MUST NOT start with a fresh panel: MUST dispatch one
+  dev-fix worker carrying those recorded findings exactly as the Fix round
+  section below describes, incrementing `fix_rounds` by that section's own rule,
+  and only then re-run the full five-reviewer panel on the fixed tree.
+- MUST NOT reset `fix_rounds` on this entry: the cap and both escalation
+  conditions below count a post-commit round exactly as a pre-commit one, so a
+  story whose three rounds are spent MUST escalate under condition 3 instead.
+- MUST read `panel.confirmation` as `pending` on this path, never as the
+  `passed` recorded for the superseded tree, so confirmation runs again before
+  the commit gate accepts the new one.
+
+## Dispatching the panel in parallel
+
+- Review-class here is a closed set of seven — the five reviewers, the
+  adjudicator, and the confirmation reviewer — and each of those `--spec`s MUST
+  carry `dispatch-recipes.md`'s read-only clause. A dev-fix dispatch is a dev
+  dispatch and MUST NOT carry it, or the fix it was sent to make would be
+  forbidden to touch a file. None of the seven MAY set this story's status or
+  touch `sprint-status.yaml`; that write is the coordinator's at
+  `step-05-commit-gate.md`. Five reviewers writing the two tracked files they
+  review in parallel is silent corruption, and one reviewer's inline `done`
+  would close a review only the merged verdict may close.
+- MUST create all five reviewer dispatches — four `agy`, one other — before
+  opening any wait on them, since the panel is parallel, not sequential.
+- MUST dispatch the four `agy` reviewers as two workers on each of the two
+  model rows the operator's bmad-code-review panel rule mandates, and MUST NOT
+  substitute the row that same rule names as silently served as the other row —
+  that would collapse two intended reviewers into one served model. MUST take
+  the served-model verification for both rows from the journal's top-level
+  `agy_probe`, written by `step-01-preflight.md`'s probe, and MUST NOT re-verify
+  it per panel. Absent or empty on a real run, that probe never ran, which MUST
+  escalate under condition 5 rather than proceed on an unverified panel.
+- MUST pick the fifth reviewer's CLI alternative from the review-panel
+  routing row from a family other than the dev family just read from the
+  journal — never an `agy` alternative, since the four `agy` slots are fixed.
+- MUST record that the four `agy` reviewers cannot fan out into
+  `bmad-code-review`'s internal adversarial layers and so run it inline; only
+  the fifth gets the full internal panel. That is why the fifth reviewer's
+  findings are never outvoted below — it is the one report drawn from the
+  complete method.
+- Once all five are dispatched, MUST keep one shared wait loop rolling,
+  matching each arriving message to its own dispatch by `dispatch_id` per
+  `worker-waiting.md`'s matching rule, until all five have either settled or
+  completed the retry-once-then-escalate path above. MUST NOT begin
+  adjudication while any of the five is still outstanding.
+
+## Adjudication
+
+- MUST dispatch exactly one adjudicator worker that reads all five reviewer
+  reports plus the code and diff, and returns one merged fix list with an
+  explicit pass or fail verdict. The coordinator MUST NOT read the code or
+  diff itself — that invariant is why the adjudicator dispatch exists at all.
+- MUST carry into that adjudicator's `--spec` each reviewer's `worker_done`
+  body and the `--report-path` it named, so "reads all five reports" names
+  something the adjudicator can actually open. Read-only reviewers write no
+  artifact the adjudicator could otherwise find.
+- Panel output MUST be treated as findings, not verdicts. MUST NOT close the
+  review on any single reviewer's own approval, `agy` or otherwise — only the
+  adjudicator's merged verdict may close a round.
+- On a documentation-heavy change set, agreement among the four `agy`
+  reviewers MUST NOT be read as evidence the change is clean — Story 17.6
+  recorded both mandated `agy` votes passing a set with four real defects.
+  Every finding the fifth reviewer raises MUST reach a verified disposition in
+  the adjudicator's merged list and MUST NOT be dismissed as a minority view
+  because the four `agy` reviewers disagreed with it.
+- MUST treat an adjudicator `worker_done` that omits an explicit pass or fail
+  verdict as `--outcome failed` for retry purposes: an adjudication naming
+  neither is not a state this step can act on.
+- MUST record the adjudicator's verdict and its reasoning in this story's
+  journal `note`, and record `panel.agy_pass` (0–4, the `agy` reviewers whose
+  own report was clean) and `panel.fifth_pass` (bool) for this round —
+  informational only, since only the merged verdict closes a round.
+
+## Fix round
+
+- On a fail verdict, MUST dispatch exactly one dev-fix worker (the dev role's
+  fix intent) carrying the adjudicator's merged fix list, then MUST re-run the
+  full five-reviewer panel on the fixed tree — a fix dispatch is a dev dispatch
+  and MUST follow `dispatch-recipes.md`, `worker-waiting.md`, and
+  `worker-accounting.md` exactly like the initial dev dispatch.
+- MUST increment this story's journal `fix_rounds` by one per fix dispatched,
+  counting a confirmation-triggered fix (below) the same way.
+- From the second fix round on, MUST resolve the higher effort level the
+  dev-fix role's own routing-table row allows, per `dispatch-recipes.md`'s
+  resolution rule — MUST NOT spell out which level that is here.
+- MUST NOT dispatch a fourth fix round. MUST escalate under condition 3 when
+  the fifth reviewer's own report — during a panel round, or, at the
+  confirmation stage below, the confirmation reviewer's own report — still
+  names a blocker after three fix rounds have already been dispatched.
+- MUST escalate under condition 2 when the same named test, reported
+  identically by a reviewer or the adjudicator across three fix rounds, is
+  still failing — compared only by the test name and failure text the
+  workers' own reports state, never by reading the diff, since the
+  coordinator MUST NOT read code itself.
+- A third fix round's panel that still returns a fail verdict MUST be
+  attributable to one of the two escalations above. MUST treat any such fail
+  verdict the adjudicator does not attribute to a specific still-failing test
+  as the fifth reviewer's blocker for condition 3 — that report is this
+  panel's only protected authority, and the coordinator has no other objective
+  basis to judge a persisting fail without reading code.
+- On a clean verdict (pass, with zero fix rounds dispatched in this cycle so
+  far), MUST skip confirmation entirely, MUST record `panel.confirmation:
+  passed` — the schema has no value for a skipped check, and the five
+  reviewers' own clean reports already cover the exact tree being committed
+  — and proceed straight to setting `phase: reviewed` below.
+
+## Confirmation
+
+- Once a fix round has run and the panel subsequently reports clean, MUST
+  dispatch exactly one confirmation reviewer before the commit gate, because
+  a fix round changes the tree the panel judged and Story 17.6's own record
+  shows a fix round closing findings while touching sites no reviewer had
+  flagged.
+- MUST resolve the confirmation reviewer the same way as the fifth reviewer — a
+  non-`agy` alternative from the review-panel routing row — from a family other
+  than the one recorded on the dev-fix dispatch entry whose `outcome` is
+  `succeeded` for the fix round that produced the tree being confirmed,
+  mirroring how `step-03-story-cycle.md` picks validate's family: a retried fix
+  can leave more than one dev-fix entry, and only the succeeded one produced
+  this tree. It runs `bmad-code-review` with its full internal adversarial
+  layers, exactly as the fifth reviewer does.
+- On a passed confirmation, MUST record `panel.confirmation: passed` and
+  proceed to set `phase: reviewed`.
+- On a failed confirmation, MUST first apply the same fourth-round
+  prohibition as the Fix round section: if the three-fix-round cap is
+  already spent, MUST escalate immediately under condition 3 (or condition
+  2, when the confirmation reviewer's report names the same still-failing
+  test the fix-round rule above tracks) without a further dispatch.
+  Otherwise MUST treat the blocker exactly as a fix-round blocker: dispatch
+  one dev-fix worker carrying the confirmation reviewer's findings
+  (incrementing `fix_rounds` per the rule above), then MUST re-dispatch
+  confirmation alone against the newly fixed tree — MUST NOT re-run the
+  full five-reviewer panel for a confirmation-triggered fix, since
+  confirmation exists precisely to re-check a fix round's own tree.
+- MUST record `panel.confirmation: pending` while a confirmation dispatch is
+  outstanding, so a resumed run does not read the field as decided.
+
+## Closing this step
+
+- MUST set `phase: reviewed` only once either (a) the panel reported clean
+  with zero fix rounds, or (b) a fix round's panel reported clean and the
+  confirmation reviewer that ran afterward reported passed. Both are the
+  only states this step exits into `phase: reviewed` from.
+- MUST leave the commit gate itself to the step that owns git — this step's
+  job ends at `phase: reviewed`, `fix_rounds`, and a fully populated `panel`
+  block.
+
+## Escalation
+
+This step MUST escalate under exactly three of the seven conditions, and
+MUST continue on any other outcome:
+
+- Condition 2 — a fix round's persistently failing named test, exactly as
+  the Fix round section above tracks it.
+- Condition 3 — a persisting blocker from the fifth reviewer or the
+  confirmation reviewer, exactly as the Fix round and Confirmation sections
+  above track it.
+- Condition 5 — any reviewer, the adjudicator, a fix dispatch, or the
+  confirmation dispatch fails or goes dead a second time after one retry; or a
+  repair need routed through `artifact-repairs.md` escalates under 5 there.
+
+A worker `question` from any of this step's up to eight dispatches MUST NOT be
+left pending against a condition that does not exist. This step resolves it
+exactly as `step-03-story-cycle.md`'s question rule does — `reply` when the
+answer is inside this loop's authority, condition 6 when its scope is one of
+that condition's three, otherwise `artifact-repairs.md`'s path. Unrouted, it
+blocks its reviewer for the full ceiling and then HALTs under condition 5,
+mislabelling a working `ask` as infrastructure down.
+
+On any of these, MUST follow the HALT protocol in `SKILL.md`: write the
+condition and this story's current `phase` to the journal, account for every
+dispatch this step opened exactly as `worker-accounting.md` describes for a
+settled dispatch and as `worker-waiting.md` describes for one that never
+settled, and stop without a further dispatch.
