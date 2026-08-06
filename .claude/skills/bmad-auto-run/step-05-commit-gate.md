@@ -85,26 +85,43 @@ coordinator itself.
   to check `git log` for whether it actually landed rather than either
   assuming success or blindly re-running a gate that may have already
   produced a commit.
+- If writing this update to the journal file itself fails (for example, a
+  disk or permission error), MUST NOT proceed to `git commit` below — there
+  is nothing on disk yet for it to commit. MUST escalate under condition 2,
+  the same bucket a red commit takes: this story cannot be committed right
+  now for an ordinary reason, not the guard.
 
 ## Committing
 
-- MUST run `git commit` with a message naming this story's key, as the
-  coordinator itself — never a dispatched worker commits. MUST NOT pass
-  `--no-verify` and MUST NOT bypass commit signing.
+- MUST run `git commit` with a message of the exact form
+  `<story key>: <one-line summary>`, as the coordinator itself — never a
+  dispatched worker commits. The fixed `<story key>: ` prefix MUST NOT be
+  replaced with a generic summary alone: it is what the resume check below
+  searches `git log` for, and a message that drops it cannot be found again
+  after a crash. MUST NOT pass `--no-verify` and MUST NOT bypass commit
+  signing.
 - A nonzero exit MUST NOT be retried and MUST NOT be forced through with
   `--no-verify`. MUST record the failure output in the journal `note` and
   escalate under condition 2 — the guard already passed above, so a local
   hook failing here is an ordinary check failing, not infrastructure and not
   the guard. `phase` stays `reviewed`; nothing committed, nothing to
   advance.
-- On a zero exit, MUST capture the resulting sha with `git rev-parse HEAD`.
 
 ## Recording the sha
 
 - A commit cannot contain its own resulting hash, so the sha is recorded in
-  a second, small commit: update the journal entry to `phase: committed` and
-  `commit: <the captured sha>`, stage only the journal file by name, and
-  commit it — the coordinator again, no `--no-verify`, no bypassed signing.
+  a second, small commit. MUST update the journal entry to
+  `phase: committed` and `commit: <the sha of the commit made under
+  "Committing">`, MUST stage only the journal file by name, and MUST commit
+  it with the message `<story key>: record commit sha` (fixed, verbatim) —
+  the coordinator again, no `--no-verify`, no bypassed signing. This exact,
+  fixed message is what distinguishes this housekeeping commit from the code
+  commit above during the resume check below.
+- If writing this journal update itself fails, MUST NOT proceed to
+  `git commit` below — MUST escalate under condition 2, the same as a
+  failure writing the pre-commit row above: the code commit already landed,
+  but that is recovered by the resume check below on the next attempt, not
+  by guessing at a sha the journal was never able to record.
 - A nonzero exit on this second commit MUST NOT be retried in place and MUST
   NOT be forced through with `--no-verify`; MUST record the failure output
   in the journal `note` and escalate under condition 2, the same as a
@@ -117,24 +134,45 @@ coordinator itself.
 
 ## Resuming after an interruption
 
-- If this second commit is interrupted, the working tree still holds the
-  corrected journal entry uncommitted, with the code commit from
-  "Committing" already landed. Before gating whichever story is currently
-  selected, MUST check for exactly this signature — an earlier story already
-  reads `phase: committed` in the journal while `git status --short` shows
-  only the journal file modified and nothing else — and if found, MUST
-  finish that one pending commit first: `git add` the journal file only,
-  then commit.
-- MUST NOT repeat the build, the test, the guard, or the staging check for
-  that earlier story in this case: its code commit already succeeded, and
-  re-running the gate would judge a tree it has already left.
-- MUST NOT proceed past this check on a partial or ambiguous match — for
-  example, an earlier `phase: committed` story found alongside other
-  modified paths that are not the journal file, which is not the signature
-  above. MUST NOT guess which of those paths belong to the pending sha
-  fix-up and which belong to the newly selected story; MUST record the
-  ambiguity in the journal `note` and escalate under condition 2 rather than
-  stage or commit anything.
+The signature a resumed run keys on MUST be what git itself durably holds,
+not the journal alone: the code commit under "Committing" can land and the
+process can still die before "Recording the sha" ever runs, and at that
+point the journal still reads `phase: reviewed` — indistinguishable, on the
+journal's own field, from a story where nothing has been committed yet.
+Trusting the journal there would re-run the whole gate, produce a *second*
+code commit containing only the journal housekeeping edit, and record that
+new commit's sha as the story's `commit` — orphaning the commit that
+actually holds the work.
+
+- Before running anything else in this step for the currently selected
+  story, MUST search `git log` for a commit whose message matches the fixed
+  `<story key>: ` prefix from "Committing" (for example,
+  `git log --grep "^<story key>: " --oneline`), then MUST discard, from
+  those results, any commit whose message is exactly the fixed
+  `<story key>: record commit sha` housekeeping message from "Recording the
+  sha" — the two searches use deliberately distinct fixed forms so one can
+  be found without the other. Call what remains the code-commit matches.
+- **Zero code-commit matches** — no code commit has landed for this story
+  yet. MUST proceed through the full gate from "Final build, test, guard"
+  onward, as a fresh attempt.
+- **More than one code-commit match** — MUST NOT guess which commit holds
+  the authoritative work. MUST record the ambiguity in the journal `note`
+  and escalate under condition 2 rather than stage, commit, or pick one.
+- **Exactly one code-commit match** — MUST then search separately for the
+  fixed `<story key>: record commit sha` housekeeping message for this same
+  story key:
+  - If it also exists, both commits already landed and this story is fully
+    committed. MUST NOT repeat any part of the gate and MUST NOT create a
+    further commit; there is nothing left for this step to do.
+  - If it does not exist, the code commit landed but the process died
+    before "Recording the sha" completed. MUST NOT repeat the build, the
+    test, the guard, the staging check, or the code commit. MUST take the
+    matched commit's own hash as the sha to record — never a freshly read
+    `git rev-parse HEAD`, since HEAD may have moved on for a reason
+    unrelated to this story by the time the run resumes — and MUST proceed
+    directly to "Recording the sha" using it, whether or not the journal
+    file's working copy already carries a matching, uncommitted edit from
+    the interrupted attempt.
 
 ## Escalation
 
