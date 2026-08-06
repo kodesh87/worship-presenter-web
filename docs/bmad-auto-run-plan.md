@@ -28,7 +28,8 @@ Every task's requirements implicitly include these. Values are verbatim.
 
 | File | Responsibility |
 |---|---|
-| `.claude/skills/bmad-auto-run/SKILL.md` | Activation, dry-run contract, journal schema, HALT + escalation protocol, step index |
+| `.claude/skills/bmad-auto-run/SKILL.md` | Invocation and its scope modes, Activation, HALT + escalation protocol, step index and cycle order |
+| `.../journal.md` | The journal's shape and the reasoning behind every field. Split out of `SKILL.md` as a pure move when the scope modes would have pushed that file past the line guidance |
 | `.../step-01-preflight.md` | Read-only environment and baseline checks, once per run |
 | `.../step-02-select-story.md` | Story selection from sprint-status, dependency skip |
 | `.../step-03-story-cycle.md` | Dispatch create → validate → dev |
