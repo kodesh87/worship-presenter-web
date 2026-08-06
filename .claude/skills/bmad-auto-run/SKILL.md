@@ -146,3 +146,7 @@ this directory to be referenced.
    run fix rounds, and confirm, carrying the story from `phase: developed`
    to `phase: reviewed`, run once the dev dispatch in `step-03-story-cycle.md`
    succeeds.
+5. `step-05-commit-gate.md` — final build/test/guard, refuse forbidden
+   paths, write the journal row, and commit as the coordinator, carrying the
+   story from `phase: reviewed` to `phase: committed` with its commit sha,
+   run once `step-04-review-panel.md` reaches `phase: reviewed`.
