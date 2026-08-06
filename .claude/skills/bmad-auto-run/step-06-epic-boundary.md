@@ -1,9 +1,9 @@
 # Step 6: Epic boundary — branch, draft PR, CI watch, ready
 
 Owns the branch and PR lifecycle across an epic: one branch per epic, a draft
-PR opened after that epic's first commit, CI/Greptile watched after every
-push, and the PR marked ready once the epic's last backlog story lands. This
-step opens no worker dispatch of its own — every action below runs as the
+PR opened after that epic's first commit, CI watched after every push, and
+the PR marked ready once the epic's last backlog story lands. This step
+opens no worker dispatch of its own — every action below runs as the
 coordinator, exactly like `step-05-commit-gate.md`, so `dispatch-recipes.md`,
 `worker-waiting.md`, and `worker-accounting.md` do not apply here. It runs at
 two points, both driven by state the other steps already own:
@@ -22,16 +22,19 @@ two points, both driven by state the other steps already own:
   journal per `SKILL.md`'s Activation section) — fixed once recorded in the
   journal's `branch` field and never regenerated on a later resume.
 - If the journal's `branch` already names this same epic number, MUST do
-  nothing further — either a previous story of this epic already checked it
-  out, or the epic-close step below already created and checked it out
-  preemptively.
-- If it instead names a *different* epic number, the old epic's remaining
-  stories were all *skipped* rather than committed — the one crossing that
-  never reaches "Closing the epic" below and its `gh pr ready`. MUST check
-  `gh pr view --json isDraft -q .isDraft` for the old branch/PR and, if
-  `true`, run `gh pr ready` on it first — a skip-only ending MUST NOT leave
-  a PR draft forever.
-- Either way, MUST create the new branch:
+  nothing further — a previous story of this epic already checked it out.
+- If it instead names a *different*, non-null epic number, an epic boundary
+  is being crossed — this is the only place a branch switches, since
+  branches are created reactively, never in advance. Before creating the new
+  branch below, MUST first close the outgoing one: the previous epic's PR
+  may already be ready (a normal last-story commit already marked it so via
+  "Closing the epic" below) or may still be draft (its remaining stories
+  were all *skipped* rather than committed — the one ending that never
+  reaches that section's `gh pr ready`). Either way MUST check `gh pr view
+  --json isDraft -q .isDraft` for the old branch/PR and, if `true`, run
+  `gh pr ready` on it — a skip-only ending MUST NOT leave a PR draft forever.
+- Either way — `branch` null (the run's first story, nothing to close) or
+  corrected just above — MUST create the new branch:
   - MUST resolve the repo default base with
     `gh repo view --json defaultBranchRef -q .defaultBranchRef.name` — MUST
     NOT hardcode `main` for this lookup. Today's default and the PR's own
@@ -79,15 +82,16 @@ Runs once per `phase: committed` event from `step-05-commit-gate.md`.
   triggers only on `push` to `main` and `pull_request` to `main`, so a
   feature-branch push alone produces no CI signal at all; opening this draft
   PR right after the epic's *first* commit, not at its end, is what gives
-  every later story in the epic a live CI/Greptile signal while still fresh,
-  instead of the run staying blind until the epic closes and inheriting a
-  pile of failures from many stories at once. This reason applies every
-  epic, not only this one — MUST NOT be "tidied" into a later trigger.
+  every later story in the epic a live CI signal (Greptile's check included)
+  while still fresh, instead of the run staying blind until the epic closes
+  and inheriting a pile of failures from many stories at once. This reason
+  applies every epic, not only this one — MUST NOT be "tidied" into a later
+  trigger.
 - A nonzero exit that is not "a PR already exists for this branch" (auth
   failure, network, API error) MUST NOT be retried silently — MUST record the
   exact error in the journal `note` and escalate under condition 5.
 
-### Watching CI and Greptile
+### Watching CI
 
 Runs after every push, including the one that just opened the draft PR — its
 existence is what makes this push's CI run visible at all, so skipping the
@@ -102,34 +106,32 @@ design exists to surface.
   reported, up to a 10-minute bound from this push (comfortably longer than
   this repository's single Node build-and-test job ever takes to start); if
   none is ever reported within that bound, MUST escalate under condition 5 —
-  CI never being queued is infrastructure, not a code finding.
+  CI never being queued is infrastructure, not a code finding. This rollup
+  includes Greptile's own `Greptile Review` check — a status check with no
+  separate review object, so it is gated here like any other reported check
+  — and MUST NOT get a second, review-based mechanism watching it
+  independently.
 - Once at least one check is reported, `--watch` itself has no ceiling of its
   own, so a check stuck queued or pending forever would hang it indefinitely
   — and nothing in `worker-waiting.md` applies, since this is not a
   dispatched worker. MUST wrap the watch in an external wall-clock bound of
   30 minutes; reaching it before every check concludes MUST be treated as
   inconclusive, never as a pass, and escalated under condition 5.
-- MUST also check for a Greptile review on this push with `gh pr view --json
-  reviews --jq '.reviews[] | select(.author.login | test("(?i)greptile"))'`.
-  Unlike the CI workflow this repo defines and owns, Greptile is optional
-  third-party infrastructure nothing here guarantees runs: MUST wait up to
-  the same 30-minute bound for a review to appear, but MUST NOT escalate on
-  its absence — MUST simply proceed as if this push carries no finding.
-- A failing check, or a Greptile review that is not a plain approval, is
-  **findings, not a verdict**: MUST route it through the same fix-then-panel
-  cycle `step-04-review-panel.md` owns, reusing that step's `fix_rounds`
-  count, three-round cap, and adjudication for this story exactly as written
-  there — MUST NOT re-derive the loop, the cap, or the adjudication here. A
-  fix lands as a **new** commit through `step-05-commit-gate.md` for the same
-  story key — MUST NOT amend or rewrite the commit already on this branch —
-  and this step then runs again on that new `phase: committed` event: push,
-  watch again. When the cap is exhausted, MUST escalate under exactly the
-  condition `step-04-review-panel.md`'s Fix round section names for it —
-  never a condition of this step's own invention for a post-commit finding.
-- Only once every reported check is green and no unresolved Greptile finding
-  remains MUST this step proceed to the last-story check below.
+- A failing check is **findings, not a verdict**: MUST route it through the
+  same fix-then-panel cycle `step-04-review-panel.md` owns, reusing that
+  step's `fix_rounds` count, three-round cap, and adjudication for this story
+  exactly as written there — MUST NOT re-derive the loop, the cap, or the
+  adjudication here. A fix lands as a **new** commit through
+  `step-05-commit-gate.md` for the same story key — MUST NOT amend or
+  rewrite the commit already on this branch — and this step then runs again
+  on that new `phase: committed` event: push, watch again. When the cap is
+  exhausted, MUST escalate under exactly the condition
+  `step-04-review-panel.md`'s Fix round section names for it — never a
+  condition of this step's own invention for a post-commit finding.
+- Only once every reported check is green MUST this step proceed to the
+  last-story check below.
 
-## Closing the epic: ready, then the next branch
+## Closing the epic: ready
 
 - MUST determine whether this was the epic's last backlog story by scanning
   `sprint-status.yaml` for any key matching the same `<n>-<n>-<name>` pattern
@@ -143,27 +145,12 @@ design exists to surface.
   NOT be retried blindly — MUST check `gh pr view --json isDraft -q
   .isDraft`; `false` means it is already ready (idempotent), anything else
   MUST be recorded in the journal `note` and escalated under condition 5.
-- MUST then create the next epic's branch and continue without asking, so
-  the epic boundary never stalls waiting for a story that will never select
-  it:
-  - MUST derive a candidate next epic number by scanning
-    `sprint-status.yaml` top to bottom for the first key matching the pattern
-    above with status exactly `backlog` — pattern match only, MUST NOT
-    evaluate `step-02-select-story.md`'s own dependency check here.
-  - If no such key exists anywhere in the file, MUST NOT create a next
-    branch — there is nothing left to prepare for, and
-    `step-02-select-story.md`'s own "no candidate at all" case is what hands
-    control back without a dispatch, not this step.
-  - Otherwise MUST create and check out that epic's branch immediately, per
-    "Ensuring the epic's branch" above, and MUST set the journal's top-level
-    `epic`, `branch`, and `pr: null` to it.
-  - Because this guess skips the dependency check, it MAY name a different
-    epic than the one actually selected next, if the guessed epic turns out
-    entirely dependency-blocked. MUST NOT treat that as an error — "Ensuring
-    the epic's branch" above already reconciles the mismatch next time it
-    runs, overwriting this provisional guess. The abandoned local branch
-    carries no commits and was never pushed, so MUST NOT be deleted — it is
-    inert, not an artifact condition 7 protects.
+- MUST then hand control back without a further dispatch — MUST NOT create
+  the next epic's branch here. `step-02-select-story.md` selects the next
+  story (in this epic, if any remain, or the next one entirely), and
+  "Ensuring the epic's branch" above is the one place a branch is created —
+  reactively, once selection has actually cleared that story's own
+  dependency check, never as a guess ahead of it.
 
 ## Non-negotiables
 
@@ -186,10 +173,9 @@ condition the routed-through step already names:
 - Condition 7 — a non-fast-forward push rejection, or any operation that
   would require a force-push, a history rewrite, or deleting an artifact to
   proceed.
-- A CI or Greptile finding that exhausts `step-04-review-panel.md`'s
-  three-fix-round cap escalates under whichever of that step's own
-  conditions (2 or 3) its Fix round section names — cited there, not
-  restated here.
+- A failing check that exhausts `step-04-review-panel.md`'s three-fix-round
+  cap escalates under whichever of that step's own conditions (2 or 3) its
+  Fix round section names — cited there, not restated here.
 
 On any of these, MUST follow the HALT protocol in `SKILL.md`: write the
 condition and this story's current `phase` to the journal and stop without a
