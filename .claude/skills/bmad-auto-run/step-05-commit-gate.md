@@ -64,34 +64,16 @@ action below runs as the coordinator itself.
 
 ## The guard: after staging, immediately before the commit
 
-- MUST run the guard command exactly as `SKILL.md` quotes it, character for
-  character, **after** the staging above and immediately before the commit
-  below:
-
-  ```
-  node --import ./tests/register-ts-resolve.mjs --test --experimental-strip-types tests/public-repo-guard.test.mjs
-  ```
-
+- MUST run the guard exactly as `git-audit.md` requires — this is that file's
+  point 1, and everything about running it and about a red result lives there.
 - This ordering is load-bearing and MUST NOT be moved back above staging, nor
   folded into a section titled for the build and test. The guard's scan set is
-  the index: `tests/public-repo-guard.test.mjs` builds it from `git ls-files`,
-  and an untracked file enters that set only once it is staged. Run before
-  staging, the guard cannot see the content of a file a story worker left
-  untracked — so such a file, under a path the list above does not name, passes
-  the path check, gets staged, and gets committed, and the guard reports it on
-  the *next* run, once it is already public history. In this repository that is
-  the one failure that cannot be walked back.
-- `npm test` already ran this file once, but this standalone run is
-  `AGENTS.md`'s own commit-audit step 2 and MUST NOT be skipped as redundant.
-- MUST NOT retry a red guard run, and MUST NOT weaken, skip, or narrow the
-  guard to make it pass — in this repository the finding is the point.
-- A red guard MUST escalate under condition 1, and the staged state MUST be
-  left exactly as it stands: MUST NOT commit, and MUST NOT unstage. MUST record
-  every staged path and the guard's own output in the journal `note`. The owner
-  needs to see precisely what tripped it, and an automatic unstage would
-  destroy that evidence.
-- On that escalation, MUST leave this story's `phase` unchanged (still
-  `reviewed`): staging is not committing, so nothing has advanced.
+  the index, so run before staging it cannot see the content of a file a story
+  worker left untracked — such a file, under a path the list above does not
+  name, passes the path check, gets staged, and gets committed, and the guard
+  reports it on the *next* run, once it is already public history. In this
+  repository that is the one failure that cannot be walked back.
+- MUST NOT retry a red guard run.
 
 ## Writing the journal row before the commit
 
@@ -135,9 +117,12 @@ action below runs as the coordinator itself.
   `phase: committed` and `commit: <the sha of the commit made under
   "Committing">`, MUST set this story's status to `done` in
   `_bmad-output/implementation-artifacts/sprint-status.yaml` and refresh that
-  file's `last_updated`, MUST stage only those two files by name, and MUST
-  commit them with the message `<story key>: record commit sha` (fixed,
-  verbatim) — the coordinator again, no `--no-verify`, no bypassed signing.
+  file's `last_updated`, MUST stage only those two files by name, MUST then run
+  the guard exactly as `git-audit.md` requires — this is that file's point 2, and
+  the likeliest of the three to catch a leak, since the journal carries whatever
+  a worker reported — and MUST commit them with the message
+  `<story key>: record commit sha` (fixed, verbatim) — the coordinator again, no
+  `--no-verify`, no bypassed signing.
   This exact, fixed message is what distinguishes this housekeeping commit
   from the code commit above during the resume check below.
 - That status write is the coordinator's alone, and it is not optional

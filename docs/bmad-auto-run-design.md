@@ -238,7 +238,21 @@ nothing forbidden staged, and the public-repo guard green. A guard failure stops
 the run and escalates. The loop may never weaken the guard — the finding is the
 point. Commit, push, and PR are always the coordinator's, never a worker's.
 
-**The guard runs after staging, not before it.** Its scan set is the index
+**The guard runs at every commit and every push, and after staging rather than
+before it.** Two separate rules, both learned from Greptile findings on this
+branch, and the first is the one nobody checked. `AGENTS.md` says "before
+**every** `git commit` and **every** `git push`", and the skill ran it once: the
+code commit was covered, the sha-recording commit and the push were not. The
+sha-recording commit is the likeliest of the three to leak, because the journal
+deliberately captures arbitrary worker output — build failures, `git status`
+output, a worker's question text — in `note` and `last_state`, any of which can
+hold a path, a hostname, or a name. The rule is now stated once, with all three
+points named, and each step cites it. The lesson generalises past this defect:
+every reviewer verified the guard *command* was character-identical to
+`AGENTS.md`, and none asked whether it ran everywhere `AGENTS.md` requires — the
+string was checked and the coverage never was.
+
+**And the guard runs after staging, not before it.** Its scan set is the index
 (`git ls-files`), and an untracked file joins that set only when it is staged.
 Run first, it cannot see the content of a file a story worker left untracked, so
 such a file under a path the denylist does not name would be committed and only

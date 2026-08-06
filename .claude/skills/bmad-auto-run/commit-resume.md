@@ -43,8 +43,11 @@ code commit as an ambiguity the loop created.
   to do.
 - **Code-commit matches equal to expected, housekeeping matches one fewer** —
   the code commit landed but the process died before "Recording the sha"
-  completed. MUST NOT repeat the build, the test, the staging check, the guard,
-  or the code commit. MUST take the **most recent** code-commit
+  completed. MUST NOT repeat the build, the test, the staging check, or the code
+  commit — but MUST still run the guard before the housekeeping commit itself,
+  because that commit is a commit and `git-audit.md` binds every one of them; the
+  guard run that preceded the code commit inspected a different index. MUST take
+  the **most recent** code-commit
   match's own hash as the sha to record — `git log` reports newest first —
   and never a freshly read `git rev-parse HEAD`, since HEAD may have moved on
   for a reason unrelated to this story by the time the run resumes. MUST then

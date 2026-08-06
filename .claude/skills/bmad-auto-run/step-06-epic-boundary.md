@@ -20,7 +20,11 @@ there and MUST NOT restate it. Everything below is the second point.
 
 Runs once per `phase: committed` event from `step-05-commit-gate.md`.
 
-- MUST push: `git push -u origin <branch>` the first time this branch is
+- MUST run the guard exactly as `git-audit.md` requires **before** pushing —
+  that file's point 3, and the boundary where content actually becomes public.
+  A red guard here MUST NOT be pushed past, reset, or reverted; that file states
+  what it leaves behind.
+- MUST then push: `git push -u origin <branch>` the first time this branch is
   pushed, `git push` on every later push. A rejected, non-fast-forward push
   MUST NOT be resolved by forcing it through — MUST record the rejection and
   escalate under condition 7; only a force-push fixes a divergence this loop

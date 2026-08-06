@@ -141,7 +141,9 @@ recommendation is ceremony, the cost this skill exists to remove.
 
 Condition 1's guard is the exact command `AGENTS.md`'s commit audit names,
 quoted here once so every later step can point back instead of retyping it,
-and MUST NOT be paraphrased or abbreviated elsewhere:
+and MUST NOT be paraphrased or abbreviated elsewhere. `git-audit.md` states
+where it MUST run — every commit and every push this skill makes, which is three
+points, and it MUST be all three:
 
 ```
 node --import ./tests/register-ts-resolve.mjs --test --experimental-strip-types tests/public-repo-guard.test.mjs
