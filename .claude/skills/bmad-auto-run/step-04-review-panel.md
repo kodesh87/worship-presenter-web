@@ -114,8 +114,12 @@ mechanism unchanged, by reference — MUST NOT be reimplemented here.
   flagged.
 - MUST resolve the confirmation reviewer the same way as the fifth reviewer
   — a non-`agy` alternative from the review-panel routing row — from a
-  family other than the family recorded on the dev-fix dispatch that
-  produced the tree being confirmed. It runs `bmad-code-review` with its
+  family other than the family recorded on the dev-fix dispatch entry whose
+  `outcome` is `succeeded` in the journal's `dispatches` list for the fix
+  round that produced the tree being confirmed, mirroring how
+  `step-03-story-cycle.md` picks validate's family: a retried fix can leave
+  more than one dev-fix entry, possibly in different families, and only the
+  succeeded one produced this tree. It runs `bmad-code-review` with its
   full internal adversarial layers, exactly as the fifth reviewer does,
   since only `agy` cannot fan out.
 - On a passed confirmation, MUST record `panel.confirmation: passed` and
@@ -149,15 +153,16 @@ mechanism unchanged, by reference — MUST NOT be reimplemented here.
 This step MUST escalate under exactly three of the seven conditions, and
 MUST continue on any other outcome:
 
-- Condition 2 (`SKILL.md` holds the full definition; cited here, never
-  restated) — the same named test fails identically across three fix
-  rounds.
-- Condition 3 — the fifth reviewer, in a panel round, or the confirmation
-  reviewer, at the confirmation stage, still reports a blocker after three
-  fix rounds have been dispatched for this story.
+- Condition 2 — a fix round's persistently failing named test, exactly as
+  the Fix round section above tracks it.
+- Condition 3 — a persisting blocker from the fifth reviewer or the
+  confirmation reviewer, exactly as the Fix round and Confirmation sections
+  above track it.
 - Condition 5 — any reviewer, the adjudicator, a fix dispatch, or the
-  confirmation dispatch fails or goes dead a second time after one retry,
-  per the recipe files' own mechanics; or a repair need routed through
+  confirmation dispatch fails or goes dead a second time after one retry —
+  this step's own retry-once threshold, mirrored from
+  `step-03-story-cycle.md`, not a rule `dispatch-recipes.md` or
+  `worker-accounting.md` itself sets; or a repair need routed through
   `step-03-story-cycle.md`'s mechanism escalates under 5 there.
 
 On any of these, MUST follow the HALT protocol in `SKILL.md`: write the

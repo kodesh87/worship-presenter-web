@@ -105,10 +105,13 @@ On anything else the run MUST continue: an escalation that merely confirms a
 recommendation is ceremony, and ceremony is the cost this skill exists to
 remove.
 
-1. The public-repo guard fails.
+1. The public-repo guard fails, or the commit gate's own staging inspection
+   catches a forbidden path by hand — the guard is one detector of that
+   harm, not its definition.
 2. The same test fails identically after three fix rounds, or the pre-flight
    baseline is red before the first story is even selected.
-3. The fifth reviewer still reports a blocker after three fix rounds.
+3. The fifth reviewer or the confirmation reviewer still reports a blocker
+   after three fix rounds.
 4. Every remaining backlog story is dependency-blocked.
 5. Infrastructure is down — Orca, a worker, an expired auth, the `agy` trust
    gate.
