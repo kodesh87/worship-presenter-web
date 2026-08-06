@@ -33,6 +33,23 @@ orca orchestration check --wait --types worker_done,escalation,question --timeou
   orca orchestration check --ack <delivery_id> --json    # nothing left to wait for
   ```
 
+  A message is *handled* once the action it requires has been **set in motion**,
+  not once that action has finished. For a `question` routed to an artifact
+  repair this MUST mean the repair has been dispatched: the repair's own
+  `worker_done` cannot arrive until this Delivery is acknowledged, because an
+  unacknowledged Delivery replays instead of yielding new mail, so waiting for
+  the repair before acking deadlocks the loop against itself and burns the
+  repair's ceiling. MUST NOT re-defer the ack to the repair's completion for any
+  reason.
+
+  Acknowledging the Delivery MUST NOT be confused with answering the question.
+  They are different acts on different objects: the ack consumes this
+  coordinator's mail batch, while the question stays pending against its own
+  message id until a `reply` names that id. So the ack goes early, at dispatch,
+  and the answer still goes late, once the repair settles and there is something
+  true to say. MUST NOT treat an acked Delivery as a question already answered,
+  and MUST NOT skip the later `reply` because the batch is gone.
+
 - A timeout or `{count: 0}` MUST be treated as a checkpoint, never a worker
   failure — the 900000ms window is the floor of the guide's 15-to-60-minute
   range for a real coding dispatch, not a deadline. MUST NOT retry or escalate

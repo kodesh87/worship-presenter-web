@@ -71,34 +71,35 @@ as `worker-accounting.md` describes.
 ## Mid-leg artifact repairs
 
 - Any of the three dispatches above MAY report that it cannot proceed until a
-  spec update, an architecture update, or a correct-course run happens. On
-  such a report, MUST NOT edit the artifact from the coordinator — MUST
-  instead dispatch the owning skill (`bmad-spec`, `bmad-architecture`, or
-  `bmad-correct-course`) as its own worker, through the same recipe, and wait
-  for its `worker_done`.
-- Whether the need arrived as a `question` or inside a `worker_done` decides
-  who still owns the interrupted leg, and the two MUST NOT be treated alike.
-  An `ask` blocks until answered: the asking worker is sitting at its prompt,
-  still owns its leg, and resumes it the moment the reply lands. A
-  `worker_done` means that worker finished and exited, leaving the leg with no
-  owner at all.
-- On the `question` path, MUST dispatch the repair first and reply only once
-  the repair settles, with
-  `orca orchestration reply --id <message_id> --body "<answer>" --json`
-  carrying the repair's outcome so the asking worker can continue. MUST NOT
-  re-dispatch that leg on this path: the reply is what resumes it, and a
-  re-dispatch would put a second worker on the same story key and the same
-  story file while the first is still live. MUST keep that dispatch
-  `outcome: pending` with the question in `last_state`, per
-  `worker-waiting.md`'s asking-worker rule — never `unsettled`.
+  spec update, an architecture update, or a correct-course run happens. On such a
+  report, MUST NOT edit the artifact from the coordinator — MUST instead dispatch
+  the owning skill (`bmad-spec`, `bmad-architecture`, or `bmad-correct-course`)
+  as its own worker, through the same recipe, and wait for its `worker_done`.
+- Whether the need arrived as a `question` or inside a `worker_done` decides who
+  still owns the interrupted leg, and the two MUST NOT be treated alike. An `ask`
+  blocks until answered: the asking worker is sitting at its prompt, still owns
+  its leg, and resumes it the moment the reply lands. A `worker_done` means that
+  worker finished and exited, leaving the leg with no owner at all.
+- On the `question` path, MUST dispatch the repair first and reply only once the
+  repair settles, with
+  `orca orchestration reply --id <message_id> --body "<answer>" --json` carrying
+  the repair's outcome so the asking worker can continue. MUST NOT re-dispatch
+  that leg on this path: the reply is what resumes it, and a re-dispatch would
+  put a second worker on the same story key and the same story file while the
+  first is still live. MUST keep that dispatch `outcome: pending` and never
+  `unsettled`, with the question in `last_state`, per `worker-waiting.md`'s
+  asking-worker rule.
+- MUST acknowledge the Delivery carrying that question as soon as the repair is
+  dispatched, never once it settles — `worker-waiting.md`'s ack rule holds the
+  mechanism and why acking is not answering. Because it is acked, that question
+  MUST NOT be acted on again and a second repair MUST NOT be dispatched for it.
 - A worker's `ask` carries its own timeout and a repair can outlast it. The
-  guide states a timed-out question stays pending and is resumed by its
-  original message id, so the deferred reply above is still the answer to that
-  same question and MUST NOT be re-asked or re-sent as a new one. After
-  replying, MUST confirm the worker actually resumed using
-  `worker-waiting.md`'s liveness probes; one that never resumes MUST be
-  treated as a dispatch that never reports and MUST take that file's liveness
-  classification.
+  guide states a timed-out question stays pending and is resumed by its original
+  message id, so the deferred reply above is still the answer to that same
+  question and MUST NOT be re-asked or re-sent as a new one. After replying,
+  MUST confirm the worker actually resumed using `worker-waiting.md`'s liveness
+  probes; one that never resumes MUST be treated as a dispatch that never
+  reports and MUST take that file's liveness classification.
 - Before dispatching a `bmad-correct-course` repair, MUST read the reporting
   worker's stated scope for that correct-course and escalate under condition
   6 instead of dispatching when that scope would move a PRD-level goal,
@@ -119,11 +120,13 @@ as `worker-accounting.md` describes.
   this session's memory.
 - The repair-then-resume cycle MUST be bounded in both of its shapes, because
   it is the one loop in this design with no human inside it:
-  - **Same need twice.** A leg that reports a repair need whose owning skill
-    and artifact match a repair already recorded `succeeded` for this story
-    MUST NOT be repaired again, and MUST escalate under condition 5 instead.
-    A role that still needs the change the repair just made is past what this
-    loop can resolve by dispatching the same two workers at each other again.
+  - **Same need twice.** A leg that reports a repair need whose owning skill and
+    artifact match a repair already recorded `succeeded` — or one still recorded
+    `pending`, since a repair in flight has not made its change yet and a second
+    would put two workers on one governed artifact at once — MUST NOT be
+    repaired again, and MUST escalate under condition 5 instead. A role that
+    still needs the change the repair just made is past what this loop can
+    resolve by dispatching the same two workers at each other again.
   - **A chain of different needs.** MUST NOT dispatch more than 3 repairs in
     total for one story, counting every artifact and every leg; the fourth
     MUST escalate under condition 5. Bounding only the identical repeat would
@@ -163,8 +166,8 @@ reaching for a third:
     `worker-stop` and `worker-abandon`, or `worker-show` cannot resolve it at
     all;
   - a dispatch exceeds the wall-clock ceiling in `worker-waiting.md`;
-  - a leg reports a repair need already repaired for this story, or a fourth
-    repair would be dispatched for one story;
+  - a leg reports a repair need already repaired for this story, or one still in
+    flight for it, or a fourth repair would be dispatched for one story;
   - a worker `escalation` on any of the three legs names no repair need and no
     specific condition, after one retry.
 - Condition 6 — before any correct-course dispatch whose reported scope would
