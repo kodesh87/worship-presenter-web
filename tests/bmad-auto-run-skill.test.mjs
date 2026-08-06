@@ -28,6 +28,24 @@ test('every step file is referenced, and every reference exists', () => {
   }
 });
 
+test('every backticked skill-file reference resolves, in every skill file', () => {
+  // SKILL.md alone was checked before, so a step file could forward-reference a
+  // filename nobody ever wrote — which is exactly what happened once.
+  const refs = new Set();
+  for (const f of mdFiles()) {
+    for (const [, ref] of read(f).matchAll(/`([a-z][a-z0-9-]*\.md)`/g)) {
+      refs.add(ref);
+      assert.ok(existsSync(`${DIR}/${ref}`), `${f} references missing ${ref}`);
+    }
+  }
+  // Proof the pattern matched real filenames rather than nothing: SKILL.md must
+  // reference every other file in the directory, so the set cannot be smaller.
+  assert.ok(
+    refs.size >= mdFiles().length - 1,
+    `only ${refs.size} references resolved across ${mdFiles().length} files — the pattern is matching nothing`,
+  );
+});
+
 test('no skill file hardcodes a model id or a vendor flag', () => {
   const banned =
     /gemini-\d|gpt-5|composer-\d|claude-(?:sonnet|opus|haiku)-\d|--permission-mode|--dangerously-|model_reasoning_effort/;
@@ -43,13 +61,36 @@ test('the guard command is quoted verbatim from AGENTS.md', () => {
   assert.ok(gate.includes(GUARD_CMD), 'no skill file runs the guard command verbatim');
 });
 
+// Bound the section at the next heading, or a numbered list further down inflates the count.
+const escalationSection = (text) => (text.split(/^## Escalation.*$/m)[1] ?? '').split(/^## /m)[0];
+// One item per numbered line plus its indented continuations. The list ends at the
+// first blank line after it, so trailing prose in either file cannot join condition 7.
+const escalationItems = (text) => {
+  const items = [];
+  for (const line of escalationSection(text).split('\n')) {
+    if (/^\s*[1-7]\. /.test(line)) items.push([line.trim()]);
+    else if (!line.trim()) {
+      if (items.length) break;
+    } else if (items.length && /^\s+\S/.test(line)) items[items.length - 1].push(line.trim());
+  }
+  return items.map((lines) => lines.join(' ').replace(/\s+/g, ' '));
+};
+
 test('the skill and the design record agree on seven escalations', () => {
-  // Bound the section at the next heading, or a numbered list further down inflates the count.
-  const section = (text) => (text.split(/^## Escalation.*$/m)[1] ?? '').split(/^## /m)[0];
-  const count = (text) => (section(text).match(/^\s*[1-7]\. /gm) ?? []).length;
-  assert.equal(count(read('SKILL.md')), 7, 'SKILL.md does not list exactly seven escalation conditions');
+  assert.equal(escalationItems(read('SKILL.md')).length, 7, 'SKILL.md does not list exactly seven escalation conditions');
   const design = readFileSync('docs/bmad-auto-run-design.md', 'utf8');
-  assert.equal(count(design), 7, 'the design record no longer lists seven escalation conditions');
+  assert.equal(escalationItems(design).length, 7, 'the design record no longer lists seven escalation conditions');
+});
+
+test('the seven conditions are worded identically in both files', () => {
+  // The count matching is not enough: several files cite a condition by number,
+  // so wording that drifts in one file silently redirects every citation.
+  const skill = escalationItems(read('SKILL.md'));
+  const design = escalationItems(readFileSync('docs/bmad-auto-run-design.md', 'utf8'));
+  assert.ok(skill.length > 0, 'no escalation conditions parsed out of SKILL.md');
+  for (let i = 0; i < skill.length; i++) {
+    assert.equal(skill[i], design[i], `condition ${i + 1} is worded differently in SKILL.md and the design record`);
+  }
 });
 
 test('the test registers itself in npm test', () => {
