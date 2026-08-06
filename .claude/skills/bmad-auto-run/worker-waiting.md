@@ -42,6 +42,14 @@ orca orchestration check --wait --types worker_done,escalation,question --timeou
   repair's ceiling. MUST NOT re-defer the ack to the repair's completion for any
   reason.
 
+  A nonzero `check --ack` MUST NOT be shrugged off. The batch it failed to
+  consume replays, and on the question path an already-acted-on question MUST
+  NOT be acted on again, so the loop would sit re-reading a message it has
+  already handled until a ceiling fires under the wrong condition — a silent
+  failure mimicking the deadlock this ack rule exists to prevent. MUST retry
+  the ack once, then MUST record its exact error in `last_state` and escalate
+  under condition 5.
+
   Acknowledging the Delivery MUST NOT be confused with answering the question.
   They are different acts on different objects: the ack consumes this
   coordinator's mail batch, while the question stays pending against its own
@@ -50,6 +58,10 @@ orca orchestration check --wait --types worker_done,escalation,question --timeou
   true to say. MUST NOT treat an acked Delivery as a question already answered,
   and MUST NOT skip the later `reply` because the batch is gone.
 
+- `status` and `heartbeat` need no branch in this file, and MUST NOT be given
+  one: the `--types` filter above excludes them, so they never wake this wait.
+  They are liveness evidence, and `worker-accounting.md` already lists both
+  among the states that MUST NOT be released.
 - A timeout or `{count: 0}` MUST be treated as a checkpoint, never a worker
   failure — the 900000ms window is the floor of the guide's 15-to-60-minute
   range for a real coding dispatch, not a deadline. MUST NOT retry or escalate
@@ -150,8 +162,16 @@ for not having reported yet.
   start — a resumed run inherits the elapsed clock as it inherits `strikes`.
 - MUST evaluate the ceiling before opening every wait, whatever the previous
   wait returned, per the first rule of "Waiting" above. Wall-clock is
-  deliberately the one bound indifferent to what the worker is doing, so
-  nothing a worker emits may postpone it.
+  deliberately the one bound indifferent to what the worker is doing; nothing a
+  worker emits may postpone it, and the single exception below is not something
+  a worker emits.
+- **An asking worker awaiting its repair is the one exception.** While a repair
+  dispatched to answer that worker's `question` is in flight, the asker's own
+  ceiling MUST be suspended, and MUST resume from where it stood once the reply
+  is sent. Without this, any asker that asks past the halfway mark of its own
+  ceiling HALTs under condition 5 while the repair it is waiting for is healthy
+  and still running — a working loop reported as infrastructure down. The
+  repair carries its own ceiling, so the pair stays bounded.
 - MUST NOT add a cap on replies to one dispatch: the ceiling already bounds
   elapsed time with no completion, which is what harms an unattended run, while
   a reply cap would cut off a worker asking many quick, legitimate questions.

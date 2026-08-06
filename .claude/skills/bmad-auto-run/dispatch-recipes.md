@@ -43,6 +43,14 @@ release branch, never a transfer to a follow-up task on the same terminal.
   add further roles to this map — the review panel, the adjudicator, an
   artifact-repair dispatch — each resolved the same way, against that role's
   own skill row.
+- A role with **no row** in that per-skill table — the adjudicator, the
+  confirmation reviewer, and, strictly, the fifth reviewer's alternative —
+  MUST resolve its tier from the role-to-dispatch table in
+  `docs/bmad-auto-run-design.md`, which is the sanctioned record for exactly
+  the roles that are not BMad skills, and MUST take its family constraint from
+  the calling step. MUST NOT invent a per-skill row for such a role, and MUST
+  NOT copy an id, an effort level, or a flag out of that table into this skill
+  directory.
 - Where a routing row offers more than one CLI alternative, MUST pick any one
   of them unless the calling step states a constraint (for example, "a
   different family than the creator"). That constraint MUST be honored by the
@@ -71,6 +79,15 @@ release branch, never a transfer to a follow-up task on the same terminal.
   ```
   orca orchestration run-use --id <orca_run> --json
   ```
+
+- If `run-create`, `run-list`, or `run-use` itself fails — including the case
+  where `run-list` succeeds but the journal's `orca_run` is not in it — MUST
+  retry that one command once, then MUST record the failure with its exact
+  error and the `orca_run` being sought in the journal and escalate under
+  condition 5. MUST NOT fall back to `run-create` on a resumed run to get past
+  it: a second Run reads an empty mailbox and every prior worker's report is
+  lost. This is the entry point of every interrupted run, so it MUST NOT be
+  the one command in this recipe with no failure branch.
 
 ## `dispatch(role, task_spec) -> dispatch_id`
 

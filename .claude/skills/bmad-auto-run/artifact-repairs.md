@@ -27,7 +27,9 @@ exactly for such a report and MUST NOT restate it inline.
   put a second worker on the same story key and the same story file while the
   first is still live. MUST keep that dispatch `outcome: pending` and never
   `unsettled`, with the question in `last_state`, per `worker-waiting.md`'s
-  asking-worker rule.
+  asking-worker rule. That worker's own wall-clock ceiling MUST be suspended
+  while this repair is in flight, per that file's one ceiling exception — the
+  asker is waiting on the loop, not failing.
 - MUST acknowledge the Delivery carrying that question as soon as the repair is
   dispatched, never once it settles — `worker-waiting.md`'s ack rule holds the
   mechanism and why acking is not answering. Because it is acked, that question
