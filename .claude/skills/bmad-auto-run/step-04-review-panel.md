@@ -10,16 +10,14 @@ dispatching anything.
 
 Every dispatch below MUST use the recipe in `dispatch-recipes.md` — MUST NOT
 reimplement `terminal create` → `wait` → `dispatch` inline here — and MUST be
-waited on exactly as `worker-waiting.md` describes and accounted for exactly
-as `worker-accounting.md` describes. Any dispatch in this step that never
-completes — `--outcome failed`, or a liveness classification of
-`failed`/`stopped` — MUST take the same retry-once-then-escalate-under-5 path
-`step-03-story-cycle.md` applies to create, validate, and dev: a worker that
-cannot finish the same review, adjudication, fix, or confirmation dispatch
-twice is infrastructure down, not a finding to adjudicate. A reported need for
-a spec, architecture, or correct-course repair from any dispatch in this step
-MUST be routed through `artifact-repairs.md`'s mechanism unchanged, by
-reference — MUST NOT be reimplemented here.
+waited on exactly as `worker-waiting.md` describes and accounted for exactly as
+`worker-accounting.md` describes. Any dispatch here that never completes —
+`--outcome failed`, or a liveness classification of `failed`/`stopped` — MUST
+take the same retry-once-then-escalate-under-5 path `step-03-story-cycle.md`
+applies to create, validate, and dev: a worker that cannot finish the same
+review, adjudication, fix, or confirmation dispatch twice is infrastructure
+down, not a finding to adjudicate. A reported repair need from any dispatch here
+MUST be routed through `artifact-repairs.md` unchanged, never reimplemented.
 
 ## Entering from a post-commit CI finding
 
@@ -50,20 +48,20 @@ reference — MUST NOT be reimplemented here.
 - MUST create all five reviewer dispatches — four `agy`, one other — before
   opening any wait on them, since the panel is parallel, not sequential.
 - MUST dispatch the four `agy` reviewers as two workers on each of the two
-  model rows the operator's bmad-code-review panel rule mandates, and MUST
-  NOT substitute the row that same rule names as silently served as the
-  other row on this account — that substitution would collapse two intended
-  reviewers into one served model. MUST perform that rule's own served-model
-  verification for both `agy` rows before counting the four as covering two
-  distinct models.
+  model rows the operator's bmad-code-review panel rule mandates, and MUST NOT
+  substitute the row that same rule names as silently served as the other row —
+  that would collapse two intended reviewers into one served model. MUST take
+  the served-model verification for both rows from what
+  `step-01-preflight.md`'s `agy` probe recorded, and MUST NOT re-verify it here
+  per panel.
 - MUST pick the fifth reviewer's CLI alternative from the review-panel
   routing row from a family other than the dev family just read from the
   journal — never an `agy` alternative, since the four `agy` slots are fixed.
 - MUST record that the four `agy` reviewers cannot fan out into
-  `bmad-code-review`'s internal adversarial layers and so run it inline;
-  only the fifth reviewer gets the full internal panel. This is why the
-  fifth reviewer's findings are never outvoted below — it is the one report
-  drawn from the complete method, not an argument to weaken that rule.
+  `bmad-code-review`'s internal adversarial layers and so run it inline; only
+  the fifth gets the full internal panel. That is why the fifth reviewer's
+  findings are never outvoted below — it is the one report drawn from the
+  complete method.
 - Once all five are dispatched, MUST keep one shared wait loop rolling,
   matching each arriving message to its own dispatch by `dispatch_id` per
   `worker-waiting.md`'s matching rule, until every one of the five has
@@ -82,13 +80,12 @@ reference — MUST NOT be reimplemented here.
 - On a documentation-heavy change set, agreement among the four `agy`
   reviewers MUST NOT be read as evidence the change is clean — Story 17.6
   recorded both mandated `agy` votes passing a set with four real defects.
-  Every finding the fifth reviewer raises MUST reach a verified disposition
-  in the adjudicator's merged list and MUST NOT be dismissed as a minority
-  view solely because the four `agy` reviewers disagreed with it.
+  Every finding the fifth reviewer raises MUST reach a verified disposition in
+  the adjudicator's merged list and MUST NOT be dismissed as a minority view
+  because the four `agy` reviewers disagreed with it.
 - MUST treat an adjudicator `worker_done` that omits an explicit pass or fail
-  verdict as `--outcome failed` for retry purposes — an adjudication that
-  names neither is not a distinct state this step can act on, and giving it
-  one closes exactly the failure shape this task exists to prevent.
+  verdict as `--outcome failed` for retry purposes: an adjudication naming
+  neither is not a state this step can act on.
 - MUST record the adjudicator's verdict and its reasoning in this story's
   journal `note`, and record `panel.agy_pass` (0–4, the `agy` reviewers whose
   own report was clean) and `panel.fifth_pass` (bool, the fifth reviewer's
@@ -98,11 +95,10 @@ reference — MUST NOT be reimplemented here.
 ## Fix round
 
 - On a fail verdict, MUST dispatch exactly one dev-fix worker (the dev role's
-  fix intent) carrying the adjudicator's merged fix list, then MUST re-run
-  the full five-reviewer panel again on the fixed tree — a fix dispatch is a
-  dev dispatch and MUST follow `dispatch-recipes.md` and
-  `worker-waiting.md`/`worker-accounting.md` exactly like the initial dev
-  dispatch in `step-03-story-cycle.md`.
+  fix intent) carrying the adjudicator's merged fix list, then MUST re-run the
+  full five-reviewer panel on the fixed tree — a fix dispatch is a dev dispatch
+  and MUST follow `dispatch-recipes.md`, `worker-waiting.md`, and
+  `worker-accounting.md` exactly like the initial dev dispatch.
 - MUST increment this story's journal `fix_rounds` by one per fix dispatched,
   counting a confirmation-triggered fix (below) the same way.
 - From the second fix round on, MUST resolve the higher effort level the
@@ -119,11 +115,10 @@ reference — MUST NOT be reimplemented here.
   coordinator MUST NOT read code itself.
 - A third fix round's panel that still returns a fail verdict MUST be
   attributable to one of the two escalations above. MUST treat any such fail
-  verdict the adjudicator does not attribute to a specific still-failing
-  test as the fifth reviewer's blocker for condition 3 — the fifth
-  reviewer's report is this panel's only protected, non-outvotable
-  authority, and the coordinator has no other objective basis to judge a
-  persisting fail without reading code itself.
+  verdict the adjudicator does not attribute to a specific still-failing test
+  as the fifth reviewer's blocker for condition 3 — that report is this
+  panel's only protected authority, and the coordinator has no other objective
+  basis to judge a persisting fail without reading code.
 - On a clean verdict (pass, with zero fix rounds dispatched in this cycle so
   far), MUST skip confirmation entirely, MUST record `panel.confirmation:
   passed` — the schema has no value for a skipped check, and the five
@@ -137,16 +132,14 @@ reference — MUST NOT be reimplemented here.
   a fix round changes the tree the panel judged and Story 17.6's own record
   shows a fix round closing findings while touching sites no reviewer had
   flagged.
-- MUST resolve the confirmation reviewer the same way as the fifth reviewer
-  — a non-`agy` alternative from the review-panel routing row — from a
-  family other than the family recorded on the dev-fix dispatch entry whose
-  `outcome` is `succeeded` in the journal's `dispatches` list for the fix
-  round that produced the tree being confirmed, mirroring how
-  `step-03-story-cycle.md` picks validate's family: a retried fix can leave
-  more than one dev-fix entry, possibly in different families, and only the
-  succeeded one produced this tree. It runs `bmad-code-review` with its
-  full internal adversarial layers, exactly as the fifth reviewer does,
-  since only `agy` cannot fan out.
+- MUST resolve the confirmation reviewer the same way as the fifth reviewer — a
+  non-`agy` alternative from the review-panel routing row — from a family other
+  than the one recorded on the dev-fix dispatch entry whose `outcome` is
+  `succeeded` for the fix round that produced the tree being confirmed,
+  mirroring how `step-03-story-cycle.md` picks validate's family: a retried fix
+  can leave more than one dev-fix entry, and only the succeeded one produced
+  this tree. It runs `bmad-code-review` with its full internal adversarial
+  layers, exactly as the fifth reviewer does.
 - On a passed confirmation, MUST record `panel.confirmation: passed` and
   proceed to set `phase: reviewed`.
 - On a failed confirmation, MUST first apply the same fourth-round
@@ -189,6 +182,15 @@ MUST continue on any other outcome:
   `step-03-story-cycle.md`, not a rule `dispatch-recipes.md` or
   `worker-accounting.md` itself sets; or a repair need routed through
   `artifact-repairs.md`'s mechanism escalates under 5 there.
+
+A worker `question` from any of this step's up to eight dispatches MUST NOT be
+left pending against a condition that does not exist: `worker-waiting.md`
+requires the calling step to name where such a question lands, and this step
+resolves it exactly as `step-03-story-cycle.md`'s question rule does — `reply`
+when the answer is inside this loop's authority, condition 6 when its scope is
+one of that condition's three, otherwise `artifact-repairs.md`'s path. An
+unrouted question blocks its reviewer for the full 120-minute ceiling and then
+HALTs under condition 5, mislabelling a working `ask` as infrastructure down.
 
 On any of these, MUST follow the HALT protocol in `SKILL.md`: write the
 condition and this story's current `phase` to the journal, account for every

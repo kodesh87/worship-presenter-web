@@ -24,8 +24,12 @@ the existing skills rather than reimplementing them.
 - No headless Orca automation or cron driver. Escalation has nowhere to land in
   a headless run, and interactively-authenticated MCP servers can be absent.
 - No automatic epic retrospectives. Their tracked status is `optional`.
-- No worktree per story. One worktree per epic — which also means the `agy`
-  workspace-trust gate is cleared once per epic instead of once per story.
+- No worktree per story — and, as implemented, no worktree per epic either.
+  Every worker runs in the **active** worktree and the per-epic unit is a
+  *branch*, not a checkout, which is the simpler choice and the one the skill
+  files encode. So the `agy` workspace-trust gate is cleared once for that one
+  worktree path, and pre-flight proves it with a probe rather than asserting
+  it.
 
 ## Architecture
 
@@ -68,7 +72,12 @@ retained as pre-existing, close it explicitly.
 
 **Routing** follows the Orca Agent Dispatch table in the operator's global rules,
 which is loaded in every session. This design records only which alternative each
-role takes, because those rows offer several:
+role takes, because those rows offer several. Three of the roles below — the
+adjudicator, the confirmation reviewer, and the fifth reviewer's alternative —
+have no row of their own in that per-skill table because they are not BMad
+skills, so this table is the sanctioned source a skill file resolves their tier
+from; the skill files still MUST NOT copy an id, an effort level, or a flag out
+of it.
 
 | Role | Dispatch |
 |---|---|
@@ -80,9 +89,12 @@ role takes, because those rows offer several:
 | adjudicator | the `claude` alternative at `high` |
 | spec / architecture / correct-course updates | the `claude` alternative at `high` |
 
-The two `agy` model ids are the mandated pair of `pro-low` and `flash-high`,
-never `pro-high`, which this account silently serves as flash-high and which
-would collapse two reviewers into one model.
+The two `agy` reviewer rows are the pair the operator's panel rule mandates, and
+the row that same rule excludes stays excluded: one row is silently served as
+another, so pairing those two would collapse the panel's two intended models
+into one. The ids belong to the operator's own rules, not to this repository —
+read them there, and confirm what is actually being served with pre-flight's
+`agy` probe rather than trusting either source.
 
 **The journal** lives at
 `_bmad-output/implementation-artifacts/auto-run/<date>-journal.md` and is
@@ -185,10 +197,17 @@ dev-fix-then-review cycle.
 ## Pre-flight, once per run
 
 Orca reachable; the version-matched orchestration guide read from the binary;
-`claude`, `codex`, and `agy` accounts usable; the `agy` workspace-trust gate
-cleared for the worktree path; `gh auth status` good; the tree clean; and a
-baseline `npm run build && npm test` green *before the first story*, so an
-inherited failure is never charged to the story that happened to run next.
+`claude`, `codex`, and `agy` accounts usable; `gh auth status` good; the tree
+clean; and a baseline `npm run build && npm test` green *before the first
+story*, so an inherited failure is never charged to the story that happened to
+run next.
+
+The `agy` workspace-trust gate has no read-only check, so a declarative
+precondition would be a rule with no detector. Instead one probe — a terminal
+per mandated `agy` row, real runs only — proves the gate and reveals each row's
+served model at the same time. In dry-run mode both are reported unverified,
+because the probe is the one pre-flight check that cannot run without creating
+a terminal.
 
 ## Escalation: the complete list
 

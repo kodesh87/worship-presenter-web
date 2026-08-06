@@ -50,10 +50,27 @@ others from being checked and recorded.
 - **GitHub auth** — MUST run `gh auth status` and MUST require success.
 - **Clean tree** — MUST run `git status --porcelain` and MUST require empty
   output.
-- **`agy` trust gate** — the `agy` workspace-trust gate MUST already be
-  cleared for this worktree path. This run dispatches no `agy` worker until
-  it is; a gate cleared later, once per epic, is not this check's job to
-  re-verify.
+- **`agy` trust gate and served models** — one probe proves both, and MUST run
+  on a real run only. A declarative precondition here would be a branch with
+  no detector: no read-only command reports whether that gate is cleared.
+  - For each of the two `agy` model rows the operator's panel rule mandates,
+    MUST create one terminal with `dispatch-recipes.md`'s terminal-creation
+    command and argv assembly, MUST send that CLI's own trivial prompt, and
+    MUST wait for `tui-idle`. No task, no dispatch, no `worker_done`: this is
+    not a worker.
+  - A terminal that never reaches `tui-idle`, or whose output shows a
+    workspace-trust prompt, MUST be treated as the trust gate not cleared and
+    escalate under condition 5.
+  - MUST read the served model for each row from the CLI's own log output, by
+    the method the operator's `agy` rules name, and MUST record both in the
+    journal `note`. Where both rows report the same served model MUST escalate
+    under condition 5: the panel requires two distinct models and this account
+    is serving one, which no fix inside this loop can change.
+  - MUST close both terminals with `orca terminal close --terminal <handle>
+    --json` — no dispatch owns them, so `worker-release` does not apply.
+  - `step-04-review-panel.md` MUST rely on what this check recorded and MUST
+    NOT re-verify per panel. The gate is cleared once for this worktree path,
+    which every worker shares.
 
 ## Baseline
 
@@ -70,10 +87,27 @@ Both MUST be green. `npm test` already runs the public-repo guard as one of
 its registered files, so a baseline failure is either the guard or an
 ordinary test/build failure — the two are distinguished below.
 
+## Dry-run branch
+
+On a `dry-run` invocation this step MUST still run, and MUST hold to
+`SKILL.md`'s contract that no Orca or repository state is mutated:
+
+- MUST run the Orca resolution, the guide load, `<orca> status --json`,
+  `gh auth status`, and `git status --porcelain` unchanged — each is read-only.
+- MUST run `npm run build` and `npm test`. Their only output is the ignored
+  build directory and no repository state changes, and skipping the baseline
+  would make the dry run silent about the one failure most likely to stop the
+  real run.
+- MUST NOT create the `agy` probe terminals. MUST instead print both mandated
+  rows as unverified, naming the trust gate and the served-model check as the
+  two things a dry run cannot establish.
+- MUST NOT write `preflight:` or anything else to the journal. MUST instead
+  print the journal record it would have written.
+
 ## Recording and escalation
 
-The run MUST record the outcome as `preflight: passed` or `preflight: failed`
-in the journal before doing anything else.
+On a real run, the run MUST record the outcome as `preflight: passed` or
+`preflight: failed` in the journal before story selection begins.
 
 - A failure in any environment check above (Orca reachable, GitHub auth,
   clean tree, `agy` trust gate) MUST escalate under condition 5 —

@@ -14,8 +14,7 @@ consistent with that record.
 
 ## Invocation
 
-- The only entry point MUST be `/bmad-auto-run`, optionally followed by
-  `dry-run`.
+- The only entry point MUST be `/bmad-auto-run`, optionally with `dry-run`.
 - The operator MUST NOT have to invoke the `orchestration` skill before this
   one, and this skill MUST NOT invoke it itself. Its two required actions —
   resolving the Orca executable and loading the version-matched guide from the
@@ -52,11 +51,15 @@ consistent with that record.
 
 When invoked with `dry-run`:
 
-- The run MUST execute `step-01-preflight.md` and the story-selection step
-  read-only.
-- The run MUST print the planned dispatch sequence and the gates it would
-  pass through.
-- The run MUST NOT create a terminal, write a file, or run a git command.
+- The run MUST execute `step-01-preflight.md` and `step-02-select-story.md`,
+  and MUST print the planned dispatch sequence and the gates it would pass
+  through.
+- The run MUST NOT mutate Orca or repository state: no terminal, no dispatch,
+  no journal or artifact write, no state-changing git command. Read-only
+  inspection is not a mutation and MUST NOT be skipped as one, so
+  `step-01-preflight.md` still runs its checks, and its own dry-run branch
+  states what it would have recorded and what it cannot verify without
+  mutating.
 
 ## Journal schema
 
