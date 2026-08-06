@@ -2,9 +2,13 @@
 
 Decides which story the run works on next. This step MUST NOT run until the
 journal records `preflight: passed` for this run. It MUST run once each time
-the loop needs a story: the first time right after pre-flight, and again
-every time the previous story reaches `phase: committed` or the loop has
-just skipped a story and needs the next candidate.
+the loop needs a story: the first time right after pre-flight, and again once
+`step-06-epic-boundary.md` has finished with the previous story — its push, its
+PR, and its watch — and handed control back, or when the loop has just skipped a
+story and needs the next candidate. MUST NOT be triggered by `phase: committed`
+itself: the commit is the middle of the cycle `SKILL.md` states, not its end,
+and selecting on it would start the next story before the previous one is
+pushed.
 
 ## Selection rule (mirrors `bmad-create-story`)
 

@@ -37,11 +37,21 @@ separate skill.
   from how this session happened to be invoked. Otherwise a `one-story` run that
   halts and resumes widens to the whole backlog at the moment nobody is
   watching.
-- `one-story` and `one-epic` stop where `step-06-epic-boundary.md` says they do.
-  Both are **clean stops, not HALTs**: the journal complete, every worker
+- `one-story` and `one-epic` stop where `step-06-epic-boundary.md` says they do,
+  and a `full` run stops when `step-02-select-story.md` finds no candidate left.
+  All three are **clean stops, not HALTs**: the journal complete, every worker
   accounted for by `worker-accounting.md`, nothing mid-dispatch. The run MUST
   record that it stopped because its scope was reached, distinguishable from an
   escalation, so the journal never reads as though a condition fired.
+- **At every clean stop**, before the run ends, MUST check whether the journal's
+  `pr` is still a draft and the unit it belongs to has no remaining selectable
+  work; if so, MUST run `gh pr ready` on it, with the same `isDraft` idempotency
+  and the same condition-5 branch on a nonzero exit that
+  `step-06-epic-boundary.md` already specifies. This is the only place that
+  catches a unit whose trailing stories were all *skipped* rather than
+  committed: nothing ever marks its PR ready otherwise, and a draft PR nobody
+  asked to stay a draft is work the owner cannot see. A HALT MUST NOT do this —
+  a halted run's PR is genuinely unfinished.
 - The operator MUST NOT have to invoke the `orchestration` skill before this
   one, and this skill MUST NOT invoke it itself. Its two required actions —
   resolving the Orca executable and loading the version-matched guide from the

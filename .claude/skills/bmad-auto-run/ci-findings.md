@@ -66,6 +66,12 @@ green verdict.
 
 ## Routing a finding into the fix cycle
 
+- This section MUST NOT run in `mode: one-story`. That mode watches the checks
+  and reads the reviews exactly as above, then records what was found and stops
+  without a fix, per `step-06-epic-boundary.md`'s own `one-story` section — the
+  watch is a bounded wait, but a fix round is a second story's work and the fix
+  decision is the owner's. Everything below is for `mode: one-epic` and
+  `mode: full`.
 - A failing check, or any unrouted Greptile finding, is **findings, not a
   verdict**: MUST route it through the same fix-then-panel cycle
   `step-04-review-panel.md` owns, reusing that step's `fix_rounds` count,
@@ -95,4 +101,7 @@ green verdict.
 - Only once every reported check is green **and** every Greptile finding is
   either routed or already recorded as routed MUST `step-06-epic-boundary.md`
   proceed to its "Closing the epic" section. Green checks alone MUST NOT satisfy
-  this, which is the same trap in its last possible place.
+  this, which is the same trap in its last possible place. In `mode: one-story`
+  that step stops instead of closing an epic, so this gate does not apply — but
+  the same distinction does: green checks decide whether its PR is readied or
+  left a draft.

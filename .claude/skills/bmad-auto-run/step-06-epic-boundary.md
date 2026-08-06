@@ -1,28 +1,42 @@
-# Step 6: Epic boundary — branch, draft PR, CI watch, ready
+# Step 6: The branch and PR boundary — branch, draft PR, CI watch, ready
 
-Owns the branch and PR lifecycle across an epic: one branch per epic, a draft
-PR opened after that epic's first commit, CI watched after every push, and
-the PR marked ready once the epic's last backlog story lands. This step
-opens no worker dispatch of its own — every action below runs as the
-coordinator, exactly like `step-05-commit-gate.md`, so `dispatch-recipes.md`,
-`worker-waiting.md`, and `worker-accounting.md` do not apply here. It runs at
-two points, both driven by state the other steps already own:
+Owns the branch and PR lifecycle: one branch and one PR per **unit**, a draft PR
+opened after that unit's first commit, CI watched after every push, and the PR
+marked ready once the unit has no remaining work. This step opens no worker
+dispatch of its own — every action runs as the coordinator, exactly like
+`step-05-commit-gate.md`, so `dispatch-recipes.md`, `worker-waiting.md`, and
+`worker-accounting.md` do not apply here. It runs at two points:
 
 - **Before `step-03-story-cycle.md` dispatches anything** for a newly
-  selected story — to ensure the epic's branch exists and is checked out.
+  selected story — to ensure the unit's branch exists and is checked out.
 - **Immediately after `step-05-commit-gate.md` records `phase: committed`**
   — to push, manage the PR, and watch CI.
 
-## Ensuring the epic's branch (before `step-03` dispatches)
+## The unit is a function of the run's mode
 
-- The expected branch name is `<git config user.name>/epic-<epic>-auto-<date>`,
-  where `<epic>` is the journal's top-level `epic` field
-  `step-02-select-story.md` just set for the newly selected story, and
-  `<date>` is the date embedded in this run's own journal filename (today's
-  journal per `SKILL.md`'s Activation section) — fixed once recorded in the
-  journal's `branch` field and never regenerated on a later resume.
-- If the journal's `branch` already names this same epic number, MUST do
-  nothing further — a previous story of this epic already checked it out.
+- MUST resolve the unit from the journal's recorded `mode` before deciding
+  anything about a branch or a PR:
+  - `mode: one-story` — the unit is **that story**. One branch, one PR, for it
+    alone. An epic-scoped PR here would be a draft for an epic that will never
+    finish, since the run stops after one story.
+  - `mode: one-epic` and `mode: full` — the unit is the **epic**, exactly as
+    before.
+- The branch name MUST keep one shape across both:
+  `<git config user.name>/<unit>-<id>-auto-<date>`, where `<unit>` is `epic` or
+  `story`, `<id>` is the journal's top-level `epic` field or the story key that
+  `step-02-select-story.md` just selected, and `<date>` is the date embedded in
+  this run's own journal filename. It is fixed once recorded in the journal's
+  `branch` and MUST NOT be regenerated on a later resume.
+- `mode: one-story` has exactly one unit, so the journal's `branch` being
+  non-null MUST be read as "this run's branch already exists" and nothing
+  further done. That mode MUST NOT reach the boundary-crossing rule below, and
+  MUST NOT create a second branch for any reason.
+
+## Ensuring the unit's branch (before `step-03` dispatches)
+
+- If the journal's `branch` already names this same unit, MUST do
+  nothing further — a previous story of this epic already checked it out, or in
+  `one-story` mode this run already created it.
 - If it instead names a *different*, non-null epic number, an epic boundary
   is being crossed — this is the only place a branch switches, since
   branches are created reactively, never in advance. Before creating the new
@@ -48,7 +62,7 @@ two points, both driven by state the other steps already own:
     `step-05-commit-gate.md` should already guarantee one — so if it happens
     anyway, MUST record the exact `git status --short` output and escalate
     under condition 5, never guess or discard anything.
-- If the journal already names this epic's branch but it is not the branch
+- If the journal already names this unit's branch but it is not the branch
   currently checked out (a resumed run in a fresh session), MUST
   `git fetch origin <branch>` then `git checkout <branch>` rather than
   recreating it — recreating either fails outright or silently forks a
@@ -65,7 +79,7 @@ Runs once per `phase: committed` event from `step-05-commit-gate.md`.
   escalate under condition 7; only a force-push fixes a divergence this loop
   never itself created; MUST NOT create one to worm past it.
 - The journal's top-level `pr` field, not a commit count, is the single
-  source of truth for whether this epic's PR is open — a HALT before
+  source of truth for whether this unit's PR is open — a HALT before
   recording a returned PR URL simply resumes below on retry, and the
   existing-PR check there absorbs the case where it was already created.
 
@@ -81,41 +95,46 @@ Runs once per `phase: committed` event from `step-05-commit-gate.md`.
   record the returned URL as the journal's `pr`. `.github/workflows/test.yml`
   triggers only on `push` to `main` and `pull_request` to `main`, so a
   feature-branch push alone produces no CI signal at all; opening this draft
-  PR right after the epic's *first* commit, not at its end, is what gives
-  every later story in the epic a live CI signal (Greptile's check and its
-  review both) while still fresh, instead of staying blind until the epic closes
-  and inheriting a pile of failures from many stories at once. This reason
-  applies every epic, not only this one — MUST NOT be "tidied" into a later
-  trigger.
+  PR right after the **run's first** commit, not at the unit's end, is what
+  gives every later story a live CI signal (Greptile's check and its review
+  both) while still fresh, instead of staying blind until the unit closes and
+  inheriting a pile of failures at once. This reason holds for every unit and
+  every mode — MUST NOT be "tidied" into a later trigger.
 - A nonzero exit that is not "a PR already exists for this branch" (auth
   failure, network, API error) MUST NOT be retried silently — MUST record the
   exact error in the journal `note` and escalate under condition 5.
 
 ### The `one-story` stop
 
-Reached here, once the commit has been pushed and the PR opened or adopted, and
-before the CI watch below.
+Reached in `mode: one-story` only, once the commit has been pushed and the PR
+opened or adopted. In every other mode this section MUST do nothing at all.
 
-- In `mode: one-story` the run MUST stop at this point, and MUST NOT enter
-  `ci-findings.md`. Stopping earlier — at the commit — would leave the work
-  unpushed, so CI never sees it and the machinery this mode exists to observe
-  never runs; stopping later would make the mode more than one story, since a CI
-  finding starts a fix round.
-- MUST record in the journal that the checks and reviews were left unwatched, and
-  MUST name the PR url, so the owner knows exactly what is theirs to decide.
-- MUST set `stopped: scope reached` and stop cleanly per `SKILL.md`'s scope-mode
-  rules — not a HALT, and MUST NOT write a `halted:` condition on the story.
-- MUST leave the PR a draft. The epic is not finished, and "Closing the epic"
-  below is the only place `gh pr ready` belongs.
-- In every other mode this section MUST do nothing at all.
+- MUST watch the checks and read the reviews through `ci-findings.md`, with the
+  bounds that file already specifies. Stopping before the watch would mark work
+  reviewable without knowing whether its checks passed; a watch is a bounded
+  wait, not a second story's work.
+- MUST NOT enter that file's fix cycle, and MUST NOT dispatch a fix of any
+  kind. This mode exists so the owner sees what the machinery did; the fix
+  decision is theirs.
+- **Every check green and no Greptile finding** — MUST mark the PR ready with
+  `gh pr ready`, under the same `isDraft` idempotency and the same condition-5
+  branch as "Closing the epic" below, then stop. The run produced one complete,
+  reviewable story.
+- **A red check, or a Greptile finding** — MUST leave the PR a draft, and MUST
+  record the failing check names or the routed comment ids in the journal so the
+  owner sees exactly what was found without re-deriving it.
+- Either way MUST set `stopped: scope reached` and stop cleanly per `SKILL.md`'s
+  scope-mode rules — not a HALT, and MUST NOT write a `halted:` condition on the
+  story. A red check here is the mode working, not the run failing.
 
 ### Watching what the push produced
 
-- After every push, including the one that just opened the draft PR, MUST follow
-  `ci-findings.md` exactly — the checks, the reviews, their bounds, and the
-  routing of any finding back into `step-04-review-panel.md`'s fix cycle. MUST
-  NOT reimplement any of it here. `mode: one-epic` and `mode: full` both run it
-  identically: an epic is not finished until its checks are green.
+- In `mode: one-epic` and `mode: full`, after every push including the one that
+  just opened the draft PR, MUST follow `ci-findings.md` exactly — the checks,
+  the reviews, their bounds, and the routing of any finding back into
+  `step-04-review-panel.md`'s fix cycle. MUST NOT reimplement any of it here.
+  Both modes run it identically: an epic is not finished until its checks are
+  green.
 - MUST NOT proceed to "Closing the epic" below until that file says this step
   may.
 
@@ -143,7 +162,7 @@ before the CI watch below.
 - Otherwise MUST hand control back without a further dispatch — MUST NOT create
   the next epic's branch here. `step-02-select-story.md` selects the next
   story (in this epic, if any remain, or the next one entirely), and
-  "Ensuring the epic's branch" above is the one place a branch is created —
+  "Ensuring the unit's branch" above is the one place a branch is created —
   reactively, once selection has actually cleared that story's own
   dependency check, never as a guess ahead of it.
 

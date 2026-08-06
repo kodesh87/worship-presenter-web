@@ -38,8 +38,15 @@ prevent.
 |---|---|
 | *(none)* | backlog exhausted, or a condition escalates |
 | `dry-run` | after printing the plan; mutates nothing |
-| `one-story` | after the first story is committed, pushed, and its PR opened or adopted — before the CI watch |
+| `one-story` | after the first story is committed, pushed, its checks watched, and its PR readied or left draft |
 | `one-epic` | after its epic's PR is marked ready |
+
+**The branch and PR unit is a function of the mode.** `one-story` takes one branch
+and one PR for that story — an epic-scoped PR there would be a draft for an epic
+that will never finish, which is the parked draft-PR defect reached by design
+rather than by a skip tail. `one-epic` and bare keep one branch and one PR per
+epic. The branch name holds one shape across both,
+`<user>/<unit>-<id>-auto-<date>`, with `<unit>` `epic` or `story`.
 
 Four modes, one skill, the mode as an argument and a journal field. Not four
 skills: the cycle is identical in all of them and only the stop point differs, so
@@ -49,11 +56,17 @@ review rounds went into killing.
 
 `one-story` stops after the push and the PR, not after the commit: an unpushed
 commit means CI never sees the work, and observing the machinery is the mode's
-whole purpose. It does not enter the CI-findings cycle — it records that the
-checks were left unwatched, names the PR, and stops, leaving that decision with
-the owner. The PR correctly stays a draft, because the epic is not finished.
+whole purpose. It **watches** the checks — marking a PR ready without knowing
+they passed is sloppy, and a watch is a bounded wait rather than a second story's
+work — then marks the PR ready if they are green, or leaves it a draft and records
+the failing check names or routed comment ids if they are not. It never enters the
+*fix* cycle: the fix decision is the owner's, which is what the mode is for.
 `one-epic` behaves exactly as the default does within its epic, checks and
 CI-findings cycle included, then stops instead of handing control back.
+
+At any clean stop, a still-draft PR whose unit has no remaining selectable work is
+marked ready. That is what closes the skip-tail ending for the epic-scoped modes,
+and it belongs to the stop rather than to story selection.
 
 Both are **clean stops, not HALTs**, recorded as such: an owner who cannot tell a
 scope stop from an escalation will read a normal ending as a failure. Two rules
@@ -301,18 +314,18 @@ this skill exists to remove.
 
 ## Known defects, shipped deliberately
 
-Three findings from the final review were parked with rulings rather than fixed.
-They are recorded here rather than left in a git-ignored scratch file, because a
+One finding from the final review is still parked with a ruling rather than fixed.
+It is recorded here rather than left in a git-ignored scratch file, because a
 defect nobody wrote down is a defect the next reader rediscovers the hard way.
 
-**The last epic's PR can stay a draft.** The epic-close scan runs at commit
-time, so an epic whose trailing stories are all *skipped* rather than committed
-hands control back with the stories still `backlog` and not yet journal-skipped.
-Story selection then ends the run with no candidate, and nothing marks the PR
-ready. **This one has an operator consequence: after a run ends, check whether
-the last PR is still a draft and run `gh pr ready` if it is.** It was parked
-because closing it properly would hand the no-candidate exit a PR
-responsibility it should not own.
+Two others that stood here have since been closed by the scope-mode work, and the
+reasoning that parked them is worth keeping. *The last unit's PR could stay a
+draft* — parked because closing it seemed to hand story selection a PR
+responsibility it should not own. That was true of story selection and false of
+the run's own clean stop, which is where the check now lives, so no step gained a
+duty that is not its own. *One stale trigger phrase* — story selection naming
+`phase: committed` as its trigger — is now worded to agree with the per-story
+cycle instead of contradicting it.
 
 **A crash between the commit gate's two adjacent writes can leave work
 uncommitted.** The journal's `phase: committed` and the story's `done` in
@@ -320,12 +333,9 @@ uncommitted.** The journal's `phase: committed` and the story's `done` in
 second does not, a resumed run may re-create and re-develop that story; the
 gate's refusal to make a second code commit for one story key then catches it,
 so the new work stays uncommitted in the tree rather than landing twice. Bounded
-and self-limiting, but a narrow window.
-
-**One stale trigger phrase.** Story selection still names the `phase: committed`
-event as its trigger, which read literally would select the next story before
-push, PR, and the CI watch. The per-story cycle stated in `SKILL.md` resolves the
-order in the epic step's favour, so the phrase misleads rather than misdirects.
+and self-limiting, but a narrow window. It stays open deliberately: closing it
+would mean merging two commits that are separate on purpose, because a commit
+cannot contain its own hash.
 
 Two things this design has never had verified, stated so they are not mistaken
 for covered: no run has executed against a live story, and the five-reviewer
