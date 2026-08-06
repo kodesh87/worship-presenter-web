@@ -16,10 +16,10 @@ dispatch in one call and looks like the obvious choice. It MUST NOT be used
 by this skill: it accepts only `--agent <id>` and exposes no flag for model,
 effort, or permission mode, and every worker this skill starts carries all
 three. Recording this here is deliberate — a later reader who "simplifies" a
-step back onto `worker-start` would silently lose the model/effort/unattended
-argv this whole design depends on. That is why every dispatch instead
-composes `terminal create` → `terminal wait --for tui-idle` → `dispatch`,
-spelled out below. This skill also MUST NOT reuse a worker's terminal for a
+step back onto `worker-start` silently loses the model/effort/unattended argv
+this design depends on. So every dispatch instead composes `terminal create` →
+`terminal wait --for tui-idle` → `dispatch`, spelled out below. This skill also
+MUST NOT reuse a worker's terminal for a
 follow-up dispatch — every dispatch gets its own fresh terminal — so
 accounting for a settled worker, per `worker-accounting.md`, always takes the
 release branch, never a transfer to a follow-up task on the same terminal.
@@ -125,8 +125,13 @@ orca orchestration dispatch --task <task_id> --to <handle> --inject --json
   adjudicator, and the confirmation reviewer — the `--spec` MUST also carry a
   fifth element, a **read-only clause**: the worker reviews and reports only,
   MUST report every finding in its `worker_done` body, and MUST NOT write the
-  story file, `sprint-status.yaml`, or any other artifact, however its own
-  skill would normally record a status. Without it the clause is missing where
+  story file, `sprint-status.yaml`, or any other file inside this repository's
+  working tree, however its own skill would normally record a status. It MAY
+  write one findings report of its own **outside** that working tree and name
+  the path with `worker_done`'s `--report-path`, since the adjudicator is
+  required to read all five reports and `step-05-commit-gate.md` would
+  otherwise find them in its staging inspection. Without it the clause is
+  missing where
   it matters most: all seven of those roles run `bmad-code-review`, which
   natively sets the story's Status section and rewrites `sprint-status.yaml`,
   and `step-04-review-panel.md` runs five of them in parallel in one worktree —
@@ -187,10 +192,7 @@ worker:
 ## Waiting, settlement, and retry
 
 Every dispatch this recipe starts MUST be waited on exactly as
-`worker-waiting.md` describes — the Delivery/`--ack` discipline, the
-`worker_done`/`escalation`/`question` branches, liveness classification for a
-dispatch that never reports, and the wall-clock ceiling — and MUST then be
-accounted for exactly as `worker-accounting.md` describes: settlement,
-release, and the retry mechanics. Both files are reused unchanged by every
-later step that dispatches a worker; MUST NOT restate either inline here or in
-any step file.
+`worker-waiting.md` describes, and MUST then be accounted for exactly as
+`worker-accounting.md` describes. Both files are reused unchanged by every later
+step that dispatches a worker; MUST NOT restate either inline here or in any
+step file.

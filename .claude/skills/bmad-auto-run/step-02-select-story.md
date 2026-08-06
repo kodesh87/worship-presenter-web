@@ -94,6 +94,18 @@ This step's selection is only as good as how the next step uses it:
   reflecting this run's skips — the file has no field for them. The journal
   is the only record of what this run has skipped.
 
+## Dry-run branch
+
+On a `dry-run` invocation this step MUST still select, since the selected key is
+the one thing the dry run exists to show, but `SKILL.md`'s contract forbids the
+journal write every rule above requires:
+
+- MUST NOT append or modify any journal entry — neither `phase: selected` nor
+  `phase: skipped` nor the top-level `epic`. MUST instead print each entry it
+  would have written, in order.
+- MUST hold its skip decisions in this session only, and MUST NOT rely on the
+  journal's already-skipped check, which has nothing to read on a dry run.
+
 ## Escalation
 
 MUST escalate under condition 4 only after every key matching the pattern

@@ -171,7 +171,10 @@ for not having reported yet.
   is sent. Without this, any asker that asks past the halfway mark of its own
   ceiling HALTs under condition 5 while the repair it is waiting for is healthy
   and still running — a working loop reported as infrastructure down. The
-  repair carries its own ceiling, so the pair stays bounded.
+  suspension MUST end at whichever comes first: the reply being sent, or the
+  repair path escalating. It MUST NOT outlive both, or a failed repair would
+  leave one worker with no bound at all. The repair carries its own ceiling, so
+  the pair stays bounded either way.
 - MUST NOT add a cap on replies to one dispatch: the ceiling already bounds
   elapsed time with no completion, which is what harms an unattended run, while
   a reply cap would cut off a worker asking many quick, legitimate questions.

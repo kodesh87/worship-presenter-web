@@ -32,19 +32,18 @@ MUST be routed through `artifact-repairs.md` unchanged, never reimplemented.
   story whose three rounds are already spent MUST escalate under condition 3
   without dispatching a fourth fix.
 - MUST read `panel.confirmation` as `pending` on this path, never as the
-  `passed` recorded for the tree the CI finding superseded, so the confirmation
-  reviewer runs again before the commit gate accepts the new tree.
+  `passed` recorded for the superseded tree, so confirmation runs again before
+  the commit gate accepts the new one.
 
 ## Dispatching the panel in parallel
 
 - Every dispatch this step opens is a review-class role — the five reviewers,
   the adjudicator, and the confirmation reviewer — and each `--spec` MUST carry
   `dispatch-recipes.md`'s read-only clause. None of them MAY set this story's
-  status or touch `sprint-status.yaml`; that write is the coordinator's, made
-  once at `step-05-commit-gate.md`. Five reviewers writing in parallel the two
-  tracked files they are reviewing is silent corruption, and one reviewer's
-  inline `done` would close the review this step's own rule below says no
-  single reviewer may close.
+  status or touch `sprint-status.yaml`; that write is the coordinator's at
+  `step-05-commit-gate.md`. Five reviewers writing in parallel the two tracked
+  files they review is silent corruption, and one reviewer's inline `done`
+  would close the review this step's own rule below reserves.
 - MUST create all five reviewer dispatches — four `agy`, one other — before
   opening any wait on them, since the panel is parallel, not sequential.
 - MUST dispatch the four `agy` reviewers as two workers on each of the two
@@ -64,9 +63,9 @@ MUST be routed through `artifact-repairs.md` unchanged, never reimplemented.
   complete method.
 - Once all five are dispatched, MUST keep one shared wait loop rolling,
   matching each arriving message to its own dispatch by `dispatch_id` per
-  `worker-waiting.md`'s matching rule, until every one of the five has
-  either settled or completed the retry-once-then-escalate path above.
-  MUST NOT begin adjudication while any of the five is still outstanding.
+  `worker-waiting.md`'s matching rule, until all five have either settled or
+  completed the retry-once-then-escalate path above. MUST NOT begin
+  adjudication while any of the five is still outstanding.
 
 ## Adjudication
 
@@ -74,6 +73,10 @@ MUST be routed through `artifact-repairs.md` unchanged, never reimplemented.
   reports plus the code and diff, and returns one merged fix list with an
   explicit pass or fail verdict. The coordinator MUST NOT read the code or
   diff itself — that invariant is why the adjudicator dispatch exists at all.
+- MUST carry into that adjudicator's `--spec` each reviewer's `worker_done`
+  body and the `--report-path` it named, so "reads all five reports" names
+  something the adjudicator can actually open. Read-only reviewers write no
+  artifact the adjudicator could otherwise find.
 - Panel output MUST be treated as findings, not verdicts. MUST NOT close the
   review on any single reviewer's own approval, `agy` or otherwise — only the
   adjudicator's merged verdict may close a round.
@@ -88,9 +91,8 @@ MUST be routed through `artifact-repairs.md` unchanged, never reimplemented.
   neither is not a state this step can act on.
 - MUST record the adjudicator's verdict and its reasoning in this story's
   journal `note`, and record `panel.agy_pass` (0–4, the `agy` reviewers whose
-  own report was clean) and `panel.fifth_pass` (bool, the fifth reviewer's
-  own report) for this round — informational only, since the raw split
-  never itself closes the review; the adjudicator's merged verdict does.
+  own report was clean) and `panel.fifth_pass` (bool) for this round —
+  informational only, since only the merged verdict closes a round.
 
 ## Fix round
 
@@ -177,11 +179,8 @@ MUST continue on any other outcome:
   confirmation reviewer, exactly as the Fix round and Confirmation sections
   above track it.
 - Condition 5 — any reviewer, the adjudicator, a fix dispatch, or the
-  confirmation dispatch fails or goes dead a second time after one retry —
-  this step's own retry-once threshold, mirrored from
-  `step-03-story-cycle.md`, not a rule `dispatch-recipes.md` or
-  `worker-accounting.md` itself sets; or a repair need routed through
-  `artifact-repairs.md`'s mechanism escalates under 5 there.
+  confirmation dispatch fails or goes dead a second time after one retry; or a
+  repair need routed through `artifact-repairs.md` escalates under 5 there.
 
 A worker `question` from any of this step's up to eight dispatches MUST NOT be
 left pending against a condition that does not exist: `worker-waiting.md`
