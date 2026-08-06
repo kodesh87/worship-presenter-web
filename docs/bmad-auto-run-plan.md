@@ -52,7 +52,7 @@ Every task's requirements implicitly include these. Values are verbatim.
 - Modify: `package.json` (the `test` script)
 
 **Interfaces:**
-- Produces: the journal schema every later step writes; the `phase` enum `selected|created|validated|developed|reviewed|committed|skipped|escalated`; the step-index convention that the test enforces.
+- Produces: the journal schema every later step writes; the `phase` enum `selected|created|validated|developed|reviewed|committed|skipped`; the per-story `halted:` field that records an escalation (no `phase` value does, since HALT records the phase the story was already in); the step-index convention that the test enforces.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -127,12 +127,12 @@ Expected: FAIL — `SKILL.md is missing`.
 Frontmatter `name: bmad-auto-run` and a description naming the trigger. Then, each as normative instructions:
 
 - **Invocation.** The only entry point is `/bmad-auto-run`, optionally with `dry-run`. The operator MUST NOT have to invoke the `orchestration` skill first, and this skill MUST NOT invoke it either: that skill is a discovery stub whose two required actions — resolving the Orca executable and loading the version-matched guide from the binary — are performed by `step-01-preflight.md`. Stating this prevents both a redundant load and a stale cached copy of the guide.
-- **Activation.** Resolve the journal for today; if one exists with unfinished stories, MUST resume from its last `phase` rather than restarting.
+- **Activation.** Resolve the **most recent** journal, never strictly today's. Per-dispatch ceilings of 60 and 120 minutes across many stories cross midnight routinely, and a HALT is often cleared the next morning; keying on today's date alone starts a second run beside a live one — a new Orca Run reading an empty mailbox, a second branch and PR for the same epic, and `bmad-create-story` re-run over a story file a live worker may still hold. A journal file MAY hold more than one run document, separated by `---`, and `run: <date>-<n>` numbers them within the file. If the latest document holds a story that is neither `committed` nor `skipped`, MUST bind that document — `orca_run`, `branch`, and `pr` included — and resume that story from its recorded `phase`. MUST NOT resume a story whose entry carries a `halted:` condition; clearing it is the owner's act.
 - **Dry-run contract.** When invoked with `dry-run`, MUST execute step-01 and step-02 read-only, MUST print the planned dispatch sequence and gates, and MUST NOT create a terminal, write a file, or run a git command.
 - **Journal schema**, exactly:
 
 ```yaml
-run: <date>-<n>
+run: <date>-<n>                  # <n> is this document's ordinal within its file
 orca_run: <orca run id>          # bound on resume, never re-created
 epic: <n>
 branch: <name>
@@ -140,12 +140,13 @@ pr: <url|null>
 preflight: passed|failed
 stories:
   - key: <sprint-status key>
-    phase: selected|created|validated|developed|reviewed|committed|skipped|escalated
+    phase: selected|created|validated|developed|reviewed|committed|skipped
+    halted: <condition number>       # written by the HALT protocol, cleared by the owner
     fix_rounds: <n>
     ci_rounds: <n>                 # post-commit CI fix cycles routed back to review
     panel: { agy_pass: <n>, fifth_pass: <bool>, confirmation: passed|failed|pending }
     commit: <sha|null>             # the most recent code commit for this story
-    note: <one line>
+    note: <free text; a block scalar where the evidence needs one>
     dispatches:
       - role: <role>
         family: <cli family>     # so a resumed run can honour "a different family than the creator"
@@ -155,8 +156,14 @@ stories:
         started: <timestamp>     # when this dispatch was sent, so its ceiling survives a resume
         strikes: <n>             # classifications producing no new message, per dispatch
         outcome: succeeded|failed|pending|unsettled
-        last_state: <one line>   # what was last observed, for an unsettled dispatch
+        last_state: <free text; a block scalar where the evidence needs one>
 ```
+
+`note` and `last_state` MUST NOT be constrained to one line. Several steps write
+a worker's own error text, a failing check's output, or an adjudicator's
+reasoning into them, and a one-line schema makes an agent obeying both truncate
+the evidence a HALT exists to hand the owner. A value needing more than one line
+MUST be written as a YAML block scalar.
 
 `orca_run` and `dispatches` are not bookkeeping for its own sake. Without the
 recorded family, a run resuming at `phase: created` cannot know which family
@@ -166,7 +173,7 @@ Run reads an empty mailbox and never receives the prior workers' reports.
 Without `started` and `strikes`, the wall-clock ceiling and the classification
 bound reset on every interruption, so each holds within one run only.
 
-- **HALT protocol.** On any escalation the run MUST write the condition and the story's `phase` to the journal, MUST leave no worker terminal unaccounted for, and MUST stop without a further dispatch.
+- **HALT protocol.** On any escalation the run MUST write the condition and the story's `phase` to the journal, MUST write that condition number into the story's `halted:` field, MUST leave no worker terminal unaccounted for, and MUST stop without a further dispatch. The `halted:` field is load-bearing: HALT records the phase the story was already in, and several steps require leaving `phase` unchanged, so without it a halted story is indistinguishable from one in flight and Activation resumes it.
 - **`## Escalation`** — the seven conditions, numbered `1.` to `7.`, worded as in the design record.
 - **Step index** naming `step-01-preflight.md` only. The index MUST grow one entry per task, because the structural test requires every referenced file to exist — a forward reference to a file Task 2 has not written yet fails this task. Tasks 2 to 6 each append their own entry.
 

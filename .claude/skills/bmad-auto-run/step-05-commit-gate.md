@@ -10,10 +10,15 @@ action below runs as the coordinator itself.
 
 ## Final build, test, guard
 
-- MUST run `npm run build`, then `npm test`, in that order — the suite
-  includes a test that spawns the built server and throws unless `.next`
-  exists, so testing before building is not an equivalent ordering. MUST
-  require both green.
+- MUST first require `git branch --show-current` to equal the journal's
+  `branch` field. Anything else — the repository default, another epic's
+  branch, a detached HEAD — MUST escalate under condition 2 before building or
+  staging: `step-06-epic-boundary.md` should have checked that branch out
+  before `step-03-story-cycle.md` dispatched, so a mismatch means this story
+  is about to be committed somewhere the loop never chose.
+- MUST run `npm run build`, then `npm test`, in that order and MUST require
+  both green — the suite includes a test that spawns the built server and
+  throws unless `.next` exists, so the reverse order is not equivalent.
 - MUST then run the guard command exactly as `SKILL.md` quotes it, character
   for character:
 
@@ -48,10 +53,9 @@ action below runs as the coordinator itself.
   `data/uploads/`, `data.db*`, `slides*/`, `*.pptx`, `*.potx`, or that
   otherwise names a congregation, payment, or production-host artifact by
   its path alone — `AGENTS.md`'s "Never commit" list.
-- MUST treat a path whose match against that list is unclear the same as a
-  match: MUST NOT stage it and MUST NOT guess it is clean. `AGENTS.md`
-  itself prefers not producing such a value over blocking it after the
-  fact; refusing an unclear path is the cheaper mistake.
+- MUST treat a path whose match against that list is unclear as a match: MUST
+  NOT stage it and MUST NOT guess it is clean. Refusing an unclear path is the
+  cheaper mistake.
 - If any path is refused, MUST NOT stage or commit anything else for this
   story this cycle either — a partial commit around a refused path is still a
   decision about the change set's contents, and this step does not read the
@@ -123,19 +127,17 @@ action below runs as the coordinator itself.
   the journal `note` and escalate under condition 2, as under "Committing"
   above — the code landed, but an unrecorded sha left unescalated is a silent
   gap this step exists to close.
-- Once both commits have landed, this step's job ends.
-  `step-02-select-story.md` picks the next story once it observes
-  `phase: committed` here.
+- Once both commits have landed, this step's job ends and
+  `step-06-epic-boundary.md` runs on that `phase: committed` event.
 
 ## Resuming after an interruption
 
-The signature a resumed run keys on MUST be what git itself durably holds,
-not the journal alone: the code commit under "Committing" can land while the
-process dies before "Recording the sha" runs, leaving the journal at
-`phase: reviewed` — indistinguishable, on that field, from a story with
-nothing committed. Trusting the journal there would re-run the whole gate and
-record a *second* commit holding only the journal edit as the story's
-`commit`, orphaning the commit that holds the work.
+The signature a resumed run keys on MUST be what git itself durably holds, not
+the journal alone: the code commit under "Committing" can land while the process
+dies before "Recording the sha" runs, leaving the journal at `phase: reviewed`
+— indistinguishable, on that field, from a story with nothing committed.
+Trusting it would re-run the gate and record a *second* commit holding only the
+journal edit as the story's `commit`, orphaning the one that holds the work.
 
 A story can also legitimately reach this step more than once. A post-commit
 CI finding sends a committed story back through `step-04-review-panel.md` and
@@ -192,7 +194,6 @@ continue on any other outcome:
 - Condition 2 — the build, the test suite, or the commit itself is red for a
   reason that is not the guard.
 
-On either, MUST follow the HALT protocol in `SKILL.md`: write the condition
-and this story's current `phase` to the journal, and stop without a further
-dispatch. This step opens no worker dispatch of its own, so there is nothing
-for `worker-waiting.md` or `worker-accounting.md` to release or record here.
+On either, MUST follow the HALT protocol in `SKILL.md` and stop without a
+further dispatch. This step opens no worker dispatch of its own, so there is
+nothing for `worker-waiting.md` or `worker-accounting.md` to release here.
