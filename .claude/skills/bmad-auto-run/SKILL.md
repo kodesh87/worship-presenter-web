@@ -153,3 +153,8 @@ this directory to be referenced.
    paths, write the journal row, and commit as the coordinator, carrying the
    story from `phase: reviewed` to `phase: committed` with its commit sha,
    run once `step-04-review-panel.md` reaches `phase: reviewed`.
+6. `step-06-epic-boundary.md` — owns the branch and PR lifecycle across an
+   epic: ensure the epic's branch before `step-03-story-cycle.md` dispatches,
+   then after `step-05-commit-gate.md` reaches `phase: committed` push, open
+   or update the draft PR, watch CI/Greptile, and once the epic's last
+   backlog story lands mark the PR ready and start the next epic's branch.
