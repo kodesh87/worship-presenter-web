@@ -142,3 +142,7 @@ this directory to be referenced.
    `dispatch-recipes.md`, the wait, classification, and ceiling rules in
    `worker-waiting.md`, and the settlement and retry rules in
    `worker-accounting.md`.
+4. `step-04-review-panel.md` — dispatch the five-reviewer panel, adjudicate,
+   run fix rounds, and confirm, carrying the story from `phase: developed`
+   to `phase: reviewed`, run once the dev dispatch in `step-03-story-cycle.md`
+   succeeds.
