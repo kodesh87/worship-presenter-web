@@ -1,9 +1,13 @@
 # Step 1: Pre-flight
 
-Read-only environment and baseline checks, run exactly once per run, before
-the first story is selected. Every check here MUST be non-mutating: no
-terminal is created, no file is written outside the journal, and no git
-command that changes state is run.
+Environment and baseline checks, run exactly once per run, before the first
+story is selected. No check here MUST mutate repository state: no file is
+written outside the journal and no git command that changes state is run. Two
+things here are deliberate exceptions to "read-only", and MUST NOT be skipped
+as though the sentence above forbade them — the `agy` probe below creates two
+terminals, because no read-only command can detect what it detects, and the
+baseline runs `npm run build`, whose only output is an ignored directory. The
+dry-run branch near the end of this file is where the probe is withheld.
 
 ## Resolve the Orca executable once
 
@@ -63,7 +67,9 @@ others from being checked and recorded.
     escalate under condition 5.
   - MUST read the served model for each row from the CLI's own log output, by
     the method the operator's `agy` rules name, and MUST record both in the
-    journal `note`. Where both rows report the same served model MUST escalate
+    journal's top-level `agy_probe` field — not a story's `note`, which does not
+    exist yet at pre-flight and belongs to a story this record outlives.
+    Where both rows report the same served model MUST escalate
     under condition 5: the panel requires two distinct models and this account
     is serving one, which no fix inside this loop can change.
   - MUST close both terminals with `orca terminal close --terminal <handle>

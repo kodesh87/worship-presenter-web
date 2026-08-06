@@ -50,9 +50,8 @@ consistent with that record.
 
 When invoked with `dry-run`:
 
-- The run MUST execute `step-01-preflight.md` and `step-02-select-story.md`,
-  and MUST print the planned dispatch sequence and the gates it would pass
-  through.
+- The run MUST execute `step-01-preflight.md` and `step-02-select-story.md`, and
+  MUST print the planned dispatch sequence and the gates it would pass through.
 - The run MUST NOT mutate Orca or repository state: no terminal, no dispatch,
   no journal or artifact write, no state-changing git command. Read-only
   inspection is not a mutation and MUST NOT be skipped as one, so
@@ -66,9 +65,9 @@ Every run MUST write one run document at
 `_bmad-output/implementation-artifacts/auto-run/<date>-journal.md` — the file
 Activation resolves above — in exactly this shape. Every later step MUST write
 only a field already present below, and MUST NOT introduce a `phase` outside
-the enum on the `phase:` line. A value needing more than one line, such as a
-worker's own error text, MUST be written as a YAML block scalar rather than
-truncated to fit: that evidence is what a HALT hands the owner.
+the enum on the `phase:` line. A value needing more than one line MUST be
+written as a YAML block scalar rather than truncated: that evidence is what a
+HALT hands the owner.
 
 ```yaml
 run: <date>-<n>                  # <n> is this document's ordinal within its file
@@ -77,6 +76,7 @@ epic: <n>
 branch: <name>
 pr: <url|null>
 preflight: passed|failed
+agy_probe: <one line per mandated agy row: the row and the model it was served>
 stories:
   - key: <sprint-status key>
     phase: selected|created|validated|developed|reviewed|committed|skipped
@@ -177,8 +177,8 @@ The run MUST read and follow each step file fully. Every `.md` file in this
 directory MUST be referenced from this index, and every reference in any of them
 MUST resolve — `tests/bmad-auto-run-skill.test.mjs` asserts both.
 
-1. `step-01-preflight.md` — read-only environment and baseline checks, run
-   once before the first story of the run.
+1. `step-01-preflight.md` — environment and baseline checks, plus the one `agy`
+   probe, run once before the first story of the run.
 2. `step-02-select-story.md` — pick the next backlog story, skipping any
    whose dependency is unmet.
 3. `step-03-story-cycle.md` — dispatch create story, validate, and dev in

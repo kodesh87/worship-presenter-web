@@ -27,32 +27,34 @@ MUST be routed through `artifact-repairs.md` unchanged, never reimplemented.
   dev-fix worker carrying those recorded findings exactly as the Fix round
   section below describes, incrementing `fix_rounds` by that section's own rule,
   and only then re-run the full five-reviewer panel on the fixed tree.
-- MUST NOT reset `fix_rounds` on this entry. The cap and both escalation
+- MUST NOT reset `fix_rounds` on this entry: the cap and both escalation
   conditions below count a post-commit round exactly as a pre-commit one, so a
-  story whose three rounds are already spent MUST escalate under condition 3
-  without dispatching a fourth fix.
+  story whose three rounds are spent MUST escalate under condition 3 instead.
 - MUST read `panel.confirmation` as `pending` on this path, never as the
   `passed` recorded for the superseded tree, so confirmation runs again before
   the commit gate accepts the new one.
 
 ## Dispatching the panel in parallel
 
-- Every dispatch this step opens is a review-class role — the five reviewers,
-  the adjudicator, and the confirmation reviewer — and each `--spec` MUST carry
-  `dispatch-recipes.md`'s read-only clause. None of them MAY set this story's
-  status or touch `sprint-status.yaml`; that write is the coordinator's at
-  `step-05-commit-gate.md`. Five reviewers writing in parallel the two tracked
-  files they review is silent corruption, and one reviewer's inline `done`
-  would close the review this step's own rule below reserves.
+- Review-class here is a closed set of seven — the five reviewers, the
+  adjudicator, and the confirmation reviewer — and each of those `--spec`s MUST
+  carry `dispatch-recipes.md`'s read-only clause. A dev-fix dispatch is a dev
+  dispatch and MUST NOT carry it, or the fix it was sent to make would be
+  forbidden to touch a file. None of the seven MAY set this story's status or
+  touch `sprint-status.yaml`; that write is the coordinator's at
+  `step-05-commit-gate.md`. Five reviewers writing the two tracked files they
+  review in parallel is silent corruption, and one reviewer's inline `done`
+  would close a review only the merged verdict may close.
 - MUST create all five reviewer dispatches — four `agy`, one other — before
   opening any wait on them, since the panel is parallel, not sequential.
 - MUST dispatch the four `agy` reviewers as two workers on each of the two
   model rows the operator's bmad-code-review panel rule mandates, and MUST NOT
   substitute the row that same rule names as silently served as the other row —
   that would collapse two intended reviewers into one served model. MUST take
-  the served-model verification for both rows from what
-  `step-01-preflight.md`'s `agy` probe recorded, and MUST NOT re-verify it here
-  per panel.
+  the served-model verification for both rows from the journal's top-level
+  `agy_probe`, written by `step-01-preflight.md`'s probe, and MUST NOT re-verify
+  it per panel. Absent or empty on a real run, that probe never ran, which MUST
+  escalate under condition 5 rather than proceed on an unverified panel.
 - MUST pick the fifth reviewer's CLI alternative from the review-panel
   routing row from a family other than the dev family just read from the
   journal — never an `agy` alternative, since the four `agy` slots are fixed.
@@ -183,13 +185,12 @@ MUST continue on any other outcome:
   repair need routed through `artifact-repairs.md` escalates under 5 there.
 
 A worker `question` from any of this step's up to eight dispatches MUST NOT be
-left pending against a condition that does not exist: `worker-waiting.md`
-requires the calling step to name where such a question lands, and this step
-resolves it exactly as `step-03-story-cycle.md`'s question rule does — `reply`
-when the answer is inside this loop's authority, condition 6 when its scope is
-one of that condition's three, otherwise `artifact-repairs.md`'s path. An
-unrouted question blocks its reviewer for the full 120-minute ceiling and then
-HALTs under condition 5, mislabelling a working `ask` as infrastructure down.
+left pending against a condition that does not exist. This step resolves it
+exactly as `step-03-story-cycle.md`'s question rule does — `reply` when the
+answer is inside this loop's authority, condition 6 when its scope is one of
+that condition's three, otherwise `artifact-repairs.md`'s path. Unrouted, it
+blocks its reviewer for the full ceiling and then HALTs under condition 5,
+mislabelling a working `ask` as infrastructure down.
 
 On any of these, MUST follow the HALT protocol in `SKILL.md`: write the
 condition and this story's current `phase` to the journal, account for every
