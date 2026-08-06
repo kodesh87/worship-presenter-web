@@ -237,3 +237,37 @@ a terminal.
 Anything else: continue. The owner's standing instruction is that escalations
 which merely confirm a recommendation are ceremony, and ceremony is the cost
 this skill exists to remove.
+
+## Known defects, shipped deliberately
+
+Three findings from the final review were parked with rulings rather than fixed.
+They are recorded here rather than left in a git-ignored scratch file, because a
+defect nobody wrote down is a defect the next reader rediscovers the hard way.
+
+**The last epic's PR can stay a draft.** The epic-close scan runs at commit
+time, so an epic whose trailing stories are all *skipped* rather than committed
+hands control back with the stories still `backlog` and not yet journal-skipped.
+Story selection then ends the run with no candidate, and nothing marks the PR
+ready. **This one has an operator consequence: after a run ends, check whether
+the last PR is still a draft and run `gh pr ready` if it is.** It was parked
+because closing it properly would hand the no-candidate exit a PR
+responsibility it should not own.
+
+**A crash between the commit gate's two adjacent writes can leave work
+uncommitted.** The journal's `phase: committed` and the story's `done` in
+`sprint-status.yaml` are written one after the other. If the first lands and the
+second does not, a resumed run may re-create and re-develop that story; the
+gate's refusal to make a second code commit for one story key then catches it,
+so the new work stays uncommitted in the tree rather than landing twice. Bounded
+and self-limiting, but a narrow window.
+
+**One stale trigger phrase.** Story selection still names the `phase: committed`
+event as its trigger, which read literally would select the next story before
+push, PR, and the CI watch. The per-story cycle stated in `SKILL.md` resolves the
+order in the epic step's favour, so the phrase misleads rather than misdirects.
+
+Two things this design has never had verified, stated so they are not mistaken
+for covered: no run has executed against a live story, and the five-reviewer
+panel's cost per story is unmeasured. The dry run proved the skill inert and
+proved it selects the story a human would; it proved nothing about what happens
+after the first worker starts.
