@@ -190,9 +190,8 @@ MUST resolve — `tests/bmad-auto-run-skill.test.mjs` asserts both.
    run fix rounds, and confirm, carrying the story from `phase: developed`
    to `phase: reviewed`.
 5. `step-05-commit-gate.md` — build, test, refuse forbidden paths, stage,
-   guard, then commit as the coordinator, carrying the story from
-   `phase: reviewed` to `phase: committed`; `commit-resume.md` holds its
-   recovery rules.
+   guard, then commit as the coordinator, carrying `phase: reviewed` to
+   `phase: committed`; `commit-resume.md` holds its recovery rules.
 6. `step-06-epic-boundary.md` — owns the branch and PR lifecycle across an
    epic: ensure the epic's branch, then after a commit push, open or update the
    draft PR, watch what that push produced and route its findings back to

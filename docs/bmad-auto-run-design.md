@@ -181,10 +181,19 @@ worker, and it closes a hole that has already opened twice.
 
 ## Commit gate and PR boundary
 
-Before every commit, with no exception: `npm run build && npm test` green, the
-public-repo guard green, and nothing forbidden staged. A guard failure stops the
-run and escalates. The loop may never weaken the guard — the finding is the
+Before every commit, with no exception: `npm run build && npm test` green,
+nothing forbidden staged, and the public-repo guard green. A guard failure stops
+the run and escalates. The loop may never weaken the guard — the finding is the
 point. Commit, push, and PR are always the coordinator's, never a worker's.
+
+**The guard runs after staging, not before it.** Its scan set is the index
+(`git ls-files`), and an untracked file joins that set only when it is staged.
+Run first, it cannot see the content of a file a story worker left untracked, so
+such a file under a path the denylist does not name would be committed and only
+reported on the following run — already public. Verified rather than reasoned
+about: staging a new file puts it in `git ls-files` immediately. A guard that
+fails after staging leaves the staging in place, records the staged paths, and
+escalates; unstaging automatically would destroy the evidence the owner needs.
 
 The PR boundary is the **epic**. Per epic: a branch, a draft PR opened after the
 first story's commit, and ready-for-review after the last story of that epic

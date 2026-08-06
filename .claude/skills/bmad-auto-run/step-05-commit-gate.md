@@ -15,7 +15,7 @@ action below runs as the coordinator itself.
   the journal alone, which parts of this step a resumed run MUST repeat and
   which it MUST NOT. MUST NOT reimplement that decision here.
 
-## Final build, test, guard
+## Final build and test
 
 - MUST first require `git branch --show-current` to equal the journal's
   `branch` field. Anything else — the repository default, another epic's
@@ -26,36 +26,25 @@ action below runs as the coordinator itself.
 - MUST run `npm run build`, then `npm test`, in that order and MUST require
   both green — the suite includes a test that spawns the built server and
   throws unless `.next` exists, so the reverse order is not equivalent.
-- MUST then run the guard command exactly as `SKILL.md` quotes it, character
-  for character:
-
-  ```
-  node --import ./tests/register-ts-resolve.mjs --test --experimental-strip-types tests/public-repo-guard.test.mjs
-  ```
-
-  `npm test` already runs this file once, but this standalone run is
-  `AGENTS.md`'s own commit-audit step 2 and MUST NOT be skipped as redundant.
-- MUST NOT retry a red build, a red test, or a red guard run. A silent retry
-  could mask an intermittent failure, the unwatched spin this design exists
-  to prevent — one red result is enough to act on.
-- A red guard MUST escalate under condition 1. MUST NOT weaken, skip, or
-  narrow the guard to make it pass — in this repository the finding is the
-  point.
-- A red build or a red test that is not the guard MUST escalate under
-  condition 2, the same broadening `step-01-preflight.md` applies to a red
-  baseline. MUST NOT escalate under condition 5 — this is not infrastructure
-  down — and MUST NOT be routed back into `step-04-review-panel.md`'s
-  fix-round mechanism, whose job ended at `phase: reviewed`.
-- On either escalation, MUST leave this story's `phase` unchanged (still
-  `reviewed`): nothing here has committed anything yet, so nothing has
-  advanced.
+- MUST NOT retry a red build or a red test. A silent retry could mask an
+  intermittent failure, the unwatched spin this design exists to prevent —
+  one red result is enough to act on.
+- A red build or a red test MUST escalate under condition 2, the same
+  broadening `step-01-preflight.md` applies to a red baseline. MUST NOT
+  escalate under condition 5 — this is not infrastructure down — and MUST NOT
+  be routed back into `step-04-review-panel.md`'s fix-round mechanism, whose
+  job ended at `phase: reviewed`.
+- On that escalation, MUST leave this story's `phase` unchanged (still
+  `reviewed`): nothing here has committed anything yet. The guard is **not**
+  run in this section; it runs after staging, for the reason its own section
+  below gives. Build and test need no staging and MUST stay here.
 
 ## Staging: refuse what must never be committed
 
 - MUST run `git status --short` and read every reported path. MUST judge
   each path by name only, never by reading its content — this step inherits
   `SKILL.md`'s "MUST NOT read a diff" rule, and a content-level leak is the
-  guard test's job above, not this manual check's.
+  guard's job below, not this manual check's.
 - MUST refuse to stage any path matching `.env*`, `data/local/`,
   `data/uploads/`, `data.db*`, `slides*/`, `*.pptx`, `*.potx`, or that
   otherwise names a congregation, payment, or production-host artifact by
@@ -72,6 +61,37 @@ action below runs as the coordinator itself.
 - Otherwise, MUST stage every remaining path individually by name. MUST NOT
   use `git add -A` or `git add .`, since either would stage a path this step
   never actually inspected.
+
+## The guard: after staging, immediately before the commit
+
+- MUST run the guard command exactly as `SKILL.md` quotes it, character for
+  character, **after** the staging above and immediately before the commit
+  below:
+
+  ```
+  node --import ./tests/register-ts-resolve.mjs --test --experimental-strip-types tests/public-repo-guard.test.mjs
+  ```
+
+- This ordering is load-bearing and MUST NOT be moved back above staging, nor
+  folded into a section titled for the build and test. The guard's scan set is
+  the index: `tests/public-repo-guard.test.mjs` builds it from `git ls-files`,
+  and an untracked file enters that set only once it is staged. Run before
+  staging, the guard cannot see the content of a file a story worker left
+  untracked — so such a file, under a path the list above does not name, passes
+  the path check, gets staged, and gets committed, and the guard reports it on
+  the *next* run, once it is already public history. In this repository that is
+  the one failure that cannot be walked back.
+- `npm test` already ran this file once, but this standalone run is
+  `AGENTS.md`'s own commit-audit step 2 and MUST NOT be skipped as redundant.
+- MUST NOT retry a red guard run, and MUST NOT weaken, skip, or narrow the
+  guard to make it pass — in this repository the finding is the point.
+- A red guard MUST escalate under condition 1, and the staged state MUST be
+  left exactly as it stands: MUST NOT commit, and MUST NOT unstage. MUST record
+  every staged path and the guard's own output in the journal `note`. The owner
+  needs to see precisely what tripped it, and an automatic unstage would
+  destroy that evidence.
+- On that escalation, MUST leave this story's `phase` unchanged (still
+  `reviewed`): staging is not committing, so nothing has advanced.
 
 ## Writing the journal row before the commit
 
