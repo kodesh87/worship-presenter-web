@@ -110,8 +110,11 @@ blocks nothing. Dependency checks are therefore this skill's job, not the
 method's — and an unmet dependency is a skip, not a stop. Only when *every*
 remaining backlog story is blocked does the run escalate.
 
-`bmad-code-review` sets `done` natively. The journal records that the loop set
-it and that the owner's review happens at the PR, so the status stays honest.
+`bmad-code-review` sets `done` natively, and every reviewer runs it in the same
+worktree — so review-class workers are dispatched **read-only**: they report
+findings and write nothing. The status write is the coordinator's, made once at
+the commit gate. The journal records that the loop set it and that the owner's
+review happens at the PR, so the status stays honest.
 
 ## Artifact repairs taken mid-run
 

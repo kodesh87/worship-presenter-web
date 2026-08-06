@@ -39,6 +39,14 @@ reference — MUST NOT be reimplemented here.
 
 ## Dispatching the panel in parallel
 
+- Every dispatch this step opens is a review-class role — the five reviewers,
+  the adjudicator, and the confirmation reviewer — and each `--spec` MUST carry
+  `dispatch-recipes.md`'s read-only clause. None of them MAY set this story's
+  status or touch `sprint-status.yaml`; that write is the coordinator's, made
+  once at `step-05-commit-gate.md`. Five reviewers writing in parallel the two
+  tracked files they are reviewing is silent corruption, and one reviewer's
+  inline `done` would close the review this step's own rule below says no
+  single reviewer may close.
 - MUST create all five reviewer dispatches — four `agy`, one other — before
   opening any wait on them, since the panel is parallel, not sequential.
 - MUST dispatch the four `agy` reviewers as two workers on each of the two

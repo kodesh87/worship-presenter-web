@@ -51,6 +51,14 @@ dependency schema the file does not have.
   holds an entry for that key. If it is already `phase: skipped`, MUST NOT
   re-evaluate its dependency or write a duplicate entry — MUST move directly
   to the next matching key instead.
+- MUST NOT select a key this run's journal already records at any `phase`
+  other than `skipped`. That story is this run's own work — in progress or
+  already committed — and `SKILL.md`'s Activation resumes it from its recorded
+  `phase` instead of selecting it afresh. `sprint-status.yaml` is not proof
+  otherwise: the write that clears a committed story out of `backlog` lands in
+  `step-05-commit-gate.md`'s second commit, so an interruption between that
+  step's two commits leaves the row reading `backlog` for a story already
+  committed.
 - A skip MUST NOT be reported or logged as an error. It is the loop
   continuing to the next backlog story, not a failure of any kind.
 

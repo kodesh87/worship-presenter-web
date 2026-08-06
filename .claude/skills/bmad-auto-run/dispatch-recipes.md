@@ -104,6 +104,20 @@ orca orchestration dispatch --task <task_id> --to <handle> --inject --json
     spec, architecture, or correct-course change happens, it MUST report that
     need rather than making the change itself, since the repair path in
     `artifact-repairs.md` is what owns that change.
+- For a **review-class role** — any of the five panel reviewers, the
+  adjudicator, and the confirmation reviewer — the `--spec` MUST also carry a
+  fifth element, a **read-only clause**: the worker reviews and reports only,
+  MUST report every finding in its `worker_done` body, and MUST NOT write the
+  story file, `sprint-status.yaml`, or any other artifact, however its own
+  skill would normally record a status. Without it the clause is missing where
+  it matters most: all seven of those roles run `bmad-code-review`, which
+  natively sets the story's Status section and rewrites `sprint-status.yaml`,
+  and `step-04-review-panel.md` runs five of them in parallel in one worktree —
+  so they become concurrent writers on two tracked files, and a single
+  reviewer's inline verdict marks the story `done` before adjudication, before
+  confirmation, and before the commit gate. The guide states the same rule
+  from its own side: a review-only `worker_done` reports findings and
+  authorizes no file edits.
 - MUST wait for `tui-idle` before dispatching. A dispatch sent to a
   not-yet-ready TUI MUST NOT be recorded as that worker's `--outcome failed`,
   and a `tui-idle` match MUST NOT itself be taken as proof the worker has
