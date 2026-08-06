@@ -4,7 +4,11 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 
 const DIR = '.claude/skills/bmad-auto-run';
-const read = (f) => readFileSync(`${DIR}/${f}`, 'utf8');
+// Normalise newlines. This repository is cloned on Windows with core.autocrlf=true,
+// so a fresh checkout hands these files back with CRLF and every anchored pattern
+// below would fail on line endings rather than on content.
+const read = (f) => readFileSync(`${DIR}/${f}`, 'utf8').replace(/\r\n/g, '\n');
+const readRoot = (f) => readFileSync(f, 'utf8').replace(/\r\n/g, '\n');
 const mdFiles = () => readdirSync(DIR).filter((f) => f.endsWith('.md'));
 
 const GUARD_CMD =
@@ -56,7 +60,7 @@ test('no skill file hardcodes a model id or a vendor flag', () => {
 });
 
 test('the guard command is quoted verbatim from AGENTS.md', () => {
-  assert.ok(readFileSync('AGENTS.md', 'utf8').includes(GUARD_CMD), 'AGENTS.md changed the guard command');
+  assert.ok(readRoot('AGENTS.md').includes(GUARD_CMD), 'AGENTS.md changed the guard command');
   const gate = mdFiles().map(read).join('\n');
   assert.ok(gate.includes(GUARD_CMD), 'no skill file runs the guard command verbatim');
 });
@@ -78,7 +82,7 @@ const escalationItems = (text) => {
 
 test('the skill and the design record agree on seven escalations', () => {
   assert.equal(escalationItems(read('SKILL.md')).length, 7, 'SKILL.md does not list exactly seven escalation conditions');
-  const design = readFileSync('docs/bmad-auto-run-design.md', 'utf8');
+  const design = readRoot('docs/bmad-auto-run-design.md');
   assert.equal(escalationItems(design).length, 7, 'the design record no longer lists seven escalation conditions');
 });
 
@@ -86,7 +90,7 @@ test('the seven conditions are worded identically in both files', () => {
   // The count matching is not enough: several files cite a condition by number,
   // so wording that drifts in one file silently redirects every citation.
   const skill = escalationItems(read('SKILL.md'));
-  const design = escalationItems(readFileSync('docs/bmad-auto-run-design.md', 'utf8'));
+  const design = escalationItems(readRoot('docs/bmad-auto-run-design.md'));
   assert.ok(skill.length > 0, 'no escalation conditions parsed out of SKILL.md');
   for (let i = 0; i < skill.length; i++) {
     assert.equal(skill[i], design[i], `condition ${i + 1} is worded differently in SKILL.md and the design record`);
