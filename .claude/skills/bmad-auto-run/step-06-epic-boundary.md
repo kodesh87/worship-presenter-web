@@ -91,12 +91,31 @@ Runs once per `phase: committed` event from `step-05-commit-gate.md`.
   failure, network, API error) MUST NOT be retried silently — MUST record the
   exact error in the journal `note` and escalate under condition 5.
 
+### The `one-story` stop
+
+Reached here, once the commit has been pushed and the PR opened or adopted, and
+before the CI watch below.
+
+- In `mode: one-story` the run MUST stop at this point, and MUST NOT enter
+  `ci-findings.md`. Stopping earlier — at the commit — would leave the work
+  unpushed, so CI never sees it and the machinery this mode exists to observe
+  never runs; stopping later would make the mode more than one story, since a CI
+  finding starts a fix round.
+- MUST record in the journal that the checks and reviews were left unwatched, and
+  MUST name the PR url, so the owner knows exactly what is theirs to decide.
+- MUST set `stopped: scope reached` and stop cleanly per `SKILL.md`'s scope-mode
+  rules — not a HALT, and MUST NOT write a `halted:` condition on the story.
+- MUST leave the PR a draft. The epic is not finished, and "Closing the epic"
+  below is the only place `gh pr ready` belongs.
+- In every other mode this section MUST do nothing at all.
+
 ### Watching what the push produced
 
 - After every push, including the one that just opened the draft PR, MUST follow
   `ci-findings.md` exactly — the checks, the reviews, their bounds, and the
   routing of any finding back into `step-04-review-panel.md`'s fix cycle. MUST
-  NOT reimplement any of it here.
+  NOT reimplement any of it here. `mode: one-epic` and `mode: full` both run it
+  identically: an epic is not finished until its checks are green.
 - MUST NOT proceed to "Closing the epic" below until that file says this step
   may.
 
@@ -114,7 +133,14 @@ Runs once per `phase: committed` event from `step-05-commit-gate.md`.
   NOT be retried blindly — MUST check `gh pr view --json isDraft -q
   .isDraft`; `false` means it is already ready (idempotent), anything else
   MUST be recorded in the journal `note` and escalated under condition 5.
-- MUST then hand control back without a further dispatch — MUST NOT create
+- In `mode: one-epic` the run MUST stop once that `gh pr ready` has succeeded,
+  instead of handing control back. This is the mode's whole difference from
+  `full`: everything up to and including the ready PR is identical. MUST set
+  `stopped: scope reached` and stop cleanly per `SKILL.md`'s scope-mode rules —
+  not a HALT, and no `halted:` condition. Where the run was resumed mid-epic,
+  "its epic" MUST be the one the journal's `epic` field names, never an epic
+  inferred from the story in hand.
+- Otherwise MUST hand control back without a further dispatch — MUST NOT create
   the next epic's branch here. `step-02-select-story.md` selects the next
   story (in this epic, if any remain, or the next one entirely), and
   "Ensuring the epic's branch" above is the one place a branch is created —

@@ -17,6 +17,8 @@ HALT hands the owner.
 
 ```yaml
 run: <date>-<n>                  # <n> is this document's ordinal within its file
+mode: full|dry-run|one-story|one-epic   # resolved once at invocation, read on resume
+stopped: <scope reached|escalated: <condition>|null>
 orca_run: <orca run id>          # bound on resume, never re-created
 epic: <n>
 branch: <name>
@@ -43,6 +45,14 @@ stories:
         outcome: succeeded|failed|pending|unsettled
         last_state: <free text; a block scalar where the evidence needs one>
 ```
+
+`mode` and `stopped` are what make a run's scope survive the run. `mode` MUST be
+written before the first dispatch and MUST be the only source a resumed run
+reads its scope from, or a `one-story` run that halts overnight resumes as a
+full-backlog one. `stopped` MUST distinguish a scope stop from an escalation:
+both leave a finished-looking journal, and an owner who cannot tell them apart
+will read a normal `one-story` ending as a failure, or a HALT as a normal
+ending. A run still in progress MUST leave it null.
 
 None of these fields is bookkeeping for its own sake. `ci_rounds` makes a
 story's *second* trip through the cycle legible — a post-commit CI finding

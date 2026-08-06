@@ -22,7 +22,7 @@ Every task's requirements implicitly include these. Values are verbatim.
 - Every backticked bare `*.md` reference in **every** skill file MUST resolve to a file in that directory, and the structural test MUST assert it across all of them rather than SKILL.md alone.
 - Every worker MUST be created with `orca terminal create --command "<exact argv>"`, waited to `tui-idle`, then dispatched. `orchestration worker-start` MUST NOT be used: it exposes no model/effort/permission flag.
 - `agy` workers MUST be dispatched without `--inject`, and their brief MUST carry `taskId`, `dispatchId`, and the exact `worker_done` command, delivered with `orca terminal send`.
-- Journal path: `_bmad-output/implementation-artifacts/auto-run/<date>-journal.md`.
+- Journal path: `_bmad-output/implementation-artifacts/auto-run/<date>-journal.md`. The journal MUST record the run's scope `mode` and, when it ends, whether it `stopped` because its scope was reached or because a condition escalated.
 
 ## File Structure
 
@@ -135,13 +135,15 @@ Expected: FAIL — `SKILL.md is missing`.
 
 Frontmatter `name: bmad-auto-run` and a description naming the trigger. Then, each as normative instructions:
 
-- **Invocation.** The only entry point is `/bmad-auto-run`, optionally with `dry-run`. The operator MUST NOT have to invoke the `orchestration` skill first, and this skill MUST NOT invoke it either: that skill is a discovery stub whose two required actions — resolving the Orca executable and loading the version-matched guide from the binary — are performed by `step-01-preflight.md`. Stating this prevents both a redundant load and a stale cached copy of the guide.
+- **Invocation and scope modes.** The only entry point is `/bmad-auto-run`, optionally followed by exactly one scope mode: `dry-run`, `one-story` (stops after the first story is committed, pushed, and its PR opened or adopted, without entering the CI-findings cycle), or `one-epic` (stops after its epic's PR is marked ready). Bare, the run continues until the backlog is exhausted. The cycle is identical in every mode and only the stop point differs, so the mode MUST be an argument plus a journal field, never a separate skill — four skills would duplicate the whole instruction set and triplicate this test's invariants. Two rules are load-bearing: an argument that is not one of the three MUST stop and report rather than fall through to any mode, since a typo would otherwise start the most expensive run there is; and the mode MUST be recorded in the journal and read from there on resume, or a `one-story` run that halts silently widens to the full backlog. Both scope stops MUST be clean stops with every worker accounted for, recorded so they are distinguishable from an escalation. The operator MUST NOT have to invoke the `orchestration` skill first, and this skill MUST NOT invoke it either: that skill is a discovery stub whose two required actions — resolving the Orca executable and loading the version-matched guide from the binary — are performed by `step-01-preflight.md`. Stating this prevents both a redundant load and a stale cached copy of the guide.
 - **Activation.** Resolve the **most recent** journal, never strictly today's. Per-dispatch ceilings of 60 and 120 minutes across many stories cross midnight routinely, and a HALT is often cleared the next morning; keying on today's date alone starts a second run beside a live one — a new Orca Run reading an empty mailbox, a second branch and PR for the same epic, and `bmad-create-story` re-run over a story file a live worker may still hold. A journal file MAY hold more than one run document, separated by `---`, and `run: <date>-<n>` numbers them within the file. If the latest document holds a story that is neither `committed` nor `skipped`, MUST bind that document — `orca_run`, `branch`, and `pr` included — and resume that story from its recorded `phase`. MUST NOT resume a story whose entry carries a `halted:` condition; clearing it is the owner's act.
 - **Dry-run contract.** When invoked with `dry-run`, MUST execute step-01 and step-02, MUST print the planned dispatch sequence and gates, and MUST NOT mutate Orca or repository state — no terminal, no dispatch, no journal or artifact write, no state-changing git command. Worded as "no file written, no git command" it contradicts step-01 three ways: that step writes `preflight:`, runs `git status --porcelain`, and runs `npm run build`, which writes `.next/`. Read-only inspection and an ignored build directory are not mutations; the journal write and the `agy` probe terminal are, so step-01 MUST carry a dry-run branch that prints the record it would have written and names what it cannot verify without creating a terminal.
 - **Journal schema**, exactly:
 
 ```yaml
 run: <date>-<n>                  # <n> is this document's ordinal within its file
+mode: full|dry-run|one-story|one-epic   # resolved once at invocation, read on resume
+stopped: <scope reached|escalated: <condition>|null>
 orca_run: <orca run id>          # bound on resume, never re-created
 epic: <n>
 branch: <name>

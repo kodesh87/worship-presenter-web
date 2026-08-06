@@ -1,6 +1,6 @@
 ---
 name: bmad-auto-run
-description: Drive the BMad development cycle — create story, validate, dev, five-reviewer panel, commit, PR — across many stories and epics without human interaction, dispatching the existing BMad skills to Orca terminal workers. Use when the user invokes `/bmad-auto-run`, optionally with `dry-run`.
+description: Drive the BMad development cycle — create story, validate, dev, five-reviewer panel, commit, PR — across many stories and epics without human interaction, dispatching the existing BMad skills to Orca terminal workers. Use when the user invokes `/bmad-auto-run`, optionally with a scope mode: `dry-run`, `one-story`, or `one-epic`. Bare, it runs until the backlog is exhausted.
 ---
 
 # bmad-auto-run
@@ -12,9 +12,36 @@ dispatched worker. The full design lives in `docs/bmad-auto-run-design.md`;
 this file and its step files are the executable instructions and MUST stay
 consistent with that record.
 
-## Invocation
+## Invocation and scope modes
 
-- The only entry point MUST be `/bmad-auto-run`, optionally with `dry-run`.
+The only entry point MUST be `/bmad-auto-run`, optionally followed by exactly one
+scope mode. The cycle is identical in every mode; only where the run stops
+differs, which is why the mode is an argument and a journal field rather than a
+separate skill.
+
+| Argument | `mode:` | Stops |
+|---|---|---|
+| *(none)* | `full` | when the backlog is exhausted, or a condition escalates |
+| `dry-run` | `dry-run` | after printing the plan; mutates nothing |
+| `one-story` | `one-story` | after the first story is committed, pushed, and its PR opened or adopted |
+| `one-epic` | `one-epic` | after its epic's PR is marked ready |
+
+- MUST resolve the argument against that table and nothing else. **An argument
+  that is not one of the three MUST stop and report it, naming the three valid
+  modes, and MUST NOT fall through to any mode.** A typo such as `one-stroy`
+  falling through would silently start the most expensive run there is — and the
+  epic boundary is a PR boundary, not a stop, so its only exits would be an
+  escalation or killing the session, which strands live workers.
+- MUST record the resolved mode as the journal's `mode` before the first
+  dispatch, and MUST take the mode from the journal on a resumed run — never
+  from how this session happened to be invoked. Otherwise a `one-story` run that
+  halts and resumes widens to the whole backlog at the moment nobody is
+  watching.
+- `one-story` and `one-epic` stop where `step-06-epic-boundary.md` says they do.
+  Both are **clean stops, not HALTs**: the journal complete, every worker
+  accounted for by `worker-accounting.md`, nothing mid-dispatch. The run MUST
+  record that it stopped because its scope was reached, distinguishable from an
+  escalation, so the journal never reads as though a condition fired.
 - The operator MUST NOT have to invoke the `orchestration` skill before this
   one, and this skill MUST NOT invoke it itself. Its two required actions —
   resolving the Orca executable and loading the version-matched guide from the
@@ -23,7 +50,8 @@ consistent with that record.
 
 ## Activation
 
-- On activation the run MUST resolve its journal before doing anything else,
+- On activation the run MUST resolve its journal before doing anything else —
+  before resolving its own mode, since a resumed run takes the mode from there —
   and MUST resolve the **most recent** journal rather than strictly today's.
   Ceilings of 60 and 120 minutes across many stories cross midnight routinely,
   and a HALT is often cleared the next morning; keying on today's date alone
@@ -34,10 +62,11 @@ consistent with that record.
 - If that run document records any story that is neither `phase: committed`
   nor `phase: skipped`, the run MUST bind it and resume that story from its
   last recorded `phase`, MUST NOT restart the cycle, and MUST NOT open a new
-  run document. Binding it MUST include its `orca_run`, `branch`, and `pr`:
-  those three are what stop `dispatch-recipes.md` from calling `run-create` into
-  an empty mailbox and `step-06-epic-boundary.md` from opening a second branch
-  and PR for an epic already under way.
+  run document. Binding it MUST include its `orca_run`, `branch`, `pr`, and
+  `mode`: the first three are what stop `dispatch-recipes.md` from calling
+  `run-create` into an empty mailbox and `step-06-epic-boundary.md` from opening
+  a second branch and PR for an epic already under way, and the fourth is what
+  keeps a resumed run inside the scope it was given.
 - MUST NOT resume a story whose entry carries a `halted:` condition. It stopped
   on an escalation nobody has cleared, so the run MUST report that condition
   with the story key and stop without a dispatch. Removing the field once the

@@ -97,6 +97,25 @@ test('the seven conditions are worded identically in both files', () => {
   }
 });
 
+test('every scope mode the skill advertises can be recorded, and none falls through', () => {
+  // A mode named with no journal value to hold it, or an argument list with no
+  // rule against falling through, is the "state named, no branch" shape that
+  // every serious defect on this branch turned out to be.
+  const skill = read('SKILL.md');
+  const enumLine = read('journal.md').match(/^mode: (\S+)/m);
+  assert.ok(enumLine, 'journal.md declares no mode: enum');
+  const modes = enumLine[1].split('|');
+  assert.deepEqual(modes, ['full', 'dry-run', 'one-story', 'one-epic'], 'the mode enum changed');
+
+  const frontmatter = skill.split(/^---$/m)[1] ?? '';
+  const advertised = new Set([...frontmatter.matchAll(/`(one-story|one-epic|dry-run)`/g)].map((m) => m[1]));
+  assert.equal(advertised.size, 3, `the description advertises ${advertised.size} scope modes, expected 3`);
+  for (const m of advertised) assert.ok(modes.includes(m), `the description names ${m}, which the journal cannot record`);
+
+  assert.match(skill, /MUST NOT fall through/, 'SKILL.md no longer forbids an unrecognised argument falling through');
+  assert.match(skill, /stopped: scope reached|scope was reached/, 'SKILL.md no longer distinguishes a scope stop from an escalation');
+});
+
 test('the test registers itself in npm test', () => {
   const { scripts } = JSON.parse(readFileSync('package.json', 'utf8'));
   assert.ok(scripts.test.includes('tests/bmad-auto-run-skill.test.mjs'), 'not registered in npm test');

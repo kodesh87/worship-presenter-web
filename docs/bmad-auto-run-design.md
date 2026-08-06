@@ -24,6 +24,45 @@ Not a replacement for `bmad-dev-auto`. That skill is **one unattended dev
 iteration**. This one is the driver across stories and epics, and it dispatches
 the existing skills rather than reimplementing them.
 
+## Scope modes
+
+The run takes one optional scope mode. This closes a gap the first design had:
+the epic boundary is a *PR* boundary, not a stop — step-06 marks the PR ready and
+hands control back, and step-02 then takes the next `backlog` key regardless of
+epic — so the only scope was the whole backlog, 22 stories across 8 epics, whose
+only exits were an escalation or killing the session. Killing the session strands
+live Orca workers, which is the one outcome the accounting protocol exists to
+prevent.
+
+| Argument | Stops |
+|---|---|
+| *(none)* | backlog exhausted, or a condition escalates |
+| `dry-run` | after printing the plan; mutates nothing |
+| `one-story` | after the first story is committed, pushed, and its PR opened or adopted — before the CI watch |
+| `one-epic` | after its epic's PR is marked ready |
+
+Four modes, one skill, the mode as an argument and a journal field. Not four
+skills: the cycle is identical in all of them and only the stop point differs, so
+separate skills would duplicate a thirteen-file instruction set and triplicate the
+structural test's seven-condition and step-index invariants — the drift class six
+review rounds went into killing.
+
+`one-story` stops after the push and the PR, not after the commit: an unpushed
+commit means CI never sees the work, and observing the machinery is the mode's
+whole purpose. It does not enter the CI-findings cycle — it records that the
+checks were left unwatched, names the PR, and stops, leaving that decision with
+the owner. The PR correctly stays a draft, because the epic is not finished.
+`one-epic` behaves exactly as the default does within its epic, checks and
+CI-findings cycle included, then stops instead of handing control back.
+
+Both are **clean stops, not HALTs**, recorded as such: an owner who cannot tell a
+scope stop from an escalation will read a normal ending as a failure. Two rules
+carry the weight. An unrecognised argument stops and reports rather than falling
+through, because a typo falling through reaches the most expensive mode there is.
+And the mode is read from the journal on resume, because a `one-story` run that
+halts and resumes would otherwise widen to the full backlog exactly when nobody
+is watching — which is also why the mode is data, not skill identity.
+
 ## Non-goals
 
 - No headless Orca automation or cron driver. Escalation has nowhere to land in
