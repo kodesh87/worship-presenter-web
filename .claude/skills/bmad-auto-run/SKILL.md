@@ -84,7 +84,7 @@ stories:
     halted: <condition number>       # written by the HALT protocol, cleared by the owner
     fix_rounds: <n>
     ci_rounds: <n>                 # post-commit CI fix cycles routed back to review
-    panel: { agy_pass: <n>, fifth_pass: <bool>, confirmation: passed|failed|pending }
+    panel: { agy_pass: <n>, fifth_pass: <bool>, confirmation: passed|failed|pending }  # latest round
     commit: <sha|null>             # the most recent code commit for this story
     note: <free text; a block scalar where the evidence needs one>
     dispatches:
@@ -103,9 +103,8 @@ stories:
 post-commit CI finding returns a committed story to `step-04-review-panel.md`
 and then to `step-05-commit-gate.md` for a further code commit under the same
 key, whose resume check counts commits against it. Absent MUST read as zero.
-`halted` keeps an escalated story from being resumed as if nothing happened —
-`phase` cannot say so, since the HALT protocol below records the phase the
-story was already in.
+`halted` keeps an escalated story from being resumed as if nothing happened,
+which `phase` cannot: the HALT protocol records the phase it was already in.
 
 `orca_run` and `dispatches` are not bookkeeping for its own sake. Without the
 recorded `family` a run resuming at `phase: created` would validate in the
@@ -123,8 +122,8 @@ On any escalation:
   `phase` to the journal, and MUST write that condition number into that
   story's `halted:` field — recording the phase alone leaves a halted story
   indistinguishable from one in flight, and Activation would resume it.
-- The run MUST leave no worker terminal unaccounted for.
-- The run MUST stop without issuing a further dispatch.
+- The run MUST leave no worker terminal unaccounted for, and MUST stop without
+  issuing a further dispatch.
 
 ## Escalation
 
