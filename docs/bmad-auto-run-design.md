@@ -1,7 +1,12 @@
 # Design: `bmad-auto-run`
 
 Date: 2026-08-06
-Status: approved by the owner, not yet implemented
+Status: approved by the owner and implemented, under
+[the implementation plan](./bmad-auto-run-plan.md), which is the task-by-task
+record of how this design was built and where it was corrected. The skill itself
+lives in `.claude/skills/bmad-auto-run/`; where this record and those files
+disagree, the files govern and this record MUST be corrected in the same change
+set.
 
 A skill that drives the BMad cycle across many stories and many epics without
 human interaction, stopping only on the seven conditions listed in

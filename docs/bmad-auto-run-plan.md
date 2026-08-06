@@ -18,7 +18,8 @@ Every task's requirements implicitly include these. Values are verbatim.
 - The commit gate: `npm run build` green, `npm test` green, guard green, nothing forbidden staged. A guard failure stops the run; the guard MUST NOT be weakened.
 - `.github/workflows/test.yml` triggers only on `push` to `main` and `pull_request` to `main`. A feature-branch push produces no CI signal, so the epic's draft PR MUST be opened after the epic's first commit.
 - `npm test` has no auto-discovery: 44 test files are listed explicitly in `package.json`. A new test file MUST be added to that list.
-- Escalation has exactly seven conditions. The count and wording MUST match `docs/bmad-auto-run-design.md`.
+- Escalation has exactly seven conditions. The count and wording MUST match `docs/bmad-auto-run-design.md`, and the structural test MUST assert both — several files cite a condition by number, so wording that drifts in one file silently redirects every citation. A condition MUST NOT be renumbered for any reason; a wording that must broaden MUST broaden in both files at once.
+- Every backticked bare `*.md` reference in **every** skill file MUST resolve to a file in that directory, and the structural test MUST assert it across all of them rather than SKILL.md alone.
 - Every worker MUST be created with `orca terminal create --command "<exact argv>"`, waited to `tui-idle`, then dispatched. `orchestration worker-start` MUST NOT be used: it exposes no model/effort/permission flag.
 - `agy` workers MUST be dispatched without `--inject`, and their brief MUST carry `taskId`, `dispatchId`, and the exact `worker_done` command, delivered with `orca terminal send`.
 - Journal path: `_bmad-output/implementation-artifacts/auto-run/<date>-journal.md`.
@@ -55,6 +56,11 @@ Every task's requirements implicitly include these. Values are verbatim.
 - Produces: the journal schema every later step writes; the `phase` enum `selected|created|validated|developed|reviewed|committed|skipped`; the per-story `halted:` field that records an escalation (no `phase` value does, since HALT records the phase the story was already in); the step-index convention that the test enforces.
 
 - [ ] **Step 1: Write the failing test**
+
+This is the test as Task 1 wrote it. The final whole-branch review added two
+assertions on top — the conditions' wording, and cross-file `*.md` references —
+so `tests/bmad-auto-run-skill.test.mjs` in the repository is authoritative over
+the snippet below.
 
 ```javascript
 // tests/bmad-auto-run-skill.test.mjs
@@ -185,7 +191,7 @@ Each check normative, all read-only, and each with the exact command. First MUST
 
 Append ` tests/bmad-auto-run-skill.test.mjs` to the `test` script in `package.json`.
 Run: `node --import ./tests/register-ts-resolve.mjs --test --experimental-strip-types tests/bmad-auto-run-skill.test.mjs`
-Expected: PASS, 6/6.
+Expected: PASS — 6/6 as written for this task; the final review adds two more assertions, taking it to 8/8.
 
 - [ ] **Step 6: Commit**
 
@@ -231,6 +237,8 @@ git commit -m "feat: story selection with dependency skip"
 **Files:**
 - Create: `.claude/skills/bmad-auto-run/dispatch-recipes.md`
 - Create: `.claude/skills/bmad-auto-run/step-03-story-cycle.md`
+- Create: `.claude/skills/bmad-auto-run/worker-waiting.md` and `.../worker-accounting.md` — the waiting and accounting halves, split out of the recipes file under review pressure rather than planned up front
+- Create: `.claude/skills/bmad-auto-run/artifact-repairs.md` — the repair-then-resume path, split out of `step-03-story-cycle.md` as a pure move when that file reached the line guidance
 - Modify: `.claude/skills/bmad-auto-run/SKILL.md` (step index)
 
 **Interfaces:**
@@ -392,7 +400,7 @@ Expected: no new modification from the dry run, and no new terminal.
 - [ ] **Step 3: Full suite**
 
 Run: `npm run build && npm test`
-Expected: all green, including the new structural test at 6/6.
+Expected: all green, including the structural test (8/8 once the final review's two assertions land).
 
 - [ ] **Step 4: Link the plan from the design record and commit**
 
