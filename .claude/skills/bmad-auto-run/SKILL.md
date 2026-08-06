@@ -194,6 +194,6 @@ MUST resolve — `tests/bmad-auto-run-skill.test.mjs` asserts both.
    story from `phase: reviewed` to `phase: committed` with its commit sha.
 6. `step-06-epic-boundary.md` — owns the branch and PR lifecycle across an
    epic: ensure the epic's branch, then after a commit push, open or update the
-   draft PR, watch CI, route a failing check back to
-   `step-04-review-panel.md`, and mark the PR ready once the epic's last
-   backlog story lands.
+   draft PR, watch what that push produced and route its findings back to
+   `step-04-review-panel.md` per `ci-findings.md`, and mark the PR ready once
+   the epic's last backlog story lands.
