@@ -8,11 +8,10 @@ coordinator, exactly like `step-05-commit-gate.md`, so `dispatch-recipes.md`,
 `worker-waiting.md`, and `worker-accounting.md` do not apply here. It runs at
 two points, both driven by state the other steps already own:
 
-- **Before `step-03-story-cycle.md` dispatches anything** for a story
-  `step-02-select-story.md` just selected — to ensure the epic's branch
-  exists and is checked out first.
+- **Before `step-03-story-cycle.md` dispatches anything** for a newly
+  selected story — to ensure the epic's branch exists and is checked out.
 - **Immediately after `step-05-commit-gate.md` records `phase: committed`**
-  for a story, with its commit sha — to push, manage the PR, and watch CI.
+  — to push, manage the PR, and watch CI.
 
 ## Ensuring the epic's branch (before `step-03` dispatches)
 
@@ -26,8 +25,13 @@ two points, both driven by state the other steps already own:
   nothing further — either a previous story of this epic already checked it
   out, or the epic-close step below already created and checked it out
   preemptively.
-- Otherwise (journal `branch` is null — the run's first story — or names a
-  different epic number), MUST create it:
+- If it instead names a *different* epic number, the old epic's remaining
+  stories were all *skipped* rather than committed — the one crossing that
+  never reaches "Closing the epic" below and its `gh pr ready`. MUST check
+  `gh pr view --json isDraft -q .isDraft` for the old branch/PR and, if
+  `true`, run `gh pr ready` on it first — a skip-only ending MUST NOT leave
+  a PR draft forever.
+- Either way, MUST create the new branch:
   - MUST resolve the repo default base with
     `gh repo view --json defaultBranchRef -q .defaultBranchRef.name` — MUST
     NOT hardcode `main` for this lookup. Today's default and the PR's own
@@ -37,11 +41,10 @@ two points, both driven by state the other steps already own:
   - MUST run `git fetch origin <default>` then
     `git checkout -b <branch> origin/<default>`, and MUST update the
     journal's top-level `branch: <name>` and `pr: null` immediately.
-  - A dirty tree here would be unexpected — the first story of a run relies
-    on `step-01-preflight.md`'s clean-tree check, every later one on
-    `step-05-commit-gate.md` having just landed a commit — so if it happens
-    anyway, MUST NOT guess or discard anything: MUST record the exact `git
-    status --short` output and escalate under condition 5.
+  - A dirty tree here would be unexpected — `step-01-preflight.md` or
+    `step-05-commit-gate.md` should already guarantee one — so if it happens
+    anyway, MUST record the exact `git status --short` output and escalate
+    under condition 5, never guess or discard anything.
 - If the journal already names this epic's branch but it is not the branch
   currently checked out (a resumed run in a fresh session), MUST
   `git fetch origin <branch>` then `git checkout <branch>` rather than
@@ -101,12 +104,11 @@ design exists to surface.
   none is ever reported within that bound, MUST escalate under condition 5 —
   CI never being queued is infrastructure, not a code finding.
 - Once at least one check is reported, `--watch` itself has no ceiling of its
-  own, so a required check stuck queued or pending forever — a stuck runner,
-  a branch-protection check that never runs — would hang it indefinitely, and
-  nothing in `worker-waiting.md` applies here since this is not a dispatched
-  worker. MUST wrap the watch in an external wall-clock bound of 30 minutes;
-  if it is reached before every check concludes, MUST treat the result as
-  inconclusive, never as a pass, and escalate under condition 5.
+  own, so a check stuck queued or pending forever would hang it indefinitely
+  — and nothing in `worker-waiting.md` applies, since this is not a
+  dispatched worker. MUST wrap the watch in an external wall-clock bound of
+  30 minutes; reaching it before every check concludes MUST be treated as
+  inconclusive, never as a pass, and escalated under condition 5.
 - MUST also check for a Greptile review on this push with `gh pr view --json
   reviews --jq '.reviews[] | select(.author.login | test("(?i)greptile"))'`.
   Unlike the CI workflow this repo defines and owns, Greptile is optional
@@ -130,13 +132,11 @@ design exists to surface.
 ## Closing the epic: ready, then the next branch
 
 - MUST determine whether this was the epic's last backlog story by scanning
-  `_bmad-output/implementation-artifacts/sprint-status.yaml` for any key
-  matching the same `<n>-<n>-<name>` pattern `step-02-select-story.md`
-  matches, restricted to this story's own epic number, with status exactly
-  `backlog` **and** not already recorded `phase: skipped` in this run's
-  journal. A permanently skipped story MUST NOT be read as reserving this
-  epic's boundary forever — this run will never attempt it, so its epic has
-  no further work left for this run either.
+  `sprint-status.yaml` for any key matching the same `<n>-<n>-<name>` pattern
+  `step-02-select-story.md` matches, restricted to this epic number, with
+  status exactly `backlog` **and** not already `phase: skipped` in this run's
+  journal — a permanently skipped story MUST NOT reserve this epic's
+  boundary forever, since this run will never attempt it either.
 - If any such key remains, MUST stop here and hand control back — the loop
   continues to the next story within the same epic and branch.
 - If none remain, MUST mark the PR ready: `gh pr ready`. A nonzero exit MUST
@@ -158,11 +158,10 @@ design exists to surface.
     "Ensuring the epic's branch" above, and MUST set the journal's top-level
     `epic`, `branch`, and `pr: null` to it.
   - Because this guess skips the dependency check, it MAY name a different
-    epic than the one `step-02-select-story.md` actually selects next, if the
-    guessed epic turns out entirely dependency-blocked. MUST NOT treat that
-    as an error — "Ensuring the epic's branch" above already reconciles any
-    mismatch next time it runs, before `step-03-story-cycle.md` dispatches
-    anything, overwriting this provisional guess. The abandoned local branch
+    epic than the one actually selected next, if the guessed epic turns out
+    entirely dependency-blocked. MUST NOT treat that as an error — "Ensuring
+    the epic's branch" above already reconciles the mismatch next time it
+    runs, overwriting this provisional guess. The abandoned local branch
     carries no commits and was never pushed, so MUST NOT be deleted — it is
     inert, not an artifact condition 7 protects.
 
