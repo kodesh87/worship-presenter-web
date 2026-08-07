@@ -1,11 +1,16 @@
 # generated: 2026-07-10
-# last_updated: 2026-08-07 (Story 20.1 context created; Epic 20 is now `in-progress`. This is the
-#   first Epic 20 story context, so it is where two things the epic left unassigned had to be answered,
-#   and both answers live in the 20-1 row rather than here. What a reader of this header needs:
-#   20.1 is NOT the base_type collapse — that stays in 20.2 — and 20.1 does NOT close AD-20, because
-#   five transitional SongSet groups still originate outside AD-19's ordered-entry model until
-#   Story 20.7 lands its closed set and form bindings. The story carries a gate forbidding any spine edit or tag
-#   flip from inside its own change set.
+# last_updated: 2026-08-07 (Story 20.1 is `done` — CLOSED BY THE OWNER this day, merged as PR #37
+#   (bc487b3) with both checks green. Epic 20 stays `in-progress`; Story 20.2 (the base_type
+#   seven-to-three collapse) is the direct successor and is still `backlog`. What a reader of this
+#   header needs: 20.1 did NOT do the base_type collapse — that stays in 20.2 — and 20.1 does NOT
+#   close AD-20, because five transitional SongSet groups still originate outside AD-19's
+#   ordered-entry model until Story 20.7 lands its closed set and form bindings; 20.7 also owns
+#   deleting song1Number..song4Number in that same change set. The story's gate held:
+#   ARCHITECTURE-SPINE.md was not edited and no [TARGET] tag was flipped from inside its change set,
+#   so the four Deferred statements it staled still await a bmad-architecture Update run.
+#   ONE THING THE CLOSE DOES NOT COVER, recorded because the owner closed with it stated rather than
+#   hidden: the FINAL state after fix round 2 was verified only by the coordinator and never read by
+#   an independent reviewer. See its row.
 #   PRIOR ENTRY # 2026-08-06 (Story 17.6 is `done` — CLOSED BY THE OWNER this day. The
 #   owner's combined inline + toast channel rule is recorded once in EXPERIENCE.md, the
 #   two sonner rows and Open Item 4 read decided-not-wired, and the forward owner
@@ -59,8 +64,12 @@
 #   - n/a: Not applicable — the epic was retired, so there is nothing to retro
 
 generated: 2026-07-10
-last_updated: 2026-08-07 # Story 20.1 context created (bmad-create-story) and Epic 20 opened.
-#   20-1-ordered-registry is ready-for-dev; epic-20 backlog → in-progress. The story makes two
+last_updated: 2026-08-07 # Story 20.1 done — owner close after PR #37 merged (bc487b3), both checks
+#   green; epic-20 stays in-progress and 20-2-three-slide-kinds is the next unit. The close carries
+#   one stated gap (final post-fix state read only by the coordinator) and one forward debt (AD-20
+#   still open, owned by Story 20.7) — both in its row.
+#   PRIOR ENTRY # 2026-08-07 Story 20.1 context created (bmad-create-story) and Epic 20 opened.
+#   20-1-ordered-registry was ready-for-dev; epic-20 backlog → in-progress. The story makes two
 #   calls the epic left open and both are recorded in its row below: AD-21's data version counter
 #   lands in 20.1, and the base_type seven-to-three collapse stays in 20.2. It also carries a GATE
 #   — four spine statements go stale when it lands and repairing them (including any [TARGET] tag
@@ -571,8 +580,20 @@ development_status:
   # removes or migrates these five rows with the closed set and unclaimed-hymn behaviour. Until
   # then every slide EXCEPT those five SongSet groups originates from an ordered registry entry,
   # and no [TARGET] tag may be flipped on that basis.
-  epic-20: in-progress # 2026-08-07 first story contexted
-  20-1-ordered-registry: review # 2026-08-07 implemented (bmad-dev-story): full suite green
+  epic-20: in-progress # 2026-08-07 first story contexted; 20.1 done, 20.2 is the direct successor
+  20-1-ordered-registry: done # 2026-08-07 CLOSED BY THE OWNER. Merged as PR #37 (merge commit
+  #   bc487b3), both checks green. All 13 ACs carry a recorded disposition and none is open.
+  #   ONE THING THE CLOSE DOES NOT COVER, recorded because the owner closed with it stated rather
+  #   than hidden: the FINAL state after fix round 2 was verified only by the coordinator
+  #   (492 tests / 491 passed / 0 failed / 1 skipped, public-repo guard 9/9, forbidden-path audit
+  #   clean) and was never read by an independent reviewer. Both round-2 changes are textual — one
+  #   duplicate log line removed, one test comment corrected. This repository has seen a fix round
+  #   surface the next round's headline finding; the owner elected to close anyway. If a later
+  #   round finds something here, this is why.
+  #   DEBT THIS STORY HANDS FORWARD: AD-20 is NOT closed (see the block above) — Story 20.7 owns
+  #   replacing the five transitional SongSet rows with AD-19's four identities AND deleting
+  #   song1Number..song4Number, in one change set.
+  #   PRIOR ENTRY # 2026-08-07 implemented (bmad-dev-story): full suite green
   #   (npm run build && npm test, 489 passed / 1 skipped [gitignored source deck] / 0 failed),
   #   public-repo-guard green, skipTitle and songset- both zero occurrences in src/. Context below
   #   from bmad-create-story (2026-08-07 context created (bmad-create-story)).
