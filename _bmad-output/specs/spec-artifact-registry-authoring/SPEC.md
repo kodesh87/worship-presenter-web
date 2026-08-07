@@ -53,7 +53,7 @@ sources: []
 
 - **CAP-7**
   - **intent:** **Announcement** is a registry entry that expands to full-screen images from the Announcements list; upload means fullscreen with no extra elements.
-  - **success:** Presenter/PPTX show one full-bleed slide per announcement image; there is no canvas editor for an Announcement entry. One row is the usual configuration but not a rule — the order admits more than one, and each expands the **whole** live list, because membership is the Announcements master list and no row selects a subset of it.
+  - **success:** Presenter/PPTX show one full-bleed slide per announcement image; there is no canvas editor for an Announcement entry. One row is the usual configuration but not a rule — the order admits more than one, and each expands the **whole** live list, because membership is the Announcements master list and no row selects a subset of it. **Repetition is the intended use, not a degenerate case:** the same announcement block may sit at the start, middle, and end of one service, showing the same images each time. No surface deduplicates repeated rows, collapses them, or warns about them.
 
 - **CAP-8**
   - **intent:** **SongSet** entries are expandable title+lyric blocks with configurable backgrounds; four predefined slots (Bible Talk opening/closing, Divine Service opening/closing) ship in the registry and receive per-slot hymnal numbers from worship-service settings.
@@ -94,4 +94,4 @@ Admin builds an ordered registry with Generals, the four predefined SongSets (wi
 
 ## Open Questions
 
-- **What a second Announcement row is *for*.** The owner ratified that more than one is admitted (2026-08-07, “normally one, three would still be reasonable, no system cap”). Under this contract each row expands the **whole** live list, so two rows show the same images twice — `AD-16` and CAP-7 put membership in the Announcements master list and no row selects a subset. If the intent was to place *some* announcements early and *others* late, that needs per-row membership, which no capability, companion or `AD` provides and which CAP-7’s live-master-list rule rules out. Routed to Story 20.6; a builder should not invent a subset mechanism to make the second row meaningful.
+<!-- none — the one opened 2026-08-07 (what a second Announcement row is for) was answered by the owner the same day: repeating the same set at start / middle / end, never splitting it. Recorded in CAP-7. -->

@@ -45,7 +45,7 @@ What an admin *does* configure on a SongSet row: **label**, **order**, and the `
 **Seed consequence (Story 20.1).** The shipped `data/default-registry.json` holds **one** `song-set` row. Four slot identities need four rows, so the seed grows from one to four as part of Story 20.1's seed authoring.
 
 ### Announcement
-- Insert an **Announcement** entry in the order. One is the usual configuration; the order admits more than one and imposes no cap, and none at all is valid too (owner, 2026-08-07). Each row expands the **whole** live list — no row selects a subset, so two rows show the same images twice. What a second row is *for* is an Open Question in `SPEC.md`, owned by Story 20.6; do not invent a subset mechanism to give it meaning.
+- Insert an **Announcement** entry in the order. One is the usual configuration; the order admits more than one and imposes no cap, and none at all is valid too (owner, 2026-08-07). Each row expands the **whole** live list — no row selects a subset, so several rows show the same images several times, **and that is the point**: the same announcement block at the start, middle, and end of one service. It is never a split of the list across positions, so no subset mechanism is wanted, and nothing deduplicates, collapses, or warns about the repetition.
 - Content of *which* images appear is managed only in the **Announcements** menu/list — not in a canvas. That master list stays **live** and reaches an existing service at render time rather than being cloned into its snapshot (`AD-16`, CAP-7). It is still scoped per service: this week's flyers may change after the structure is frozen, but one service's images never appear on another's deck.
 - Each image presents full-bleed.
 
