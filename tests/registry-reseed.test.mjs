@@ -181,6 +181,15 @@ test('a row that fails validation is omitted from a built plan and logged, never
     logged.every((line) => !line.includes('falling back')),
     `a rejected row has no layout; it must not claim a fallback: ${JSON.stringify(logged)}`
   );
+  assert.ok(
+    logged.every((line) => !line.includes('absent from the shipped seed')),
+    `a rejected row has no layout; it must not claim it is absent from the shipped seed: ${JSON.stringify(logged)}`
+  );
+  assert.equal(
+    logged.length,
+    1,
+    `a rejected row must produce exactly one error line: ${JSON.stringify(logged)}`
+  );
 
   // Restore so later cases in this file are unaffected.
   const { updatedAt, ...body } = before;
@@ -338,10 +347,9 @@ test('bootstrapping ahead of the pre-counter repair fails closed without stampin
     'five rows sharing position 0 is not a well-formed 0..N-1 set'
   );
 
-  // The bootstrap that just ran stamped `data_version` in the same
-  // transaction as its marker (AC-9) — the repair's own guard condition is
-  // now false, so it cannot undo the wrong order behind it. Getting the
-  // order wrong is not a transient glitch; it is permanent.
+  // The failed bootstrap rolls back without stamping `data_version`, so the
+  // repair's guard stays open. On the next boot, the repair runs and wipes the
+  // malformed rows, making the bootstrap-before-repair ordering self-healing.
   repairPreCounterArtifactRegistry(db);
   assert.doesNotThrow(
     () => assertContiguousPositions(db),

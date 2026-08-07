@@ -822,6 +822,12 @@ claude-sonnet-5 (Claude Code), dispatched via the `bmad-dev-story` skill.
   layout is available, and the corrupt-row test rejects any `falling back`
   wording. AC-7's pre-existing deletion test was verified to already rebuild a
   plan and assert the deleted row is absent, so it was intentionally unchanged.
+- **Fix round 2 review follow-ups.** Removed the stale duplicate outer
+  rejection log from `registry-snapshot.ts`; the AC-8 test now proves the one
+  `parseRow` rejection is the only error and never claims seed absence. Its
+  bootstrap-before-repair comment now records the rollback and subsequent
+  self-healing wipe accurately; the pre-existing `seed.ts`↔`store.ts` module
+  cycle is recorded in `deferred-work.md` without refactoring startup code.
 
 ### File List
 
@@ -863,6 +869,8 @@ claude-sonnet-5 (Claude Code), dispatched via the `bmad-dev-story` skill.
 - `tests/registry-reseed.test.mjs` — rewritten for bootstrap-once, AC-8's
   fail-closed guard, and the `getDb` step-order proof (self-heal cases removed
   as testing retired functionality)
+- `_bmad-output/implementation-artifacts/deferred-work.md` — pre-existing
+  registry module cycle recorded for future startup-graph work
 - `tests/artifact-hydration.test.mjs` — SongSet group check keyed on
   `baseType`; intercessory/hope groups replaced by fixed-leaf assertions
 - `tests/artifact-preview.test.mjs` — same `baseType` fix; intercessory-671

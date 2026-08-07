@@ -84,10 +84,6 @@ export function loadRegistrySnapshot(db?: Database.Database): RegistrySnapshot {
     const stored = parseRow(row);
     if (stored) {
       snapshot.set(stored.id, stored);
-    } else {
-      console.error(
-        `[registry] template "${row.id}": rejected and absent from the shipped seed, no layout is available for it`
-      );
     }
   }
 
