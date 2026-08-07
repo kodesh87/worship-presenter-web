@@ -8,7 +8,7 @@ Companion to `SPEC-artifact-registry-authoring`. Replaces the Epic 16 seven-base
 | --- | --- | --- | --- |
 | **General** | One row per slide | **Yes** — full authoring (background, text, text area, images, insert catalog placeholders, style) | Renders the saved canvas; catalog placeholders filled from worship-service weekly values |
 | **SongSet** | One row per **slot identity** (special) — see below | **No** freeform canvas; a **bounded configuration surface** only (`AD-22`) | Expands to song **title** + **lyric** pages (verse + refrain) from the hymnal, using the hymnal number bound to **that slot identity** on the worship service |
-| **Announcement** | One row `[Announcement]` (special) | **No** canvas | Expands to **N full-screen images** from the Announcements list (upload/URL). Upload = fullscreen immediately; no extra elements |
+| **Announcement** | Any number of rows (special) — usually one, no cap | **No** canvas | Expands to **N full-screen images** from the Announcements list (upload/URL). Upload = fullscreen immediately; no extra elements |
 
 The kinds are three, but the **recognized entry keys are six** and the set is closed: `general`, the four `songset-*` slot identities, `announcement`. Bare `song-set` names the *kind*; it is never an entry key (`AD-19`).
 
@@ -34,16 +34,18 @@ Four **predefined slot identities** exist, and the identity is the load-bearing 
 
 - **Reordering** rows changes the presented sequence and touches no binding.
 - **Renaming** a label cannot touch one either.
-- **Deleting** a slot row is allowed and is not an error: the slot does not appear, because the administrator removed that song from the order, and the entered hymnal number survives in the service's own data (`AD-16`).
+- **Removing** a slot row is allowed and is not an error: the slot does not appear, because the administrator took that song out of the order, and the entered hymnal number survives in the service's own data (`AD-16`).
 
-The identity is **never administrator-editable**, and **at most one row may carry each identity**. Adding a SongSet row therefore means claiming one of the four identities that no row currently holds. A fifth slot is a code-plus-tests change, never administrator configuration.
+The identity is **never administrator-editable**, and **at most one row may carry each identity**. Adding a SongSet row therefore means claiming one of the four identities not currently in the order. A fifth slot is a code-plus-tests change, never administrator configuration.
+
+**Available is not the same as present — ratified by the owner 2026-08-07.** All four identities are **permanently available**; what an administrator changes is whether each is *in the order*. So: each may be added once and not twice; each may be **absent**, which is a valid configuration rather than a mistake; and removing one is **reversible by the administrator**, because the identity returns to the available set. `delete` on a SongSet row means removal from the order — nothing removes an identity from the predefined set, which is why the earlier wording "deleting a slot" was replaced. The same two-level rule governs Announcement, with the opposite membership cap: see above.
 
 What an admin *does* configure on a SongSet row: **label**, **order**, and the `AD-22` bounded surface — two background images (one title layout, one lyric layout shared by verse and refrain) plus font style and font size. Nothing else; operators do not draw each lyric page. Full extent in `authoring-boundaries.md`.
 
 **Seed consequence (Story 20.1).** The shipped `data/default-registry.json` holds **one** `song-set` row. Four slot identities need four rows, so the seed grows from one to four as part of Story 20.1's seed authoring.
 
 ### Announcement
-- Insert one **Announcement** entry in the order.
+- Insert an **Announcement** entry in the order. One is the usual configuration; the order admits more than one and imposes no cap, and none at all is valid too (owner, 2026-08-07). Each row expands the **whole** live list — no row selects a subset, so two rows show the same images twice. What a second row is *for* is an Open Question in `SPEC.md`, owned by Story 20.6; do not invent a subset mechanism to give it meaning.
 - Content of *which* images appear is managed only in the **Announcements** menu/list — not in a canvas. That master list stays **live** and reaches an existing service at render time rather than being cloned into its snapshot (`AD-16`, CAP-7). It is still scoped per service: this week's flyers may change after the structure is frozen, but one service's images never appear on another's deck.
 - Each image presents full-bleed.
 
