@@ -52,25 +52,6 @@ export function hashTemplatePayload(payload: string): string {
   return createHash('sha256').update(payload, 'utf8').digest('hex');
 }
 
-/**
- * What startup did with one seed template.
- *
- * The `skipped-*` outcomes are the whole point of `seed_hash`: comparing the
- * stored row against the *current* shipped seed cannot tell "the administrator
- * edited it" from "we shipped a correction", so the row instead records the
- * hash of the seed payload it was last seeded or reset from.
- *
- * `skipped-conflict` is not a decision this guard made: it means the row moved
- * underneath the pass, so the compare-and-swap wrote nothing.
- */
-export type ReseedOutcome =
-  | 'inserted'
-  | 'reseeded'
-  | 'unchanged'
-  | 'skipped-edited'
-  | 'skipped-unrecorded'
-  | 'skipped-conflict';
-
 export function listArtifactSummaries(
   db: Database.Database
 ): ArtifactTemplateSummary[] {
@@ -78,7 +59,7 @@ export function listArtifactSummaries(
     .prepare(
       `SELECT id, label, base_type, payload, updated_at
        FROM artifact_templates
-       ORDER BY label COLLATE NOCASE`
+       ORDER BY position`
     )
     .all() as Row[];
 
@@ -89,6 +70,32 @@ export function listArtifactSummaries(
     updatedAt: row.updated_at,
     editable: !READ_ONLY_BASE_TYPES.has(row.base_type as ArtifactBaseType),
   }));
+}
+
+/**
+ * AC-1: the persisted position set must be exactly `0..N-1` with no duplicate
+ * and no gap after every write path this story leaves in place (the bootstrap
+ * and the existing `PUT`, neither of which may leave the column inconsistent).
+ */
+export function assertContiguousPositions(db: Database.Database): void {
+  const rows = db
+    .prepare(`SELECT id, position FROM artifact_templates ORDER BY position`)
+    .all() as { id: string; position: number }[];
+
+  const seen = new Set<number>();
+  rows.forEach((row, index) => {
+    if (seen.has(row.position)) {
+      throw new Error(
+        `artifact_templates.position is not well-formed: duplicate position ${row.position} (row "${row.id}")`
+      );
+    }
+    seen.add(row.position);
+    if (row.position !== index) {
+      throw new Error(
+        `artifact_templates.position is not well-formed: expected ${index} at index ${index}, found ${row.position} (row "${row.id}")`
+      );
+    }
+  });
 }
 
 export function getArtifactTemplate(
@@ -294,9 +301,16 @@ export function resetArtifactTemplate(
   });
 }
 
+/**
+ * Insert one seed template at a fixed position. Used only by the AD-17
+ * first-boot bootstrap (AC-7): the table starts empty, so this always inserts.
+ * The `if missing` guard stays defensive — it must never overwrite a row a
+ * concurrent boot already placed — but it is no longer a per-boot gap-filler.
+ */
 export function insertArtifactTemplateIfMissing(
   db: Database.Database,
-  template: ArtifactTemplate
+  template: ArtifactTemplate,
+  position: number
 ): boolean {
   const existing = db
     .prepare(`SELECT id FROM artifact_templates WHERE id = ?`)
@@ -306,157 +320,16 @@ export function insertArtifactTemplateIfMissing(
   const payload = serializeTemplate(template);
   const now = new Date().toISOString();
   db.prepare(
-    `INSERT INTO artifact_templates (id, label, base_type, payload, updated_at, seed_hash)
-     VALUES (?, ?, ?, ?, ?, ?)`
+    `INSERT INTO artifact_templates (id, label, base_type, payload, updated_at, seed_hash, position)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
   ).run(
     template.id,
     template.label,
     template.baseType,
     payload,
     now,
-    hashTemplatePayload(payload)
+    hashTemplatePayload(payload),
+    position
   );
   return true;
-}
-
-/**
- * One-time backfill for the `seed_hash` migration, and for nothing else.
- *
- * Every row written before the column existed has `seed_hash = NULL`, which the
- * guard below reads as "no evidence, keep theirs". On the only databases the
- * self-healing seed was ever built for — the ones already running — that means
- * it reaches *zero* templates: nothing is ever re-seeded and every shipped
- * correction still waits for a manual Reset. Comparing such a row against the
- * current shipped seed does not rescue it either; it holds the *older* seed, so
- * it matches neither the new seed nor any recorded hash.
- *
- * Stamping each legacy row with the hash of its own stored payload makes it
- * read as untouched exactly once, so the next seeding pass replaces it with the
- * current shipped template. Afterwards the guard behaves normally, because an
- * administrator's `updateArtifactTemplate` deliberately leaves the recorded
- * hash stale.
- *
- * Treating those rows as untouched is safe only because no administrator edit
- * can exist in a database predating this release: the canvas editor threw on
- * mount for *every* template (an explicit `undefined` `fontStyle` reaching
- * Fabric v6's font cache) until that was fixed in this same release, so no
- * layout could be saved at all. That justification expires the moment the
- * column exists — the caller must therefore run this on the migration path
- * only. Running it again on an already-migrated table would re-arm rows the
- * administrator has since edited and silently discard their work.
- *
- * `updated_at` is deliberately left alone: recording evidence *about* a row is
- * not a write to the template an open editor holds a timestamp for.
- *
- * @returns how many rows were stamped.
- */
-export function recordSeedHashesForMigratedRows(db: Database.Database): number {
-  const rows = db
-    .prepare(
-      `SELECT id, payload FROM artifact_templates WHERE seed_hash IS NULL`
-    )
-    .all() as { id: string; payload: string }[];
-
-  const record = db.prepare(
-    `UPDATE artifact_templates
-     SET seed_hash = ?
-     WHERE id = ? AND seed_hash IS NULL`
-  );
-  let recorded = 0;
-  for (const row of rows) {
-    recorded += record.run(hashTemplatePayload(row.payload), row.id).changes;
-  }
-  return recorded;
-}
-
-/**
- * Startup's self-healing step for one shipped template.
- *
- * A corrected template used to reach a running hub only if an administrator
- * pressed Reset on it, which nobody does at 08:55. This inserts a missing row
- * and otherwise replaces the stored row **only** while it is provably still the
- * seed it was last seeded or reset from:
- *
- * ```
- * stored payload == the current seed          -> nothing to do; record the hash
- * stored payload hash == recorded seed hash   -> untouched, safe to re-seed
- * stored payload hash != recorded seed hash   -> the administrator edited it, keep theirs
- * no recorded hash                            -> no evidence, keep theirs
- * ```
- *
- * A row that already holds the current seed byte-for-byte is not rewritten, so
- * `updatedAt` does not churn on every boot; a real re-seed is an ordinary write
- * and advances `updatedAt` like any other.
- */
-export function reseedArtifactTemplateIfUntouched(
-  db: Database.Database,
-  template: ArtifactTemplate
-): ReseedOutcome {
-  if (insertArtifactTemplateIfMissing(db, template)) {
-    return 'inserted';
-  }
-
-  const row = db
-    .prepare(
-      `SELECT payload, updated_at, seed_hash
-       FROM artifact_templates WHERE id = ?`
-    )
-    .get(template.id) as
-    | { payload: string; updated_at: string; seed_hash: string | null }
-    | undefined;
-  if (!row) {
-    // Only reachable if the row vanished between the insert probe and here.
-    throw new RegistryNotFoundError(template.id);
-  }
-
-  const seedPayload = serializeTemplate(template);
-  const seedHash = hashTemplatePayload(seedPayload);
-
-  if (row.payload === seedPayload) {
-    // The row *is* the current seed, byte for byte, so by definition it carries
-    // no edit — whatever its recorded hash says. Repairing that hash is what
-    // keeps an administrator who hand-applied the same correction we are
-    // shipping from being frozen out of every *future* correction, which the
-    // stale hash would otherwise report as `skipped-edited` forever.
-    //
-    // Only the evidence is written: `updatedAt` must not move under an open
-    // editor holding it for optimistic concurrency. The payload is part of the
-    // WHERE clause so a row that changed since the read above is left alone.
-    if (row.seed_hash !== seedHash) {
-      db.prepare(
-        `UPDATE artifact_templates
-         SET seed_hash = ?
-         WHERE id = ? AND payload = ?`
-      ).run(seedHash, template.id, seedPayload);
-    }
-    return 'unchanged';
-  }
-
-  if (!row.seed_hash) return 'skipped-unrecorded';
-  if (hashTemplatePayload(row.payload) !== row.seed_hash) {
-    return 'skipped-edited';
-  }
-
-  const result = db
-    .prepare(
-      `UPDATE artifact_templates
-       SET label = ?, base_type = ?, payload = ?, updated_at = ?, seed_hash = ?
-       WHERE id = ? AND updated_at = ?`
-    )
-    .run(
-      template.label,
-      template.baseType,
-      seedPayload,
-      new Date().toISOString(),
-      seedHash,
-      template.id,
-      row.updated_at
-    );
-
-  // Same compare-and-swap `updateArtifactTemplate` enforces. If it matched
-  // nothing the row moved between the read and the write (a concurrent reset,
-  // or a caller outside the seeding transaction), so nothing was re-seeded and
-  // the operator log must not claim otherwise.
-  if (result.changes === 0) return 'skipped-conflict';
-  return 'reseeded';
 }

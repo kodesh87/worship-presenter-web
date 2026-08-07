@@ -7,15 +7,11 @@
  */
 import type Database from 'better-sqlite3';
 import { getDb } from '@/lib/db';
-import { loadSeedTemplates } from '@/lib/registry/seed';
 import { validateArtifactTemplate } from '@/lib/registry/validate';
 import type { StoredArtifactTemplate } from '@/lib/registry/types';
 import { ArtifactHydrationError } from './runtime-contract';
 
 export type RegistrySnapshot = ReadonlyMap<string, StoredArtifactTemplate>;
-
-/** `updatedAt` reported for templates served from the shipped seed. */
-export const SEED_FALLBACK_UPDATED_AT = new Date(0).toISOString();
 
 type Row = {
   id: string;
@@ -31,8 +27,8 @@ function reason(error: unknown): string {
  * A persisted row is only trusted once it passes the same validator the admin
  * editor and the store use.
  *
- * Returning `null` here makes {@link loadRegistrySnapshot} fall back to the
- * shipped seed for that id, which silently substitutes a different layout into
+ * Returning `null` here rejects the persisted row: no layout is available for
+ * that id, so the planner omits its slide. This prevents a rejected row from changing
  * the deck — so every rejection is logged with the template id and the reason.
  * Skipping validation is worse: a row that is valid JSON but not a valid
  * template used to reach hydration and crash it with an unattributed
@@ -44,7 +40,7 @@ function parseRow(row: Row): StoredArtifactTemplate | null {
     parsed = JSON.parse(row.payload);
   } catch (error) {
     console.error(
-      `[registry] template "${row.id}": stored payload is not valid JSON, falling back to the shipped seed: ${reason(error)}`
+      `[registry] template "${row.id}": persisted row rejected (stored payload is not valid JSON); no layout is available: ${reason(error)}`
     );
     return null;
   }
@@ -57,42 +53,38 @@ function parseRow(row: Row): StoredArtifactTemplate | null {
     return { ...template, updatedAt: row.updated_at };
   } catch (error) {
     console.error(
-      `[registry] template "${row.id}": stored payload is not a valid template, falling back to the shipped seed: ${reason(error)}`
+      `[registry] template "${row.id}": persisted row rejected (stored payload is not a valid template); no layout is available: ${reason(error)}`
     );
     return null;
   }
 }
 
 /**
- * Every template keyed by id: valid persisted rows win, shipped seed fills the
- * gaps (a row can be absent when the seed gained a template after first
- * startup, or be rejected by {@link parseRow} as corrupt).
+ * Every template keyed by id, in the order `artifact_templates.position`
+ * defines (AC-1) — `buildRequestPlan` reads that iteration order directly, so
+ * this is the ordered registry snapshot AC-2 requires.
+ *
+ * Story 20.1 (AC-7, AC-8) removes the read-time seed fallback entirely: a row
+ * absent from the database, or present but rejected by {@link parseRow},
+ * contributes no layout — there is no substitution left to distinguish those
+ * two cases from each other. A row an administrator deletes directly in SQL
+ * therefore stays deleted through this read, and a row that fails validation
+ * is never quietly replaced by the shipped template it happens to share an id
+ * with; both are logged and both make the planner omit the slide they would
+ * have produced (`slide-plan.ts`'s `hydrateLeafOrOmit`).
  */
 export function loadRegistrySnapshot(db?: Database.Database): RegistrySnapshot {
   const database = db ?? getDb();
   const rows = database
-    .prepare(`SELECT id, payload, updated_at FROM artifact_templates`)
+    .prepare(`SELECT id, payload, updated_at FROM artifact_templates ORDER BY position`)
     .all() as Row[];
 
   const snapshot = new Map<string, StoredArtifactTemplate>();
-  const rejected = new Set<string>();
   for (const row of rows) {
     const stored = parseRow(row);
-    if (stored) snapshot.set(stored.id, stored);
-    else rejected.add(row.id);
-  }
-
-  for (const seed of loadSeedTemplates()) {
-    if (!snapshot.has(seed.id)) {
-      snapshot.set(seed.id, { ...seed, updatedAt: SEED_FALLBACK_UPDATED_AT });
+    if (stored) {
+      snapshot.set(stored.id, stored);
     }
-    rejected.delete(seed.id);
-  }
-
-  for (const id of rejected) {
-    console.error(
-      `[registry] template "${id}": rejected and absent from the shipped seed, no layout is available for it`
-    );
   }
 
   return snapshot;

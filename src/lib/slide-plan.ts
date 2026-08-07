@@ -1,11 +1,5 @@
-import type { ParsedRundown, ParsedScripture } from './parser';
-import {
-  INTERCESSORY_STANDING_NUMBERS,
-  resolveIntercessoryStandingHymns,
-  resolveWeHaveThisHope,
-  splitLyricsLabeled,
-  splitWeHaveThisHopeSlides,
-} from './lyrics';
+import type { ParsedRundown, ParsedScripture, ParsedSermon } from './parser';
+import { INTERCESSORY_STANDING_NUMBERS, splitLyricsLabeled } from './lyrics';
 import { isAnnouncementImageUrl } from './announcements';
 import { isSafeImageUrl } from './images';
 import { bucketHymnsBySection, type HymnItem } from './hymn-sections';
@@ -132,42 +126,37 @@ function optional(value: string | null | undefined): string | undefined {
   return value ?? undefined;
 }
 
-function pushSongGroup(
-  nodes: RequestNode[],
+/**
+ * One SongSet group: a title slide (SDAH number + song title) followed by its
+ * lyric slides. The title-suppression option this used to carry is gone
+ * (AD-20, AC-4) — every group built this way always carries a title, so the
+ * three previously-suppressed songs (#671, #684, "We Have This Hope") no
+ * longer go through this path at all; they are fixed General rows in the
+ * registry seed instead (AC-5).
+ */
+function songGroupNodes(
   hymn: HymnItem,
   idPrefix: string,
-  options?: {
-    skipTitle?: boolean;
-    /** CAP-4: fixed 2-slide poetic layout for standing We Have This Hope. */
-    weHaveThisHopeFixed?: boolean;
-    preserveLineBreaks?: boolean;
-  }
-) {
+  templateId: string
+): RequestNode[] {
   const children: RequestGroupChild[] = [];
 
-  if (!options?.skipTitle) {
-    const subtitle = hymn.incomplete
-      ? `SDAH ${hymn.number} (incomplete)`
-      : `SDAH ${hymn.number}`;
-    children.push({
-      role: 'title',
-      request: {
-        id: `${idPrefix}-title`,
-        templateId: 'song-set',
-        layoutKey: 'title',
-        values: { hymnNumber: subtitle, songTitle: hymn.title },
-        legacy: { kind: 'song-title', title: hymn.title, subtitle },
-      },
-    });
-  }
+  const subtitle = hymn.incomplete
+    ? `SDAH ${hymn.number} (incomplete)`
+    : `SDAH ${hymn.number}`;
+  children.push({
+    role: 'title',
+    request: {
+      id: `${idPrefix}-title`,
+      templateId,
+      layoutKey: 'title',
+      values: { hymnNumber: subtitle, songTitle: hymn.title },
+      legacy: { kind: 'song-title', title: hymn.title, subtitle },
+    },
+  });
 
   if (!hymn.incomplete && hymn.lyrics?.trim()) {
-    const lyricSlides = options?.weHaveThisHopeFixed
-      ? splitWeHaveThisHopeSlides(hymn.lyrics)
-      : splitLyricsLabeled(hymn.lyrics, 4, {
-          preserveLineBreaks: options?.preserveLineBreaks,
-        });
-
+    const lyricSlides = splitLyricsLabeled(hymn.lyrics, 4);
     let i = 0;
     for (const lyric of lyricSlides) {
       i += 1;
@@ -175,7 +164,7 @@ function pushSongGroup(
         role: 'lyric',
         request: {
           id: `${idPrefix}-lyric-${i}`,
-          templateId: 'song-set',
+          templateId,
           layoutKey: 'lyric',
           values: { label: lyric.label || undefined, lyrics: lyric.text },
           legacy: {
@@ -188,20 +177,46 @@ function pushSongGroup(
     }
   }
 
-  if (children.length === 0) return;
-  nodes.push({ kind: 'group', id: idPrefix, label: hymn.title, children });
+  if (children.length === 0) return [];
+  return [{ kind: 'group', id: idPrefix, label: hymn.title, children }];
 }
 
-/**
- * Ordered artifact requests — the single slide-order authority.
- * Never performs a KJV corpus lookup — theme/verse text comes from the rundown
- * or from the registry template defaults.
- */
-function buildRequestPlan(
+/** A fixed-content General row (AC-5): no placeholders, no values, no title element. */
+function fixedLyricLeaf(id: string): RequestLeaf {
+  return leaf({
+    id,
+    templateId: id,
+    legacy: (instance) => ({ kind: 'body', lines: derivedLines(instance, '') }),
+  });
+}
+
+/** Everything `buildRequestPlan` needs, computed once and handed to every row handler. */
+type PlanContext = {
+  serviceDate: string;
+  flyers: string[];
+  sermonGraphic: string | null;
+  familyPhoto: string | null;
+  youthPhoto: string | null;
+  bibleTalkHymns: HymnItem[];
+  dsOpening?: HymnItem;
+  dsClosing?: HymnItem;
+  dsMiddle: HymnItem[];
+  specialSong: string | null;
+  sermon: ParsedSermon | null | undefined;
+  closingPrayer: string | null;
+  themeVerse: ParsedScripture | null;
+  verseReading: ParsedScripture | null;
+  familyPrayer: string | null;
+  youthPrayer: string | null;
+  legacyCombined: string | null;
+  familyBody: string | null;
+};
+
+function computePlanContext(
   serviceDate: string,
   parsedData: ParsedRundown,
   images: string[] | SlidePlanMedia
-): RequestNode[] {
+): PlanContext {
   const media = normalizeMedia(images);
   const flyers = (media.flyers || []).filter((u) => isAnnouncementImageUrl(u));
   const sermonGraphic =
@@ -247,149 +262,6 @@ function buildRequestPlan(
   const familyBody =
     familyBodyParts.length > 0 ? familyBodyParts.join('\n\n') : legacyCombined;
 
-  const nodes: RequestNode[] = [];
-
-  // ── PART A — Bible Talk ──────────────────────────────────────────
-  nodes.push(
-    leaf({
-      id: 'welcome',
-      templateId: 'welcome',
-      values: { date: serviceDate },
-      legacy: {
-        kind: 'text',
-        title: 'Welcome',
-        subtitle: 'Bandung International Community',
-        body: serviceDate,
-      },
-    })
-  );
-  nodes.push(
-    leaf({
-      id: 'bible-talk-sequence',
-      templateId: 'bible-talk-sequence',
-      legacy: {
-        kind: 'text',
-        title: 'Bible Talk Sequence',
-        subtitle: 'Sabbath School',
-      },
-    })
-  );
-  nodes.push(
-    leaf({
-      id: 'prayer-partners',
-      templateId: 'prayer-partners',
-      legacy: { kind: 'divider', title: 'Prayer Partners' },
-    })
-  );
-
-  if (bibleTalkHymns[0]) {
-    nodes.push(
-      leaf({
-        id: 'bt-opening-song-cue',
-        templateId: 'opening-song-cue',
-        legacy: {
-          kind: 'divider',
-          title: 'Opening Song',
-          subtitle: 'Congregation, please stand',
-        },
-      })
-    );
-    pushSongGroup(nodes, bibleTalkHymns[0], 'bt-opening');
-  }
-
-  if (verseReading) {
-    nodes.push(
-      leaf({
-        id: 'verse-reading',
-        templateId: 'verse-reading',
-        values: {
-          reference: verseReading.reference ?? '',
-          text: verseReading.text ?? '',
-        },
-        legacy: {
-          kind: 'scripture',
-          title: 'Verse Reading',
-          subtitle: verseReading.reference || undefined,
-          body: verseReading.text || undefined,
-        },
-      })
-    );
-  }
-
-  nodes.push(
-    leaf({
-      id: 'bt-opening-prayer',
-      templateId: 'opening-prayer',
-      legacy: { kind: 'divider', title: 'Opening Prayer' },
-    })
-  );
-  nodes.push(
-    leaf({
-      id: 'bible-talk',
-      templateId: 'bible-talk',
-      legacy: { kind: 'divider', title: 'Bible Talk' },
-    })
-  );
-
-  if (bibleTalkHymns[1]) {
-    nodes.push(
-      leaf({
-        id: 'bt-closing-song-cue',
-        templateId: 'closing-song-cue',
-        legacy: {
-          kind: 'divider',
-          title: 'Closing Song',
-          subtitle: 'Congregation, please stand',
-        },
-      })
-    );
-    pushSongGroup(nodes, bibleTalkHymns[1], 'bt-closing');
-  }
-
-  nodes.push(
-    leaf({
-      id: 'bt-closing-prayer',
-      templateId: 'closing-prayer',
-      legacy: { kind: 'divider', title: 'Closing Prayer' },
-    })
-  );
-  nodes.push(
-    leaf({
-      id: 'break-time',
-      templateId: 'break-time',
-      legacy: { kind: 'text', title: 'Break Time', subtitle: 'Offering' },
-    })
-  );
-
-  // ── PART B — Divine Service ──────────────────────────────────────
-  nodes.push(
-    leaf({
-      id: 'ds-sequence',
-      templateId: 'ds-sequence',
-      legacy: {
-        kind: 'text',
-        title: 'Divine Service Sequence',
-        subtitle: 'Worship Service',
-      },
-    })
-  );
-  nodes.push(
-    leaf({
-      id: 'theme-verse',
-      templateId: 'bible-verse-contemplation',
-      // Absent weekly verse → the registry template defaults supply the
-      // standing theme verse (no second copy lives in this module).
-      values: themeVerse
-        ? { reference: themeVerse.reference ?? '', text: themeVerse.text ?? '' }
-        : {},
-      legacy: (instance) => ({
-        kind: 'scripture',
-        subtitle: findResolvedText(instance, 'reference') || undefined,
-        body: findResolvedText(instance, 'text') || undefined,
-      }),
-    })
-  );
-
   const dsOpening = divineServiceHymns[0];
   const dsClosing =
     divineServiceHymns.length > 1
@@ -398,170 +270,347 @@ function buildRequestPlan(
   const dsMiddle =
     divineServiceHymns.length > 2 ? divineServiceHymns.slice(1, -1) : [];
 
-  if (dsOpening) {
-    nodes.push(
-      leaf({
-        id: 'ds-opening-song-cue',
-        templateId: 'opening-song-cue',
-        legacy: {
-          kind: 'divider',
-          title: 'Opening Song',
-          subtitle: 'Congregation, please stand',
-        },
-      })
-    );
-    pushSongGroup(nodes, dsOpening, 'ds-opening');
-  }
+  return {
+    serviceDate,
+    flyers,
+    sermonGraphic,
+    familyPhoto,
+    youthPhoto,
+    bibleTalkHymns,
+    dsOpening,
+    dsClosing,
+    dsMiddle,
+    specialSong,
+    sermon,
+    closingPrayer,
+    themeVerse,
+    verseReading,
+    familyPrayer,
+    youthPrayer,
+    legacyCombined,
+    familyBody,
+  };
+}
 
-  {
-    const { before, during } = resolveIntercessoryStandingHymns();
-    nodes.push(
-      leaf({
-        id: 'intercessory-prayer',
-        templateId: 'intercessory-prayer',
-        legacy: {
-          kind: 'divider',
-          title: 'Intercessory Prayer',
-          subtitle: 'Participant to podium',
-        },
-      })
-    );
-    pushSongGroup(
-      nodes,
-      {
-        type: 'hymn',
-        number: before.number,
-        title: before.title,
-        lyrics: before.lyrics,
+/**
+ * One handler per registry row id. `buildRequestPlan` walks the ordered
+ * registry snapshot and looks each row up here — the handler decides whether
+ * the row is present this week and what it expands to, but never *where* in
+ * the sequence it lands; that is the registry's `position` column (AC-1, AC-2).
+ *
+ * Four ids remain planner-owned expansions of a single row rather than a
+ * fixed 1:1 leaf: the four transitional SongSet position rows (each expands to
+ * a title+lyric group, or to nothing when that week has no hymn there) and the
+ * `song-set` ds-middle row (expands to zero or many groups, unbounded — see
+ * *Dev Notes → Five transitional SongSet entries*).
+ */
+const ROW_HANDLERS: Readonly<Record<string, (ctx: PlanContext) => RequestNode[]>> = {
+  welcome: (ctx) => [
+    leaf({
+      id: 'welcome',
+      templateId: 'welcome',
+      values: { date: ctx.serviceDate },
+      legacy: {
+        kind: 'text',
+        title: 'Welcome',
+        subtitle: 'Bandung International Community',
+        body: ctx.serviceDate,
       },
-      'intercessory-671',
-      { skipTitle: true }
-    );
-    nodes.push(
-      leaf({
-        id: 'intercessory-prayer-during',
-        templateId: 'intercessory-prayer-during',
-        legacy: {
-          kind: 'divider',
-          title: 'Intercessory Prayer',
-          subtitle: 'While participant prays',
-        },
-      })
-    );
-    pushSongGroup(
-      nodes,
-      {
-        type: 'hymn',
-        number: during.number,
-        title: during.title,
-        lyrics: during.lyrics,
+    }),
+  ],
+
+  'bible-talk-sequence': () => [
+    leaf({
+      id: 'bible-talk-sequence',
+      templateId: 'bible-talk-sequence',
+      legacy: {
+        kind: 'text',
+        title: 'Bible Talk Sequence',
+        subtitle: 'Sabbath School',
       },
-      'intercessory-684',
-      { skipTitle: true }
-    );
-  }
+    }),
+  ],
 
-  dsMiddle.forEach((hymn, idx) => {
-    pushSongGroup(nodes, hymn, `ds-middle-${idx}`);
-  });
+  'prayer-partners': () => [
+    leaf({
+      id: 'prayer-partners',
+      templateId: 'prayer-partners',
+      legacy: { kind: 'divider', title: 'Prayer Partners' },
+    }),
+  ],
 
-  if (specialSong) {
-    nodes.push(
-      leaf({
-        id: 'special-song',
-        templateId: 'special-song',
-        values: { performer: specialSong },
-        legacy: {
-          kind: 'divider',
-          title: 'Special Song',
-          subtitle: specialSong,
-        },
-      })
-    );
-  }
+  'bt-opening-song-cue': (ctx) =>
+    ctx.bibleTalkHymns[0]
+      ? [
+          leaf({
+            id: 'bt-opening-song-cue',
+            templateId: 'bt-opening-song-cue',
+            legacy: {
+              kind: 'divider',
+              title: 'Opening Song',
+              subtitle: 'Congregation, please stand',
+            },
+          }),
+        ]
+      : [],
 
-  if (sermon) {
-    nodes.push(
-      leaf({
-        id: 'sermon',
-        templateId: 'sermon',
-        values: { title: sermon.title ?? '', speaker: sermon.speaker ?? '' },
-        legacy: {
-          kind: 'sermon',
-          title: sermon.title || undefined,
-          subtitle: sermon.speaker,
-        },
-      })
-    );
-  }
+  'bt-opening-song': (ctx) =>
+    ctx.bibleTalkHymns[0]
+      ? songGroupNodes(ctx.bibleTalkHymns[0], 'bt-opening', 'bt-opening-song')
+      : [],
 
-  if (sermonGraphic) {
-    nodes.push(
-      leaf({
-        id: 'sermon-graphic',
-        templateId: 'sermon-flyer',
-        values: { imageUrl: sermonGraphic },
-        legacy: { kind: 'image', imageUrl: sermonGraphic, fade: false },
-      })
-    );
-  }
+  'verse-reading': (ctx) =>
+    ctx.verseReading
+      ? [
+          leaf({
+            id: 'verse-reading',
+            templateId: 'verse-reading',
+            values: {
+              reference: ctx.verseReading.reference ?? '',
+              text: ctx.verseReading.text ?? '',
+            },
+            legacy: {
+              kind: 'scripture',
+              title: 'Verse Reading',
+              subtitle: ctx.verseReading.reference || undefined,
+              body: ctx.verseReading.text || undefined,
+            },
+          }),
+        ]
+      : [],
 
-  if (dsClosing) {
-    nodes.push(
-      leaf({
-        id: 'ds-closing-song-cue',
-        templateId: 'closing-song-cue',
-        legacy: {
-          kind: 'divider',
-          title: 'Closing Song',
-          subtitle: 'Congregation, please stand',
-        },
-      })
-    );
-    pushSongGroup(nodes, dsClosing, 'ds-closing');
-  }
+  'opening-prayer': () => [
+    leaf({
+      id: 'bt-opening-prayer',
+      templateId: 'opening-prayer',
+      legacy: { kind: 'divider', title: 'Opening Prayer' },
+    }),
+  ],
 
-  if (closingPrayer) {
-    nodes.push(
-      leaf({
-        id: 'ds-closing-prayer',
-        templateId: 'closing-prayer-ds',
-        values: { person: closingPrayer },
-        legacy: {
-          kind: 'closing-prayer',
-          title: 'Closing Prayer',
-          subtitle: closingPrayer,
-        },
-      })
-    );
-  }
+  'bible-talk': () => [
+    leaf({
+      id: 'bible-talk',
+      templateId: 'bible-talk',
+      legacy: { kind: 'divider', title: 'Bible Talk' },
+    }),
+  ],
 
-  {
-    const hope = resolveWeHaveThisHope();
-    pushSongGroup(
-      nodes,
-      {
-        type: 'hymn',
-        number: hope.number,
-        title: hope.title,
-        lyrics: hope.lyrics,
+  'bt-closing-song-cue': (ctx) =>
+    ctx.bibleTalkHymns[1]
+      ? [
+          leaf({
+            id: 'bt-closing-song-cue',
+            templateId: 'bt-closing-song-cue',
+            legacy: {
+              kind: 'divider',
+              title: 'Closing Song',
+              subtitle: 'Congregation, please stand',
+            },
+          }),
+        ]
+      : [],
+
+  'bt-closing-song': (ctx) =>
+    ctx.bibleTalkHymns[1]
+      ? songGroupNodes(ctx.bibleTalkHymns[1], 'bt-closing', 'bt-closing-song')
+      : [],
+
+  'closing-prayer': () => [
+    leaf({
+      id: 'bt-closing-prayer',
+      templateId: 'closing-prayer',
+      legacy: { kind: 'divider', title: 'Closing Prayer' },
+    }),
+  ],
+
+  'break-time': () => [
+    leaf({
+      id: 'break-time',
+      templateId: 'break-time',
+      legacy: { kind: 'text', title: 'Break Time', subtitle: 'Offering' },
+    }),
+  ],
+
+  'ds-sequence': () => [
+    leaf({
+      id: 'ds-sequence',
+      templateId: 'ds-sequence',
+      legacy: {
+        kind: 'text',
+        title: 'Divine Service Sequence',
+        subtitle: 'Worship Service',
       },
-      'hope',
-      { skipTitle: true, weHaveThisHopeFixed: true }
-    );
-  }
+    }),
+  ],
 
-  // ── PART C — Announcements & standing slides ─────────────────────
-  if (flyers.length > 0) {
-    nodes.push(
-      leaf({
-        id: 'announcements',
-        templateId: 'announcements-header',
-        legacy: { kind: 'text', title: 'Announcements', subtitle: 'Part C' },
-      })
-    );
-  }
-  nodes.push(
+  'bible-verse-contemplation': (ctx) => [
+    leaf({
+      id: 'theme-verse',
+      templateId: 'bible-verse-contemplation',
+      // Absent weekly verse → the registry template defaults supply the
+      // standing theme verse (no second copy lives in this module).
+      values: ctx.themeVerse
+        ? { reference: ctx.themeVerse.reference ?? '', text: ctx.themeVerse.text ?? '' }
+        : {},
+      legacy: (instance) => ({
+        kind: 'scripture',
+        subtitle: findResolvedText(instance, 'reference') || undefined,
+        body: findResolvedText(instance, 'text') || undefined,
+      }),
+    }),
+  ],
+
+  'ds-opening-song-cue': (ctx) =>
+    ctx.dsOpening
+      ? [
+          leaf({
+            id: 'ds-opening-song-cue',
+            templateId: 'ds-opening-song-cue',
+            legacy: {
+              kind: 'divider',
+              title: 'Opening Song',
+              subtitle: 'Congregation, please stand',
+            },
+          }),
+        ]
+      : [],
+
+  'ds-opening-song': (ctx) =>
+    ctx.dsOpening
+      ? songGroupNodes(ctx.dsOpening, 'ds-opening', 'ds-opening-song')
+      : [],
+
+  'intercessory-prayer': () => [
+    leaf({
+      id: 'intercessory-prayer',
+      templateId: 'intercessory-prayer',
+      legacy: {
+        kind: 'divider',
+        title: 'Intercessory Prayer',
+        subtitle: 'Participant to podium',
+      },
+    }),
+  ],
+
+  'intercessory-671-lyric-1': () => [fixedLyricLeaf('intercessory-671-lyric-1')],
+
+  'intercessory-prayer-during': () => [
+    leaf({
+      id: 'intercessory-prayer-during',
+      templateId: 'intercessory-prayer-during',
+      legacy: {
+        kind: 'divider',
+        title: 'Intercessory Prayer',
+        subtitle: 'While participant prays',
+      },
+    }),
+  ],
+
+  'intercessory-684-lyric-1': () => [fixedLyricLeaf('intercessory-684-lyric-1')],
+
+  // The unbounded ds-middle expansion (Dev Notes → Five transitional SongSet
+  // entries): every Divine Service hymn that is neither the opening nor the
+  // closing song, and is not the #671/#684 standing pair.
+  'song-set': (ctx) =>
+    ctx.dsMiddle.flatMap((hymn, idx) =>
+      songGroupNodes(hymn, `ds-middle-${idx}`, 'song-set')
+    ),
+
+  'special-song': (ctx) =>
+    ctx.specialSong
+      ? [
+          leaf({
+            id: 'special-song',
+            templateId: 'special-song',
+            values: { performer: ctx.specialSong },
+            legacy: {
+              kind: 'divider',
+              title: 'Special Song',
+              subtitle: ctx.specialSong,
+            },
+          }),
+        ]
+      : [],
+
+  sermon: (ctx) =>
+    ctx.sermon
+      ? [
+          leaf({
+            id: 'sermon',
+            templateId: 'sermon',
+            values: { title: ctx.sermon.title ?? '', speaker: ctx.sermon.speaker ?? '' },
+            legacy: {
+              kind: 'sermon',
+              title: ctx.sermon.title || undefined,
+              subtitle: ctx.sermon.speaker,
+            },
+          }),
+        ]
+      : [],
+
+  'sermon-flyer': (ctx) =>
+    ctx.sermonGraphic
+      ? [
+          leaf({
+            id: 'sermon-graphic',
+            templateId: 'sermon-flyer',
+            values: { imageUrl: ctx.sermonGraphic },
+            legacy: { kind: 'image', imageUrl: ctx.sermonGraphic, fade: false },
+          }),
+        ]
+      : [],
+
+  'ds-closing-song-cue': (ctx) =>
+    ctx.dsClosing
+      ? [
+          leaf({
+            id: 'ds-closing-song-cue',
+            templateId: 'ds-closing-song-cue',
+            legacy: {
+              kind: 'divider',
+              title: 'Closing Song',
+              subtitle: 'Congregation, please stand',
+            },
+          }),
+        ]
+      : [],
+
+  'ds-closing-song': (ctx) =>
+    ctx.dsClosing
+      ? songGroupNodes(ctx.dsClosing, 'ds-closing', 'ds-closing-song')
+      : [],
+
+  'closing-prayer-ds': (ctx) =>
+    ctx.closingPrayer
+      ? [
+          leaf({
+            id: 'ds-closing-prayer',
+            templateId: 'closing-prayer-ds',
+            values: { person: ctx.closingPrayer },
+            legacy: {
+              kind: 'closing-prayer',
+              title: 'Closing Prayer',
+              subtitle: ctx.closingPrayer,
+            },
+          }),
+        ]
+      : [],
+
+  'hope-lyric-1': () => [fixedLyricLeaf('hope-lyric-1')],
+  'hope-lyric-2': () => [fixedLyricLeaf('hope-lyric-2')],
+
+  'announcements-header': (ctx) =>
+    ctx.flyers.length > 0
+      ? [
+          leaf({
+            id: 'announcements',
+            templateId: 'announcements-header',
+            legacy: { kind: 'text', title: 'Announcements', subtitle: 'Part C' },
+          }),
+        ]
+      : [],
+
+  'welcome-repeat': () => [
     leaf({
       id: 'welcome-repeat',
       templateId: 'welcome-repeat',
@@ -570,9 +619,10 @@ function buildRequestPlan(
         title: 'Welcome',
         subtitle: 'Bandung International Community',
       },
-    })
-  );
-  nodes.push(
+    }),
+  ],
+
+  'offering-tithe': () => [
     leaf({
       id: 'offering-tithe',
       templateId: 'offering-tithe',
@@ -581,9 +631,10 @@ function buildRequestPlan(
         title: 'Offering & Tithe',
         lines: derivedLines(instance, 'Offering & Tithe'),
       }),
-    })
-  );
-  nodes.push(
+    }),
+  ],
+
+  'midweek-prayer': () => [
     leaf({
       id: 'midweek-prayer',
       templateId: 'midweek-prayer',
@@ -592,9 +643,10 @@ function buildRequestPlan(
         title: 'Midweek Prayer Meeting',
         lines: derivedLines(instance, 'Midweek Prayer Meeting'),
       }),
-    })
-  );
-  nodes.push(
+    }),
+  ],
+
+  'fellowship-etiquette': () => [
     leaf({
       id: 'fellowship-etiquette',
       templateId: 'fellowship-etiquette',
@@ -603,9 +655,10 @@ function buildRequestPlan(
         title: 'Fellowship Etiquette',
         lines: derivedLines(instance, 'Fellowship Etiquette'),
       }),
-    })
-  );
-  nodes.push(
+    }),
+  ],
+
+  contact: () => [
     leaf({
       id: 'contact',
       templateId: 'contact',
@@ -614,45 +667,45 @@ function buildRequestPlan(
         title: 'Contact',
         lines: derivedLines(instance, 'Contact'),
       }),
-    })
-  );
+    }),
+  ],
 
   // Slide 56 — combined Family & Youth (text + both photos)
-  if (familyBody || familyPhoto || youthPhoto) {
-    nodes.push(
-      leaf({
-        id: 'family-youth',
-        templateId: 'family-youth',
-        values: {
-          familyText: optional(familyPrayer ?? legacyCombined),
-          youthText: optional(youthPrayer),
-          familyPhoto: optional(familyPhoto),
-          youthPhoto: optional(youthPhoto),
-        },
-        legacy: {
-          kind: 'family',
-          title: 'Family & Youth of the Week',
-          body: familyBody || undefined,
-          imageUrl: familyPhoto || undefined,
-          secondaryImageUrl: youthPhoto || undefined,
-          fade: false,
-        },
-      })
-    );
-  }
+  'family-youth': (ctx) =>
+    ctx.familyBody || ctx.familyPhoto || ctx.youthPhoto
+      ? [
+          leaf({
+            id: 'family-youth',
+            templateId: 'family-youth',
+            values: {
+              familyText: optional(ctx.familyPrayer ?? ctx.legacyCombined),
+              youthText: optional(ctx.youthPrayer),
+              familyPhoto: optional(ctx.familyPhoto),
+              youthPhoto: optional(ctx.youthPhoto),
+            },
+            legacy: {
+              kind: 'family',
+              title: 'Family & Youth of the Week',
+              body: ctx.familyBody || undefined,
+              imageUrl: ctx.familyPhoto || undefined,
+              secondaryImageUrl: ctx.youthPhoto || undefined,
+              fade: false,
+            },
+          }),
+        ]
+      : [],
 
-  flyers.forEach((imageUrl, idx) => {
-    nodes.push(
+  'announcement-flyer': (ctx) =>
+    ctx.flyers.map((imageUrl, idx) =>
       leaf({
         id: `flyer-${idx}`,
         templateId: 'announcement-flyer',
         values: { imageUrl: [imageUrl] },
         legacy: { kind: 'image', imageUrl, fade: false },
       })
-    );
-  });
+    ),
 
-  nodes.push(
+  'thank-you': () => [
     leaf({
       id: 'thank-you',
       templateId: 'thank-you',
@@ -661,9 +714,32 @@ function buildRequestPlan(
         title: 'Thank You',
         subtitle: 'Bandung International Community',
       },
-    })
-  );
+    }),
+  ],
+};
 
+/**
+ * Ordered artifact requests — the single slide-order authority.
+ *
+ * Sequence comes from `orderedTemplateIds` (the registry snapshot's own row
+ * order, i.e. `artifact_templates.position` — AC-1, AC-2), not from source
+ * order: swapping two positions in the database changes this walk with no
+ * TypeScript edit. `ROW_HANDLERS` decides presence/content per row; it never
+ * decides placement.
+ *
+ * Never performs a KJV corpus lookup — theme/verse text comes from the rundown
+ * or from the registry template defaults.
+ */
+function buildRequestPlan(
+  orderedTemplateIds: readonly string[],
+  ctx: PlanContext
+): RequestNode[] {
+  const nodes: RequestNode[] = [];
+  for (const id of orderedTemplateIds) {
+    const handler = ROW_HANDLERS[id];
+    if (!handler) continue;
+    nodes.push(...handler(ctx));
+  }
   return nodes;
 }
 
@@ -684,12 +760,29 @@ function hydrateLeaf(
   };
 }
 
-function hydrateRequestPlan(requests: RequestNode[]): {
+/**
+ * Hydrate one request, or omit it: a template the snapshot has no valid
+ * layout for (AC-8 — the persisted row failed validation and, per
+ * `loadRegistrySnapshot`, was not substituted from the seed) contributes no
+ * layout to the plan rather than throwing. The omission is not silent —
+ * `loadRegistrySnapshot` already logged the id when it rejected the row.
+ */
+function hydrateLeafOrOmit(
+  snapshot: RegistrySnapshot,
+  request: SlideRequest,
+  group?: { id: string; label: string; role: 'title' | 'lyric' }
+): ArtifactLeafNode | null {
+  if (!snapshot.has(request.templateId)) return null;
+  return hydrateLeaf(snapshot, request, group);
+}
+
+function hydrateRequestPlan(
+  requests: RequestNode[],
+  snapshot: RegistrySnapshot
+): {
   plan: ArtifactNode[];
   legacyById: Map<string, LegacyFields>;
 } {
-  // One registry read per plan build — never per slide.
-  const snapshot = loadRegistrySnapshot();
   const plan: ArtifactNode[] = [];
   const legacyById = new Map<string, LegacyFields>();
 
@@ -704,20 +797,24 @@ function hydrateRequestPlan(requests: RequestNode[]): {
 
   for (const node of requests) {
     if (node.kind === 'group') {
-      const children = node.children.map((child) => {
-        const hydrated = hydrateLeaf(snapshot, child.request, {
+      const children: ArtifactLeafNode[] = [];
+      for (const child of node.children) {
+        const hydrated = hydrateLeafOrOmit(snapshot, child.request, {
           id: node.id,
           label: node.label,
           role: child.role,
         });
+        if (!hydrated) continue;
         record(child.request, hydrated.instance);
-        return hydrated;
-      });
+        children.push(hydrated);
+      }
+      if (children.length === 0) continue;
       plan.push({ kind: 'group', id: node.id, label: node.label, children });
       continue;
     }
 
-    const hydrated = hydrateLeaf(snapshot, node.request);
+    const hydrated = hydrateLeafOrOmit(snapshot, node.request);
+    if (!hydrated) continue;
     record(node.request, hydrated.instance);
     plan.push(hydrated);
   }
@@ -734,8 +831,13 @@ export function buildArtifactPlan(
   parsedData: ParsedRundown,
   images: string[] | SlidePlanMedia = []
 ): ArtifactNode[] {
-  return hydrateRequestPlan(buildRequestPlan(serviceDate, parsedData, images))
-    .plan;
+  // One registry read per plan build — never per slide. The snapshot's own
+  // key order (position-sorted) is the sequence `buildRequestPlan` walks.
+  const snapshot = loadRegistrySnapshot();
+  const orderedIds = [...snapshot.keys()];
+  const ctx = computePlanContext(serviceDate, parsedData, images);
+  const requests = buildRequestPlan(orderedIds, ctx);
+  return hydrateRequestPlan(requests, snapshot).plan;
 }
 
 /**
@@ -748,9 +850,11 @@ export function buildSlidePlan(
   parsedData: ParsedRundown,
   images: string[] | SlidePlanMedia = []
 ): SlidePlanItem[] {
-  const { plan, legacyById } = hydrateRequestPlan(
-    buildRequestPlan(serviceDate, parsedData, images)
-  );
+  const snapshot = loadRegistrySnapshot();
+  const orderedIds = [...snapshot.keys()];
+  const ctx = computePlanContext(serviceDate, parsedData, images);
+  const requests = buildRequestPlan(orderedIds, ctx);
+  const { plan, legacyById } = hydrateRequestPlan(requests, snapshot);
 
   return flattenArtifactPlan(plan).map((instance) => {
     const legacy = legacyById.get(instance.instanceId);

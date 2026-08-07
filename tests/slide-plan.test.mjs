@@ -21,6 +21,9 @@ const { parseRundown } = await import(
 const { buildSlidePlan } = await import(
   pathToFileURL(path.join(root, 'src', 'lib', 'slide-plan.ts')).href
 );
+const { getDb } = await import(
+  pathToFileURL(path.join(root, 'src', 'lib', 'db', 'index.ts')).href
+);
 
 const sample = fs.readFileSync(
   path.join(__dirname, 'fixtures', 'sample-rundown.txt'),
@@ -90,15 +93,70 @@ test('buildSlidePlan ignores extensionless flyer URLs for announcements title', 
   assert.ok(!ids.includes('flyer-0'));
 });
 
-test('buildSlidePlan emits Intercessory standing pair without title slides; lyrics + order remain', () => {
+/**
+ * AC-2: the flattened deck order follows the persisted row positions, not a
+ * label sort or a TypeScript sequence. Both rows are ordinary General leaves
+ * which the fixture always renders, so their relative order is observable in
+ * the built plan without involving the transitional SongSet exception.
+ */
+test('buildSlidePlan moves flattened slides when two registry positions are swapped in SQL', () => {
+  const db = getDb();
+  const parsed = parseRundown(sample);
+  const firstId = 'offering-tithe';
+  const secondId = 'midweek-prayer';
+  const positions = db
+    .prepare(`SELECT id, position FROM artifact_templates WHERE id IN (?, ?)`)
+    .all(firstId, secondId);
+  const firstPosition = positions.find((row) => row.id === firstId)?.position;
+  const secondPosition = positions.find((row) => row.id === secondId)?.position;
+
+  assert.equal(typeof firstPosition, 'number');
+  assert.equal(typeof secondPosition, 'number');
+
+  const before = buildSlidePlan('2026-07-11', parsed, []).map((slide) => slide.id);
+  assert.ok(before.indexOf(firstId) < before.indexOf(secondId));
+
+  try {
+    db.prepare(
+      `UPDATE artifact_templates
+       SET position = CASE id WHEN ? THEN ? WHEN ? THEN ? END
+       WHERE id IN (?, ?)`
+    ).run(firstId, secondPosition, secondId, firstPosition, firstId, secondId);
+
+    const after = buildSlidePlan('2026-07-11', parsed, []).map((slide) => slide.id);
+    assert.ok(
+      after.indexOf(secondId) < after.indexOf(firstId),
+      'the flattened plan must follow the swapped artifact_templates.position values'
+    );
+  } finally {
+    db.prepare(
+      `UPDATE artifact_templates
+       SET position = CASE id WHEN ? THEN ? WHEN ? THEN ? END
+       WHERE id IN (?, ?)`
+    ).run(firstId, firstPosition, secondId, secondPosition, firstId, secondId);
+  }
+});
+
+/**
+ * Story 20.1, AC-3 delta (a): the three fixed liturgical songs (#671, #684,
+ * "We Have This Hope") render as General slides instead of title-suppressed
+ * SongSet groups. Their `kind` is now `body` (like Offering & Tithe /
+ * Midweek Prayer) with `.lines` derived from the hydrated layout, not the
+ * SongSet `song-lyric` kind with a single `.body` string — `skipTitle` is
+ * gone (AC-4), and there is no group node left to carry a title/lyric role at
+ * all (AC-3 delta c). The text itself is unchanged, byte-for-byte what the
+ * deleted `splitLyricsLabeled` / `splitWeHaveThisHopeSlides` calls produced
+ * (AC-5) — this only re-anchors the assertions on the new shape.
+ */
+test('buildSlidePlan renders the three fixed liturgical songs as General slides, order intact', () => {
   const parsed = parseRundown(sample);
   const plan = buildSlidePlan('2026-07-11', parsed, []);
   const ids = plan.map((s) => s.id);
 
   const beforeDivider = ids.indexOf('intercessory-prayer');
-  const lyric671 = ids.findIndex((id) => id.startsWith('intercessory-671-lyric-'));
+  const lyric671 = ids.indexOf('intercessory-671-lyric-1');
   const duringDivider = ids.indexOf('intercessory-prayer-during');
-  const lyric684 = ids.findIndex((id) => id.startsWith('intercessory-684-lyric-'));
+  const lyric684 = ids.indexOf('intercessory-684-lyric-1');
 
   assert.ok(beforeDivider >= 0);
   assert.ok(lyric671 >= 0);
@@ -126,20 +184,63 @@ test('buildSlidePlan emits Intercessory standing pair without title slides; lyri
   assert.equal(sdah671.length, 0);
   assert.equal(sdah684.length, 0);
 
-  // Hope: no title slide; CAP-4 fixed 2 lyric slides with line breaks
+  const slide671 = plan.find((s) => s.id === 'intercessory-671-lyric-1');
+  assert.equal(slide671.kind, 'body');
+  assert.deepEqual(slide671.lines, [
+    "Now, Dear Lord, as we pray, Take our hearts and minds far away; From the " +
+      "press of the world all around; To Your throne where grace does abound. " +
+      "May our lives be transform'd by Your love, May our souls be refreshed " +
+      'from above. At this moment, let people everywhere; Join us now as we ' +
+      'come to You in prayer.',
+  ]);
+
+  const slide684 = plan.find((s) => s.id === 'intercessory-684-lyric-1');
+  assert.equal(slide684.kind, 'body');
+  assert.deepEqual(slide684.lines, [
+    'Hear our prayer, O Lord, Hear our prayer, O Lord; Incline Thine ear to us, ' +
+      'And grant us Thy peace. Amen.',
+  ]);
+
+  // Hope: no title slide; two fixed General lyric-page rows (AC-5), still 2 pages.
   assert.ok(!ids.includes('hope-title'));
   const hopeLyrics = plan.filter((s) => s.id.startsWith('hope-lyric-'));
   assert.equal(hopeLyrics.length, 2);
-  assert.ok(hopeLyrics[0].body?.endsWith('Faith in the promise of His Word.'));
-  assert.ok(hopeLyrics[1].body?.startsWith('We believe the time is here,'));
-  assert.ok(hopeLyrics[1].body?.endsWith('Hope in the coming of the Lord.'));
-  assert.ok(hopeLyrics[0].body?.includes('\n'));
-  assert.ok(!hopeLyrics[0].body?.includes(';'));
-  assert.ok(!hopeLyrics[1].body?.includes(';'));
+  assert.equal(hopeLyrics[0].kind, 'body');
+  assert.equal(hopeLyrics[1].kind, 'body');
+  assert.deepEqual(hopeLyrics[0].lines, [
+    'We have this hope that burns within our hearts,',
+    'Hope in the coming of the Lord.',
+    'We have this faith that Christ alone imparts,',
+    'Faith in the promise of His Word.',
+  ]);
+  assert.deepEqual(hopeLyrics[1].lines, [
+    'We believe the time is here,',
+    'When the nations far and near',
+    'Shall awake, and shout, and sing',
+    'Hallelujah! Christ is King!',
+    'We have this hope that burns within our hearts,',
+    'Hope in the coming of the Lord.',
+  ]);
 
   // BT/DS opening still keep song-title slides
   assert.ok(ids.includes('bt-opening-title'));
   assert.ok(ids.includes('ds-opening-title'));
+});
+
+/** AC-4: `skipTitle` is deleted, not migrated, and nothing replaces it. */
+test('skipTitle occurs nowhere in src/', () => {
+  const files = [];
+  const walk = (dir) => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) walk(full);
+      else if (/\.(ts|tsx)$/.test(entry.name)) files.push(full);
+    }
+  };
+  walk(path.join(root, 'src'));
+
+  const offenders = files.filter((f) => fs.readFileSync(f, 'utf8').includes('skipTitle'));
+  assert.deepEqual(offenders, [], `skipTitle survives in: ${offenders.join(', ')}`);
 });
 
 test('buildSlidePlan omits KJV lookup — theme uses standing default text', () => {

@@ -130,16 +130,24 @@ test('SongSet children share one group and carry title/lyric roles', () => {
 
   assert.equal(opening[0].role, 'title');
   assert.equal(opening[0].label, 'Song Title');
+  // Story 20.1 (AC-6) gives this transitional weekly position its own clone
+  // of the `song-set` template (`bt-opening-song`), not the shared row —
+  // both templates carry `baseType: 'song-set'`, which is what the "Song
+  // Title" / "Song Lyric" preview labels are keyed on (preview-model.ts).
   for (const child of opening.slice(1)) {
     assert.equal(child.role, 'lyric');
     assert.equal(child.label, 'Song Lyric');
-    assert.equal(child.templateId, 'song-set');
+    assert.equal(child.baseType, 'song-set');
   }
 
-  // Title-less standing pairs are lyric-only groups, never a stray title.
-  const standing = entries.filter((e) => e.groupId === 'intercessory-671');
-  assert.ok(standing.length > 0);
-  assert.ok(standing.every((e) => e.role === 'lyric'));
+  // Story 20.1 (AC-3 delta a/c, AC-5): the standing Intercessory pair is no
+  // longer a title-suppressed SongSet group at all — it is a fixed General
+  // leaf, so it carries no group fields and Live Preview cannot nest it.
+  assert.ok(!entries.some((e) => e.groupId === 'intercessory-671'));
+  const standing671 = entries.find((e) => e.instanceId === 'intercessory-671-lyric-1');
+  assert.ok(standing671);
+  assert.equal(standing671.groupId, undefined);
+  assert.equal(standing671.role, undefined);
 
   // Group children stay contiguous, so nesting cannot reorder the deck.
   const seen = new Map();

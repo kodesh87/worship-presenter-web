@@ -24,10 +24,11 @@ const {
   RegistryStaleError,
   RegistryNotFoundError,
   listArtifactSummaries,
+  assertContiguousPositions,
 } = await import(
   pathToFileURL(path.join(root, 'src', 'lib', 'registry', 'store.ts')).href
 );
-const { seedArtifactRegistry, getSeedTemplateById, loadSeedTemplates } =
+const { bootstrapArtifactRegistry, getSeedTemplateById, loadSeedTemplates } =
   await import(
     pathToFileURL(path.join(root, 'src', 'lib', 'registry', 'seed.ts')).href
   );
@@ -65,18 +66,39 @@ test('update rejects templates missing from seed file', () => {
     () => updateArtifactTemplate(db, orphan.id, orphan, now),
     RegistryNotFoundError
   );
+
+  // Every case in this file shares one `getDb()` connection: leaving the
+  // orphan behind would corrupt the exact row-count and position-invariant
+  // assertions later cases in this file make (Story 20.1, AC-1).
+  db.prepare(`DELETE FROM artifact_templates WHERE id = ?`).run(orphan.id);
 });
 
 test('registry seed loads validated templates', () => {
   const db = getDb();
   const count = db.prepare('SELECT COUNT(*) AS n FROM artifact_templates').get().n;
-  assert.ok(count >= 28);
+  // Story 20.1: 28 pre-existing rows, minus the two shared cue templates, plus
+  // 12 (4 split cue rows, 4 transitional song-position rows, 4 lyric-page
+  // Generals) — 38 (Dev Notes → The ordered seed).
+  assert.equal(count, 38);
   const summaries = listArtifactSummaries(db);
   assert.ok(summaries.some((item) => item.id === 'welcome'));
   assert.ok(summaries.some((item) => item.id === 'song-set' && !item.editable));
+  // AC-1: listArtifactSummaries orders by position, not by label.
+  assert.deepEqual(
+    summaries.map((s) => s.id).slice(0, 3),
+    ['welcome', 'bible-talk-sequence', 'prayer-partners']
+  );
 });
 
-test('a startup seeding pass preserves an administrator-edited template', () => {
+/**
+ * Story 20.1 (AC-7) retires the automatic startup self-heal: the seeder gates
+ * on the AD-17 bootstrap marker and, once set, writes nothing on a later boot
+ * — not an insert, not a re-seed. So a second bootstrap call after the first
+ * (the marker is already set) leaves an administrator's edit untouched for a
+ * different reason than the old self-heal guard did: there is no automatic
+ * write path left to touch it at all.
+ */
+test('bootstrapArtifactRegistry is a no-op once the marker is set, so an edit survives', () => {
   const db = getDb();
   const welcome = getArtifactTemplate(db, 'welcome');
   assert.ok(welcome);
@@ -96,7 +118,10 @@ test('a startup seeding pass preserves an administrator-edited template', () => 
     },
   };
   updateArtifactTemplate(db, 'welcome', mutated, updatedAt);
-  seedArtifactRegistry(db);
+
+  const secondBootstrap = bootstrapArtifactRegistry(db);
+  assert.equal(secondBootstrap, null, 'a second call must not touch a bootstrapped database');
+
   const reloaded = getArtifactTemplate(db, 'welcome');
   assert.ok(reloaded);
   const moved = reloaded.layouts.default?.elements.find((e) => e.id === 'e1');
@@ -442,6 +467,41 @@ test('stale updatedAt on a valid element add still returns 409 path', () => {
     RegistryStaleError
   );
   assert.deepEqual(getArtifactTemplate(db, 'welcome'), before);
+});
+
+/** AC-1: the persisted position set is exactly 0..N-1 after every write path
+ * this story leaves in place — the bootstrap, and the existing PUT. */
+test('positions stay contiguous after bootstrap and after a PUT', () => {
+  const db = getDb();
+  assertContiguousPositions(db);
+
+  const welcome = getArtifactTemplate(db, 'welcome');
+  assert.ok(welcome);
+  const { updatedAt, ...body } = welcome;
+  updateArtifactTemplate(db, 'welcome', body, updatedAt);
+  assertContiguousPositions(db);
+
+  // Forcing two rows onto the same position necessarily also opens a gap
+  // where one of them used to sit (38 positions, 38 rows) — either defect
+  // must make the guard throw.
+  db.prepare(
+    `UPDATE artifact_templates SET position = 5 WHERE id = 'welcome'`
+  ).run();
+  db.prepare(
+    `UPDATE artifact_templates SET position = 5 WHERE id = 'thank-you'`
+  ).run();
+  assert.throws(
+    () => assertContiguousPositions(db),
+    /position is not well-formed/
+  );
+
+  db.prepare(
+    `UPDATE artifact_templates SET position = 0 WHERE id = 'welcome'`
+  ).run();
+  db.prepare(
+    `UPDATE artifact_templates SET position = 37 WHERE id = 'thank-you'`
+  ).run();
+  assertContiguousPositions(db);
 });
 
 test('seed bundled assets exist on disk', () => {

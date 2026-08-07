@@ -345,17 +345,35 @@ test('SongSets become one group node with ordered title/lyric children', () => {
       .every((c) => c.instance.layoutKey === 'lyric' && c.instance.group.role === 'lyric')
   );
 
+  // Story 20.1 (AC-6) split the shared `song-set` template into five rows —
+  // a group's children share the SongSet *baseType*, not literally the
+  // `song-set` id: `bt-opening`/`bt-closing`/`ds-opening`/`ds-closing` groups
+  // now hydrate from their own transitional per-position template.
   for (const group of groups) {
     assert.ok(
-      group.children.every((c) => c.instance.templateId === 'song-set'),
-      `group ${group.id} holds a non song-set child`
+      group.children.every((c) => c.instance.baseType === 'song-set'),
+      `group ${group.id} holds a non SongSet child`
     );
   }
 
-  // Standing intercessory pairs are lyric-only groups (no title slide).
-  const intercessory = groups.find((g) => g.id === 'intercessory-671');
-  assert.ok(intercessory);
-  assert.ok(intercessory.children.every((c) => c.instance.layoutKey === 'lyric'));
+  // Story 20.1 (AC-3 delta a, AC-5): the standing Intercessory pair (#671,
+  // #684) and "We Have This Hope" are no longer title-suppressed SongSet
+  // groups — they are fixed General leaves, so Live Preview no longer nests
+  // them under a group node at all (delta c).
+  assert.ok(!groups.some((g) => g.id === 'intercessory-671'));
+  assert.ok(!groups.some((g) => g.id === 'intercessory-684'));
+  assert.ok(!groups.some((g) => g.id === 'hope'));
+  const leafIds = new Set(
+    nodes.filter((n) => n.kind === 'artifact').map((n) => n.instance.instanceId)
+  );
+  for (const id of [
+    'intercessory-671-lyric-1',
+    'intercessory-684-lyric-1',
+    'hope-lyric-1',
+    'hope-lyric-2',
+  ]) {
+    assert.ok(leafIds.has(id), `expected leaf artifact node ${id}`);
+  }
 });
 
 test('standing Part C copy is registry-sourced', () => {

@@ -12,35 +12,6 @@ export type HymnRecord = {
   lyrics: string;
 };
 
-/** Standing liturgy fallback when hymnal lookup fails (SDAH #214). */
-export const WE_HAVE_THIS_HOPE_FALLBACK: HymnRecord = {
-  number: 214,
-  title: 'We Have This Hope',
-  lyrics: `Verse 1
-We have this hope that burns within our hearts,
-Hope in the coming of the Lord.
-We have this faith that Christ alone imparts,
-Faith in the promise of His Word.
-We believe the time is here,
-When the nations far and near
-Shall awake, and shout, and sing
-Hallelujah! Christ is King!
-We have this hope that burns within our hearts,
-Hope in the coming of the Lord.
-
-Verse 2
-We are united in Jesus Christ our Lord.
-We are united in His love.
-Love for the waiting people of the world.
-People who need our Savior's love.
-Soon the heavn's will open wide,
-Christ will come to claim His bride.
-All the universe will sing
-Hallelujah! Christ is King!
-We have this hope, this faith, and God's great love,
-We are united in Christ.`,
-};
-
 function normalizeTitle(s: string): string {
   return s
     .toLowerCase()
@@ -103,45 +74,14 @@ export function lookupHymnByTitleFuzzy(query: string): HymnRecord | null {
 }
 
 /**
- * Resolve standing liturgy "We Have This Hope":
- * title fuzzy match → known SDAH #214 → embedded fallback lyrics.
+ * Fixed Template Skeleton Intercessory standing pair (not payload Song
+ * Blocks). Their fixed lyric text now lives in the registry seed as two
+ * General rows (`intercessory-671-lyric-1`, `intercessory-684-lyric-1` —
+ * AD-20, Story 20.1), but this set still filters #671/#684 out of the weekly
+ * hymn buckets (`slide-plan.ts`) so a rundown that lists either number cannot
+ * claim a weekly song position.
  */
-export function resolveWeHaveThisHope(): HymnRecord {
-  const byTitle = lookupHymnByTitleFuzzy('We Have This Hope');
-  if (byTitle) return byTitle;
-
-  const byNumber = lookupHymnByNumber(214);
-  if (byNumber) return byNumber;
-
-  return WE_HAVE_THIS_HOPE_FALLBACK;
-}
-
-/** Fixed Template Skeleton Intercessory standing pair (not payload Song Blocks). */
 export const INTERCESSORY_STANDING_NUMBERS = [671, 684] as const;
-
-/**
- * Resolve standing Intercessory response hymns #671 / #684 via hymnal number lookup.
- * Does not invent lyrics — throws if either number is missing from the corpus.
- */
-export function resolveIntercessoryStandingHymns(): {
-  before: HymnRecord;
-  during: HymnRecord;
-} {
-  const before = lookupHymnByNumber(671);
-  const during = lookupHymnByNumber(684);
-  if (!before || !during) {
-    const missing = [
-      !before ? '671' : null,
-      !during ? '684' : null,
-    ]
-      .filter(Boolean)
-      .join(', #');
-    throw new Error(
-      `Intercessory standing hymns missing from hymnal corpus: #${missing}`
-    );
-  }
-  return { before, during };
-}
 
 type LyricSection = {
   kind: 'verse' | 'chorus' | 'reff' | 'body';
@@ -233,10 +173,6 @@ function chunkLines(
   }
   return chunkContinuousText(joinLinesContinuous(lines));
 }
-
-/** Boundary line ending slide 1 of standing "We Have This Hope" (CAP-4). */
-const WE_HAVE_THIS_HOPE_SLIDE1_END =
-  /^Faith in the promise of His Word\.?$/i;
 
 function parseSections(lyrics: string): LyricSection[] {
   const normalized = lyrics.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -416,46 +352,6 @@ export function splitLyricsLabeled(
   }
 
   return slides;
-}
-
-/**
- * CAP-4: standing liturgy "We Have This Hope" — Verse 1 only, exactly 2 slides,
- * original line breaks preserved (exempt from CAP-1 continuous `;` joining).
- *
- * Slide 1 ends at "Faith in the promise of His Word."
- * Slide 2 starts at "We believe the time is here," through
- * "Hope in the coming of the Lord."
- */
-export function splitWeHaveThisHopeSlides(
-  lyrics: string = WE_HAVE_THIS_HOPE_FALLBACK.lyrics
-): LyricSlide[] {
-  if (!lyrics?.trim()) return [];
-
-  const sections = parseSections(lyrics);
-  const verse1 =
-    sections.find((s) => s.kind === 'verse' && (s.verseIndex ?? 1) === 1) ??
-    sections.find((s) => s.kind === 'verse') ??
-    sections.find((s) => s.kind === 'body' && s.lines.length > 0);
-
-  if (!verse1?.lines.length) return [];
-
-  const lines = verse1.lines.map((l) => l.trim()).filter(Boolean);
-  let splitAfter = lines.findIndex((l) => WE_HAVE_THIS_HOPE_SLIDE1_END.test(l));
-  if (splitAfter < 0) {
-    // Defensive: traditional first stanza is 4 lines when boundary text is missing.
-    splitAfter = Math.min(3, lines.length - 1);
-  }
-
-  const slide1Lines = lines.slice(0, splitAfter + 1);
-  const slide2Lines = lines.slice(splitAfter + 1);
-  if (slide1Lines.length === 0 || slide2Lines.length === 0) {
-    return [{ label: '1/1', text: lines.join('\n') }];
-  }
-
-  return [
-    { label: '1/1', text: slide1Lines.join('\n') },
-    { label: '1/1', text: slide2Lines.join('\n') },
-  ];
 }
 
 /** Backward-compatible plain text slides (no labels). */
