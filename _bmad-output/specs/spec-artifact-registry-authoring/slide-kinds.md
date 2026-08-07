@@ -62,4 +62,6 @@ They are **gone rather than renamed** (`AD-19`).
 
 Presenter / lists show the row's kind plus its editable **label**.
 
-**Open — owned by `EXPERIENCE.md`, not decided here.** For a `songset-bt-open` row, does the chip read `[song-set]` (the kind) or `[songset-bt-open]` (the identity)? `AD-19` implies the kind but does not say it, and display is `EXPERIENCE.md`'s to own. Tracked as Gap 3 in `sprint-status.yaml`. A builder should not pick one silently.
+**Decided 2026-07-31 in `EXPERIENCE.md` → *Inside `/admin/artifacts`* → *Row display*, which owns it.** The chip names the **kind** — `[general]`, `[song-set]`, `[announcement]` — **never the entry key**. A `songset-bt-open` row therefore shows `[song-set]`. Three standing grounds, no new one: `AD-19` makes slot keys server-owned binding vocabulary, CAP-5 makes the label the only administrator-editable part, and `EXPERIENCE.md`'s voice rule bars system vocabulary from human surfaces — a raw hyphenated key in a chip is exactly that. *Owner: Story 20.3.*
+
+**The consequence is load-bearing, not commentary.** The four SongSet rows share one chip and are told apart **only by their labels** — and labels are renameable. So the `AD-22` bounded configuration surface must **state the row's slot read-only**, phrased in worship vocabulary (which slot of which service part), never as the raw key. Without it a rename orphans the row's liturgical identity and nothing on any screen says which song the row feeds. *Owner: Story 20.7.* Extent consequences in `authoring-boundaries.md`.

@@ -8,6 +8,7 @@ companions:
   - ../spec-slide-artifact-model/artifact-catalog.md
   - ../spec-slide-artifact-model/registry-contract.md
   - ../../planning-artifacts/architecture/architecture-bic-pptx-workflow-2026-07-10/ARCHITECTURE-SPINE.md
+  - ../../planning-artifacts/ux-designs/ux-bic-pptx-workflow-2026-07-10/EXPERIENCE.md
   - ../../project-context.md
 sources: []
 ---
@@ -44,7 +45,7 @@ sources: []
 
 - **CAP-5**
   - **intent:** Each registry entry has a kind of **General**, **SongSet**, or **Announcement**, plus an editable label; lists show `[kind] label`.
-  - **success:** Renaming a General sequence slide’s label updates Presenter badges for services that clone/sync afterward; Announcement and SongSet rows never open a freeform canvas. The **label is the only** part of a row an administrator edits: no surface exposes the row’s kind or its SongSet slot identity (`AD-19`).
+  - **success:** Renaming a General sequence slide’s label updates Presenter badges for services that clone/sync afterward; Announcement and SongSet rows never open a freeform canvas. The **label is the only** part of a row an administrator edits: no surface exposes the row’s kind or its SongSet slot identity **for editing** (`AD-19` bars editing, not display). What is *shown* is `EXPERIENCE.md`’s call — the chip shows the kind, and the `AD-22` bounded surface states the row’s slot read-only in worship vocabulary. The raw `songset-*` key reaches no human surface at all.
 
 - **CAP-6**
   - **intent:** Creating a worship service clones the full ordered Artifact Registry into a service-bound snapshot; **Sync Artifact** replaces that snapshot from the live registry.
