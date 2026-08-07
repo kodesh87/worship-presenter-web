@@ -1,13 +1,20 @@
 /**
- * Registry template doctor — reports (and optionally applies) what the artifact
- * registry seeder would do to every shipped template on a given database.
+ * Registry template doctor — reports (and optionally applies) which shipped
+ * templates a given database has drifted from, and resets the ones an
+ * administrator wants reverted.
  *
- * Why this exists: the "reset the stale template rows on production" task was
- * written when seeding was insert-missing-only. Startup now self-heals
- * (`reseedArtifactTemplateIfUntouched`), so most rows need nothing — but a row an
- * administrator edited, or one that reached a post-backfill database with no
- * recorded hash, is kept and does need a manual reset. Guessing which is which is
- * how you reset a layout somebody deliberately changed. This reports it instead.
+ * Story 20.1 (AD-17, AC-7) retired the startup self-heal this script used to
+ * describe: the seeder now runs once, from zero, and never re-applies a
+ * shipped correction to a row afterwards — an edited row and a row a shipped
+ * correction changed look identical to a later boot, and both are simply left
+ * alone. So there is nothing left to diagnose automatically; this tool now
+ * reports one plain fact per template — `missing` (no row at all — an
+ * administrator deleted it, or it has never existed here), `current`
+ * (byte-identical to the shipped seed) or `edited` (the row differs) — and
+ * `--apply` resets every `edited` row to the shipped seed via
+ * `resetArtifactTemplate`, the same explicit action `/admin/artifacts`' Reset
+ * button takes. It does not, and cannot, reinsert a `missing` row: Story 20.3
+ * owns the create verb that would do that.
  *
  * It reuses the application's own `serializeTemplate` / `hashTemplatePayload` /
  * `resetArtifactTemplate` rather than reimplementing the comparison, so it cannot
@@ -16,7 +23,7 @@
  *
  *   npm run registry:doctor                       # diagnose the DB_PATH database
  *   npm run registry:doctor -- --ids=welcome,sermon
- *   npm run registry:doctor -- --apply            # perform the manual resets
+ *   npm run registry:doctor -- --apply            # reset every `edited` row
  *   npm run registry:doctor -- --shipped-seed     # ignore data/local override
  *
  * `--apply` writes to the database directly, bypassing the HTTP admin session the
@@ -97,47 +104,23 @@ console.log(`mode     : ${APPLY ? 'APPLY (writes)' : 'diagnose (read-only)'}\n`)
 
 const db = new Database(dbPath, { readonly: !APPLY, fileMustExist: true });
 
-/**
- * Whether the one-time `seed_hash` backfill has run. The whole report turns on
- * this: before it runs, a NULL-hash row is stamped with its own payload hash and
- * then re-seeded in the SAME boot, because `getDb` runs the backfill immediately
- * before `seedArtifactRegistry`. After it has run, a NULL-hash row is kept for
- * good and is the operator's problem.
- */
-const backfilled = Boolean(
-  db
-    .prepare(`SELECT value FROM settings WHERE key = ?`)
-    .get('artifact_seed_hash_backfilled')
-);
-
 const readRow = db.prepare(
   `SELECT payload, updated_at, seed_hash FROM artifact_templates WHERE id = ?`
 );
 
-/** Mirrors reseedArtifactTemplateIfUntouched without writing. */
+/** A direct payload comparison — there is no automatic reseed left to mirror. */
 function diagnose(row, template) {
   if (!row) return 'missing';
-  if (row.payload === store.serializeTemplate(template)) return 'already-current';
-  if (!row.seed_hash) {
-    return backfilled ? 'KEPT-no-recorded-hash' : 'auto-after-backfill';
-  }
-  if (store.hashTemplatePayload(row.payload) !== row.seed_hash) {
-    return 'KEPT-edited-by-admin';
-  }
-  return 'auto-reseed-on-restart';
+  if (row.payload === store.serializeTemplate(template)) return 'current';
+  return 'edited';
 }
 
 const EXPLAIN = {
-  missing: 'row absent — startup inserts it',
-  'already-current': 'byte-identical to the seed — nothing to do',
-  'auto-reseed-on-restart':
-    'still provably the seed it came from — startup replaces it, no action needed',
-  'auto-after-backfill':
-    'no recorded hash yet, but the backfill has not run — next boot stamps it then re-seeds it, no action needed',
-  'KEPT-no-recorded-hash':
-    'no recorded hash and the backfill already ran — startup will NEVER touch it; manual reset required',
-  'KEPT-edited-by-admin':
-    'payload differs from the hash it was seeded with — an administrator edited it; startup keeps theirs. A manual reset DISCARDS that edit',
+  missing:
+    'no row at all — an administrator deleted it (AC-7: it stays deleted through a restart) or it has never existed here. `--apply` cannot recreate it; Story 20.3 owns the create verb',
+  current: 'byte-identical to the shipped seed — nothing to do',
+  edited:
+    'the row differs from the shipped seed — could be an administrator edit or a shipped correction since; `--apply` resets it to the current seed either way',
 };
 
 const selected = TARGET_IDS
@@ -159,7 +142,7 @@ for (const template of selected) {
   const outcome = diagnose(row, template);
   if (!byOutcome.has(outcome)) byOutcome.set(outcome, []);
   byOutcome.get(outcome).push(template.id);
-  if (outcome.startsWith('KEPT-')) needsManual.push({ template, row });
+  if (outcome === 'edited') needsManual.push({ template, row });
 }
 
 for (const [outcome, ids] of byOutcome) {
@@ -170,9 +153,6 @@ for (const [outcome, ids] of byOutcome) {
 }
 
 console.log(
-  `seed_hash backfill  : ${backfilled ? 'already run' : 'NOT yet run (next boot runs it)'}`
-);
-console.log(
   `templates checked   : ${selected.length} of ${templates.length} in the seed`
 );
 console.log(`needing manual reset: ${needsManual.length}`);
@@ -180,13 +160,13 @@ console.log(`needing manual reset: ${needsManual.length}`);
 if (!APPLY) {
   console.log('');
   if (needsManual.length === 0) {
-    console.log(
-      'Nothing to do by hand. A rebuild + restart applies every pending change.'
-    );
+    console.log('Nothing to do by hand.');
   } else {
-    console.log('Re-run with --apply to reset the KEPT-* rows above.');
     console.log(
-      'Read the KEPT-edited-by-admin note first — that reset discards an edit.'
+      'Re-run with --apply to reset the `edited` rows above to the shipped seed.'
+    );
+    console.log(
+      'That discards whatever content is on them now, admin edit or not — there is no automatic path left that would do this for you.'
     );
   }
   db.close();

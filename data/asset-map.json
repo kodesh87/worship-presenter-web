@@ -67,7 +67,27 @@
       ]
     },
     {
-      "templateId": "opening-song-cue",
+      "templateId": "bt-opening-song-cue",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 4,
+      "mediaPart": "ppt/media/image4.png",
+      "exportedFile": "song-cue-bg.png",
+      "assetRef": "/assets/song-cue-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 1799099,
+      "coverFraction": 0.9129,
+      "evidence": [
+        "Opening",
+        "Song",
+        "Congregation, please stand"
+      ]
+    },
+    {
+      "templateId": "ds-opening-song-cue",
       "layoutKey": "default",
       "refKind": "backgroundImage",
       "sourceSlide": 4,
@@ -179,7 +199,27 @@
       ]
     },
     {
-      "templateId": "closing-song-cue",
+      "templateId": "bt-closing-song-cue",
+      "layoutKey": "default",
+      "refKind": "backgroundImage",
+      "sourceSlide": 15,
+      "mediaPart": "ppt/media/image4.png",
+      "exportedFile": "song-cue-bg.png",
+      "assetRef": "/assets/song-cue-bg.png",
+      "nativeSize": {
+        "width": 1672,
+        "height": 941
+      },
+      "bytes": 1799099,
+      "coverFraction": 0.9129,
+      "evidence": [
+        "Closing",
+        "Song",
+        "Congregation, please stand"
+      ]
+    },
+    {
+      "templateId": "ds-closing-song-cue",
       "layoutKey": "default",
       "refKind": "backgroundImage",
       "sourceSlide": 15,

@@ -45,21 +45,24 @@ if (deckBibleHit) console.error('  found in', path.relative(root, deckBibleHit))
 
 const lyricsSrc = fs.readFileSync(path.join(root, 'src', 'lib', 'lyrics.ts'), 'utf8');
 check(
-  'lyrics has title fuzzy + We Have This Hope resolve',
-  /lookupHymnByTitleFuzzy/.test(lyricsSrc) && /resolveWeHaveThisHope/.test(lyricsSrc)
+  // Story 20.1 (AC-4/AD-20): resolveWeHaveThisHope is deleted, not migrated —
+  // "We Have This Hope" is now two fixed General rows in the registry seed.
+  'lyrics has title fuzzy lookup',
+  /lookupHymnByTitleFuzzy/.test(lyricsSrc)
 );
 
 const planSrc = fs.readFileSync(path.join(root, 'src', 'lib', 'slide-plan.ts'), 'utf8');
 const pptxSrc = fs.readFileSync(path.join(root, 'src', 'lib', 'pptx.ts'), 'utf8');
 check(
-  'slide-plan maps verseReading / familyYouth / resolveWeHaveThisHope',
-  /verseReading/.test(planSrc) &&
-    /familyYouth/.test(planSrc) &&
-    /resolveWeHaveThisHope/.test(planSrc)
+  'slide-plan maps verseReading / familyYouth',
+  /verseReading/.test(planSrc) && /familyYouth/.test(planSrc)
 );
 check(
+  // Story 20.1 (AC-2) reorganized presence rules from `if (specialSong) {...}`
+  // pushes into a `ROW_HANDLERS` lookup, so the conditional is now a ternary
+  // guard on the row handler rather than an `if` statement.
   'slide-plan omits Special Song when empty (conditional divider)',
-  /if\s*\(\s*specialSong\s*\)/.test(planSrc)
+  /ctx\.specialSong\s*\?/.test(planSrc)
 );
 check(
   'slide-plan uses section-aware hymn bucketing (Story 6.4)',

@@ -1,5 +1,12 @@
 # generated: 2026-07-10
-# last_updated: 2026-08-06 (Story 17.6 is `done` — CLOSED BY THE OWNER this day. The
+# last_updated: 2026-08-07 (Story 20.1 context created; Epic 20 is now `in-progress`. This is the
+#   first Epic 20 story context, so it is where two things the epic left unassigned had to be answered,
+#   and both answers live in the 20-1 row rather than here. What a reader of this header needs:
+#   20.1 is NOT the base_type collapse — that stays in 20.2 — and 20.1 does NOT close AD-20, because
+#   five transitional SongSet groups still originate outside AD-19's ordered-entry model until
+#   Story 20.7 lands its closed set and form bindings. The story carries a gate forbidding any spine edit or tag
+#   flip from inside its own change set.
+#   PRIOR ENTRY # 2026-08-06 (Story 17.6 is `done` — CLOSED BY THE OWNER this day. The
 #   owner's combined inline + toast channel rule is recorded once in EXPERIENCE.md, the
 #   two sonner rows and Open Item 4 read decided-not-wired, and the forward owner
 #   17-9-toast-channel-wiring is registered here and in epics.md, dependent on an
@@ -52,7 +59,14 @@
 #   - n/a: Not applicable — the epic was retired, so there is nothing to retro
 
 generated: 2026-07-10
-last_updated: 2026-08-05 # Story 17.6 implemented (bmad-dev-story) same day, decision ratified,
+last_updated: 2026-08-07 # Story 20.1 context created (bmad-create-story) and Epic 20 opened.
+#   20-1-ordered-registry is ready-for-dev; epic-20 backlog → in-progress. The story makes two
+#   calls the epic left open and both are recorded in its row below: AD-21's data version counter
+#   lands in 20.1, and the base_type seven-to-three collapse stays in 20.2. It also carries a GATE
+#   — four spine statements go stale when it lands and repairing them (including any [TARGET] tag
+#   flip) is a bmad-architecture Update run, never an edit from inside the story's change set.
+#   AD-20 is explicitly NOT closed by 20.1: five transitional SongSet entries remain, owned by Story 20.7.
+#   PRIOR ENTRY # 2026-08-05 Story 17.6 implemented (bmad-dev-story) same day, decision ratified,
 #   forward owner 17-9-toast-channel-wiring registered, back to `review`; AC-9's spine repair
 #   (bmad-architecture Update run) has since landed and was closed on evidence in a same-day
 #   FIX round — see its row. Earlier the same day: Story 17.5
@@ -526,8 +540,55 @@ development_status:
   # exactly those "TypeScript plan constants". Deliver inside 20.1 or retire Epic 19.
   # Migration is cheap only while no production exists — after deploy the same change
   # needs a backfill over live artifact_templates rows and every service snapshot.
-  epic-20: backlog
-  20-1-ordered-registry: backlog
+  #
+  # OPENED 2026-08-07 with Story 20.1's context. Two things the epic left open were answered
+  # there, because 20.1 is Epic 20's first release and both come due at it:
+  #  (1) AD-21's global monotonic data version counter LANDS IN 20.1. The spine recorded the
+  #      decision as made and its landing story as unassigned, arriving "with Epic 20's first
+  #      release". Three reasons made deferring worse: AD-21 requires the counter to be stamped
+  #      by the AD-17 bootstrap in the SAME TRANSACTION as the seeding marker, and 20.1 is the
+  #      story that writes that transaction; AD-18 says the collapse "folds into production data
+  #      version 1", which presupposes a version 1 exists for 20.2 to fold into; and 20.1's own
+  #      ordering change needs the answer, since giving existing developer rows a position is a
+  #      VALUE change. Under AD-21 the answer is "reset the developer database to the compacted
+  #      version", enforceable only once a database reports a version. Safe without a row-by-row
+  #      migration because AD-4 records that NO DEPLOYMENT EXISTS — a licence that EXPIRES AT
+  #      FIRST DEPLOY, and 20.1's change set must say so rather than leave it to be re-derived.
+  #  (2) The base_type seven-to-three collapse STAYS IN 20.2 and 20.1 does not touch
+  #      ARTIFACT_BASE_TYPES or READ_ONLY_BASE_TYPES. They coexist because ordering is orthogonal
+  #      to kind: the position is a column on every row whatever its base_type, and every row 20.1
+  #      authors uses a value that is already valid today (general for the four lyric pages,
+  #      song-set for the four song positions). 20.2's collapse rewrites base_type and payload in
+  #      one statement per AD-18 and must not touch the position, which it cannot — the position
+  #      has one home and no payload copy.
+  #
+  # WHAT 20.1 DOES NOT CLOSE, recorded here so a later reader does not assume otherwise:
+  # AD-20. The planner still renders four weekly SongSet groups plus an unbounded number of middle
+  # Divine Service songs. 20.1 gives the fixed four separately ordered transitional rows
+  # (`bt-opening-song`, `bt-closing-song`, `ds-opening-song`, `ds-closing-song`) but introduces NO
+  # AD-19 slot identity or binding key; it also retains `song-set` as the ds-middle layout source.
+  # Story 20.7 owns all four `songset-*` identities, replaces `song1Number..song4Number`, and
+  # removes or migrates these five rows with the closed set and unclaimed-hymn behaviour. Until
+  # then every slide EXCEPT those five SongSet groups originates from an ordered registry entry,
+  # and no [TARGET] tag may be flipped on that basis.
+  epic-20: in-progress # 2026-08-07 first story contexted
+  20-1-ordered-registry: review # 2026-08-07 implemented (bmad-dev-story): full suite green
+  #   (npm run build && npm test, 489 passed / 1 skipped [gitignored source deck] / 0 failed),
+  #   public-repo-guard green, skipTitle and songset- both zero occurrences in src/. Context below
+  #   from bmad-create-story (2026-08-07 context created (bmad-create-story)).
+  #   Scope: ordering column on artifact_templates; the ordered registry snapshot becomes the
+  #   sequence source buildSlidePlan consumes for every registry-authored entry (AD-7 unchanged — only where the sequence comes
+  #   from); skipTitle DELETED at all five sites (:140, :148, :438 intercessory-671, :460
+  #   intercessory-684, :550 hope — re-verified against the source, :460 is NOT the Special Song
+  #   and no skipTitle site touches it); the three fixed liturgical songs become FOUR hand-authored
+  #   General rows, one per lyric page (measured against the shipped corpus 2026-08-07: #671 → 1
+  #   page, #684 → 1, We Have This Hope fixed split → 2); the seed is re-authored as an ordered
+  #   38-row list, including four transitional SongSet rows but no `songset-*` identity; AD-17 bootstrap-once with the read-time gap-fill at registry-snapshot.ts:85-90
+  #   removed and tests/registry-reseed.test.mjs:337 INVERTED, not deleted; AD-21's counter.
+  #   GATE — the story must not edit ARCHITECTURE-SPINE.md. Four Deferred statements go stale
+  #   when it lands (the counter's unassigned owner, seed_hash becoming work without a job, the
+  #   "no ordering column" surface, and the AD-20 cost of the three liturgical songs) and
+  #   repairing them, including any tag flip, is a bmad-architecture Update run.
   20-2-three-slide-kinds: backlog
   20-3-add-delete-rename-reorder: backlog
   20-4-general-canvas-authoring: backlog

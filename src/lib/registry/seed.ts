@@ -4,10 +4,19 @@ import type Database from 'better-sqlite3';
 import type { ArtifactTemplate } from './types';
 import { validateArtifactTemplateList } from './validate';
 import {
-  reseedArtifactTemplateIfUntouched,
+  assertContiguousPositions,
+  insertArtifactTemplateIfMissing,
   RegistryNotFoundError,
-  type ReseedOutcome,
 } from './store';
+
+/** AD-17: the marker that gates the one-time bootstrap. */
+export const ARTIFACT_REGISTRY_BOOTSTRAP_KEY = 'artifact_registry_bootstrapped';
+
+/** AD-21: the one monotonic data-version counter, stamped with the bootstrap. */
+export const DATA_VERSION_KEY = 'data_version';
+
+/** Everything unreleased at `bcb7349` compacts into this one version (AC-10). */
+export const CURRENT_DATA_VERSION = 1;
 
 const SEED_PATH = path.join(process.cwd(), 'data', 'default-registry.json');
 
@@ -70,83 +79,45 @@ export function loadSeedTemplates(): ArtifactTemplate[] {
   return cachedSeedTemplates;
 }
 
-export type SeedReport = Record<ReseedOutcome, string[]>;
-
-function emptyReport(): SeedReport {
-  return {
-    inserted: [],
-    reseeded: [],
-    unchanged: [],
-    'skipped-edited': [],
-    'skipped-unrecorded': [],
-    'skipped-conflict': [],
-  };
-}
+export type BootstrapReport = { inserted: string[] } | null;
 
 /**
- * Startup is the only moment a corrected template can reach a running hub
- * without an administrator pressing Reset on it, so every outcome is logged.
+ * AD-17: seed the registry from zero, once. Gated on
+ * {@link ARTIFACT_REGISTRY_BOOTSTRAP_KEY} rather than on the table being
+ * empty, so a row an administrator deletes afterwards stays deleted through a
+ * restart (AC-7) — the seeder never re-inserts a gap, and no later boot
+ * re-applies a shipped correction over an edit. Reset-from-seed
+ * (`resetArtifactTemplate`) remains the explicit per-template escape hatch.
  *
- * The two decisions an operator has to be able to audit — a row replaced from
- * the seed, and a row deliberately left alone — are logged per template id.
- * `skipped-unrecorded` is a bulk condition — a row that reached the guard with
- * no evidence at all, which the `seed_hash` migration backfill is what keeps
- * from being every row on an upgraded database — so it is logged once as a list
- * rather than one line per template. Rows already byte-identical to the seed are
- * not logged at all, because startup did nothing to them.
+ * The bootstrap marker and the AD-21 data-version counter are stamped in the
+ * *same* transaction as the inserts (AC-9): a database that ran this once
+ * always reports both together, never one without the other.
  */
-function logSeedReport(report: SeedReport) {
-  for (const id of report.inserted) {
-    console.info(`[registry] seed: inserted "${id}"`);
-  }
-  for (const id of report.reseeded) {
-    console.info(
-      `[registry] seed: re-seeded "${id}" (stored row still matched the seed it was seeded from)`
-    );
-  }
-  for (const id of report['skipped-edited']) {
-    console.info(
-      `[registry] seed: kept "${id}" (edited by an administrator; the shipped seed was not applied)`
-    );
-  }
-  for (const id of report['skipped-conflict']) {
-    console.warn(
-      `[registry] seed: could not re-seed "${id}" (the row changed while startup was seeding; it was left alone)`
-    );
-  }
-  if (report['skipped-unrecorded'].length > 0) {
-    console.info(
-      `[registry] seed: kept ${report['skipped-unrecorded'].length} template(s) with no recorded seed hash ` +
-        `(written before seed_hash existed, so there is no evidence they are untouched): ` +
-        report['skipped-unrecorded'].join(', ')
-    );
-  }
-  console.info(
-    `[registry] seed: ${report.inserted.length} inserted, ${report.reseeded.length} re-seeded, ` +
-      `${report.unchanged.length} already current, ${report['skipped-edited'].length} kept as edited, ` +
-      `${report['skipped-unrecorded'].length} kept without a recorded seed hash, ` +
-      `${report['skipped-conflict'].length} left to a concurrent write`
-  );
-}
+export function bootstrapArtifactRegistry(
+  database: Database.Database
+): BootstrapReport {
+  const already = database
+    .prepare(`SELECT 1 FROM settings WHERE key = ?`)
+    .get(ARTIFACT_REGISTRY_BOOTSTRAP_KEY);
+  if (already) return null;
 
-/**
- * Insert every missing shipped template and re-seed the ones the administrator
- * has never edited. See {@link reseedArtifactTemplateIfUntouched} for the guard
- * that decides which rows are safe to replace.
- */
-export function seedArtifactRegistry(database: Database.Database): SeedReport {
   const templates = loadSeedTemplates();
-  const tx = database.transaction(
-    (rows: ReturnType<typeof loadSeedTemplates>): SeedReport => {
-      const report = emptyReport();
-      for (const template of rows) {
-        report[reseedArtifactTemplateIfUntouched(database, template)].push(
-          template.id
-        );
+  const tx = database.transaction((rows: ArtifactTemplate[]): string[] => {
+    const inserted: string[] = [];
+    rows.forEach((template, position) => {
+      if (insertArtifactTemplateIfMissing(database, template, position)) {
+        inserted.push(template.id);
       }
-      return report;
-    }
-  );
+    });
+    assertContiguousPositions(database);
+    database
+      .prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`)
+      .run(ARTIFACT_REGISTRY_BOOTSTRAP_KEY, '1');
+    database
+      .prepare(`INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`)
+      .run(DATA_VERSION_KEY, String(CURRENT_DATA_VERSION));
+    return inserted;
+  });
   // BEGIN IMMEDIATE, not the default deferred BEGIN: this pass reads every row
   // and then writes, so a deferred transaction takes its read snapshot first and
   // upgrading to a write lock afterwards fails with SQLITE_BUSY_SNAPSHOT, which
@@ -154,9 +125,11 @@ export function seedArtifactRegistry(database: Database.Database): SeedReport {
   // file directly (`scripts/auth-unlock.mjs`, `auth-set-password.mjs`,
   // `import-kjv.mjs`), so one of them running while the server boots would
   // otherwise crash startup. Taking the write lock up front closes that window.
-  const report = tx.immediate(templates);
-  logSeedReport(report);
-  return report;
+  const inserted = tx.immediate(templates);
+  console.info(
+    `[registry] bootstrap: inserted ${inserted.length} template(s), stamped data version ${CURRENT_DATA_VERSION}`
+  );
+  return { inserted };
 }
 
 export function getSeedTemplateById(id: string) {

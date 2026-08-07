@@ -1,11 +1,18 @@
 /**
- * Self-healing seed: startup re-seeds a template only while the row is
- * provably still the seed it was last seeded or reset from.
+ * AD-17 bootstrap-once, AD-21's data-version counter, and the `getDb` step
+ * order that keeps them from observing each other's half-finished state.
  *
- * The guard deliberately does NOT compare the row against the *current*
- * shipped seed — that cannot tell "the administrator edited it" from "we
- * shipped a correction" — so every case here drives a *changed* seed against a
- * row in a known state and asserts which way the guard fell.
+ * Story 20.1 retires the old self-healing reseed entirely (AC-7): startup no
+ * longer compares a stored row against a recorded seed hash and re-applies a
+ * shipped correction to an untouched row on every boot. The seeder now runs
+ * exactly once, gated on a bootstrap marker in `settings`, and after that it
+ * writes nothing — not an insert, not a re-seed — so a row an administrator
+ * deletes stays deleted through a restart. This file's shape follows: cases
+ * that used to drive the self-heal guard through `reseeded` / `skipped-*`
+ * outcomes are gone because that guard no longer exists; what remains proves
+ * the one-time bootstrap, the AD-21 counter it stamps, the AC-8 fail-closed
+ * guard, and the fixed `getDb` step order (startup DDL → data migrations →
+ * corpus reconcile → first-boot bootstrap).
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -22,110 +29,170 @@ const root = path.resolve(__dirname, '..');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'registry-reseed-test-'));
 process.env.DB_PATH = path.join(tmp, 'test.db');
 
-const { getDb } = await import(
+const { getDb, repairPreCounterArtifactRegistry } = await import(
   pathToFileURL(path.join(root, 'src', 'lib', 'db', 'index.ts')).href
 );
 const {
   getArtifactTemplate,
   updateArtifactTemplate,
-  resetArtifactTemplate,
-  reseedArtifactTemplateIfUntouched,
-  serializeTemplate,
-  hashTemplatePayload,
+  listArtifactSummaries,
+  assertContiguousPositions,
 } = await import(
   pathToFileURL(path.join(root, 'src', 'lib', 'registry', 'store.ts')).href
 );
-const { seedArtifactRegistry, getSeedTemplateById, loadSeedTemplates } =
-  await import(
-    pathToFileURL(path.join(root, 'src', 'lib', 'registry', 'seed.ts')).href
-  );
+const {
+  bootstrapArtifactRegistry,
+  getSeedTemplateById,
+  loadSeedTemplates,
+  ARTIFACT_REGISTRY_BOOTSTRAP_KEY,
+  DATA_VERSION_KEY,
+  CURRENT_DATA_VERSION,
+} = await import(
+  pathToFileURL(path.join(root, 'src', 'lib', 'registry', 'seed.ts')).href
+);
+const { parseRundown } = await import(
+  pathToFileURL(path.join(root, 'src', 'lib', 'parser.ts')).href
+);
+const { buildSlidePlan } = await import(
+  pathToFileURL(path.join(root, 'src', 'lib', 'slide-plan.ts')).href
+);
 
-/** A template every case can scribble on: editable, and not read-only. */
-const TEMPLATE_ID = 'contact';
-const BACKDATED = '2000-01-01T00:00:00.000Z';
+const sample = fs.readFileSync(
+  path.join(__dirname, 'fixtures', 'sample-rundown.txt'),
+  'utf8'
+);
 
 function readRow(db, id) {
   return db
     .prepare(
-      `SELECT id, label, base_type, payload, updated_at, seed_hash
+      `SELECT id, label, base_type, payload, updated_at, seed_hash, position
        FROM artifact_templates WHERE id = ?`
     )
     .get(id);
 }
 
-/** A shipped correction: the same template with one element nudged. */
-function shippedCorrection(template, x) {
-  const layout = template.layouts.default;
-  return {
-    ...template,
-    layouts: {
-      ...template.layouts,
-      default: {
-        ...layout,
-        elements: layout.elements.map((element) =>
-          element.id === 'e1' ? { ...element, x } : element
-        ),
-      },
-    },
-  };
+function settingsValue(db, key) {
+  const row = db.prepare(`SELECT value FROM settings WHERE key = ?`).get(key);
+  return row?.value;
 }
+
+test('first boot inserts every shipped template once, positioned 0..N-1, and stamps the bootstrap marker + data version together', () => {
+  const db = getDb();
+  const templates = loadSeedTemplates();
+
+  const row0 = readRow(db, templates[0].id);
+  assert.ok(row0, 'expected the first seed row to exist');
+  assert.equal(row0.position, 0);
+
+  assertContiguousPositions(db);
+  assert.equal(
+    db.prepare(`SELECT COUNT(*) AS n FROM artifact_templates`).get().n,
+    templates.length
+  );
+
+  assert.equal(settingsValue(db, ARTIFACT_REGISTRY_BOOTSTRAP_KEY), '1');
+  assert.equal(settingsValue(db, DATA_VERSION_KEY), String(CURRENT_DATA_VERSION));
+  assert.equal(CURRENT_DATA_VERSION, 1);
+});
 
 /**
- * Put the row back to the shipped seed with a recorded hash, so each case
- * starts from the same state whatever order the file runs in.
+ * Inverts the old `tests/registry-reseed.test.mjs:337` case ("a missing row
+ * is inserted with its seed hash recorded") per AC-7: once the marker is set,
+ * a row deleted directly in SQL is never reinserted, and it stays gone
+ * through the store *and* through a built plan (the resurrection this closes
+ * happened at plan-build time, not at boot).
  */
-function restoreToSeed(db, id = TEMPLATE_ID) {
-  const current = getArtifactTemplate(db, id);
-  resetArtifactTemplate(db, id, getSeedTemplateById(id), current.updatedAt);
-}
+test('a row deleted directly in SQL stays deleted — through a restart, through the store, through a built plan', () => {
+  const db = getDb();
 
-/** Force a distinct earlier `updated_at` so timestamp changes are provable. */
-function backdate(db, id = TEMPLATE_ID) {
-  db.prepare(`UPDATE artifact_templates SET updated_at = ? WHERE id = ?`).run(
-    BACKDATED,
-    id
+  const second = bootstrapArtifactRegistry(db);
+  assert.equal(second, null, 'the marker is already set; a second call must write nothing');
+
+  db.prepare(`DELETE FROM artifact_templates WHERE id = ?`).run('midweek-prayer');
+  assert.equal(getArtifactTemplate(db, 'midweek-prayer'), null);
+
+  // "Restart": call the bootstrap again, exactly what a real reboot would do.
+  const afterRestart = bootstrapArtifactRegistry(db);
+  assert.equal(afterRestart, null, 'the deleted row must not be reinserted on restart');
+  assert.equal(getArtifactTemplate(db, 'midweek-prayer'), null);
+  assert.ok(
+    !listArtifactSummaries(db).some((s) => s.id === 'midweek-prayer'),
+    'deleted row must not reappear in listArtifactSummaries'
   );
-}
+
+  const parsed = parseRundown(sample);
+  const plan = buildSlidePlan('2026-07-11', parsed, []);
+  assert.ok(
+    !plan.some((s) => s.id === 'midweek-prayer'),
+    'deleted row must not reappear in a built plan'
+  );
+
+  // Restore for later cases in this file.
+  const seed = getSeedTemplateById('midweek-prayer');
+  db.prepare(
+    `INSERT INTO artifact_templates (id, label, base_type, payload, updated_at, seed_hash, position)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`
+  ).run(
+    seed.id,
+    seed.label,
+    seed.baseType,
+    JSON.stringify(seed),
+    new Date().toISOString(),
+    null,
+    loadSeedTemplates().findIndex((t) => t.id === 'midweek-prayer')
+  );
+});
 
 /**
- * The upgrade path, for real: a database file whose `artifact_templates` has no
- * `seed_hash` column at all and whose rows hold whatever seed shipped last.
- * `mapTemplate` swaps in an older payload for the templates a case cares about.
+ * AC-8: a persisted row that fails validation gets no seed substitution. It
+ * contributes no layout — the built plan omits the slide it would have
+ * produced — and the rejection is logged, whether or not the id also happens
+ * to be a shipped seed id.
  */
-function createLegacyDatabase(name, mapTemplate = (t) => t) {
-  const file = path.join(tmp, name);
-  const legacy = new Database(file);
-  legacy.exec(`
-    CREATE TABLE artifact_templates (
-      id TEXT PRIMARY KEY,
-      label TEXT NOT NULL,
-      base_type TEXT NOT NULL,
-      payload TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-  `);
-  const insert = legacy.prepare(
-    `INSERT INTO artifact_templates (id, label, base_type, payload, updated_at)
-     VALUES (?, ?, ?, ?, ?)`
-  );
-  for (const template of loadSeedTemplates()) {
-    const stored = mapTemplate(template);
-    insert.run(
-      stored.id,
-      stored.label,
-      stored.baseType,
-      serializeTemplate(stored),
-      BACKDATED
-    );
+test('a row that fails validation is omitted from a built plan and logged, never substituted from the seed', () => {
+  const db = getDb();
+  const before = getArtifactTemplate(db, 'thank-you');
+  assert.ok(before);
+
+  db.prepare(
+    `UPDATE artifact_templates SET payload = ? WHERE id = 'thank-you'`
+  ).run(JSON.stringify({ not: 'a valid template' }));
+
+  const originalError = console.error;
+  const logged = [];
+  console.error = (...args) => logged.push(args.join(' '));
+  let plan;
+  try {
+    const parsed = parseRundown(sample);
+    plan = buildSlidePlan('2026-07-11', parsed, []);
+  } finally {
+    console.error = originalError;
   }
-  legacy.close();
-  return file;
-}
+
+  assert.ok(
+    !plan.some((s) => s.id === 'thank-you'),
+    'the corrupt row must contribute no layout to the built plan'
+  );
+  assert.ok(
+    logged.some((line) => line.includes('thank-you') && line.includes('rejected')),
+    `expected a rejection log naming "thank-you"; got: ${JSON.stringify(logged)}`
+  );
+  assert.ok(
+    logged.every((line) => !line.includes('falling back')),
+    `a rejected row has no layout; it must not claim a fallback: ${JSON.stringify(logged)}`
+  );
+
+  // Restore so later cases in this file are unaffected.
+  const { updatedAt, ...body } = before;
+  updateArtifactTemplate(db, 'thank-you', body, before.updatedAt, {
+    allowReadOnly: true,
+  });
+});
 
 /**
  * `getDb()` runs its migrations once per process, so a boot has to *be* a
- * process. This runs the real startup path — DDL, `seed_hash` migration,
- * seeding — against `dbFile` and returns everything it logged.
+ * process. This runs the real startup path — DDL, migrations, corpus
+ * reconcile, bootstrap — against `dbFile` and returns everything it logged.
  */
 const BOOT_SCRIPT = path.join(tmp, 'boot-db.mjs');
 fs.writeFileSync(
@@ -171,363 +238,176 @@ function openFile(dbFile) {
 }
 
 /**
- * A database whose row is snatched away between the guard's read and its write:
- * the re-seed UPDATE is compare-and-swapped on `updated_at`, so a concurrent
- * reset lands and the seeding write matches nothing.
+ * A database shaped like one that ran the pre-20.1 seeder: it holds some
+ * `artifact_templates` rows (the current schema, since AC-9 says only the
+ * *value* — not the shape — of the AD-21 counter is what's new) but no
+ * `settings` row for either the bootstrap marker or the data-version counter.
+ * AD-4 records no deployment exists, so this is exactly a developer database
+ * one boot away from the compacted version-1 reset (AC-10) — not a
+ * historical replica of the real pre-Story-20.1 seed, which is no longer
+ * loadable now that the seed file itself has moved on.
  */
-function dbWithConcurrentWriteBeforeReseed(db, id) {
-  return new Proxy(db, {
-    get(target, prop, receiver) {
-      if (prop !== 'prepare') return Reflect.get(target, prop, receiver);
-      return (sql) => {
-        const statement = target.prepare(sql);
-        const isReseedWrite =
-          /UPDATE artifact_templates/.test(sql) && /SET label/.test(sql);
-        if (!isReseedWrite) return statement;
-        return {
-          run: (...args) => {
-            target
-              .prepare(
-                `UPDATE artifact_templates SET updated_at = ? WHERE id = ?`
-              )
-              .run(new Date(Date.now() + 60_000).toISOString(), id);
-            return statement.run(...args);
-          },
-        };
-      };
-    },
-  });
+function createPreCounterDatabase(name, ids) {
+  const file = path.join(tmp, name);
+  const legacy = new Database(file);
+  legacy.exec(`
+    CREATE TABLE artifact_templates (
+      id TEXT PRIMARY KEY,
+      label TEXT NOT NULL,
+      base_type TEXT NOT NULL,
+      payload TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      seed_hash TEXT,
+      position INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE TABLE settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+  `);
+  const insert = legacy.prepare(
+    `INSERT INTO artifact_templates (id, label, base_type, payload, updated_at, position)
+     VALUES (?, ?, ?, ?, ?, 0)`
+  );
+  const templates = loadSeedTemplates();
+  for (const id of ids) {
+    const template = templates.find((t) => t.id === id);
+    insert.run(
+      template.id,
+      template.label,
+      template.baseType,
+      JSON.stringify(template),
+      '2000-01-01T00:00:00.000Z'
+    );
+  }
+  legacy.close();
+  return file;
 }
 
-test('startup records the seed hash of every inserted row', () => {
-  const db = getDb();
-  const row = readRow(db, TEMPLATE_ID);
-  assert.ok(row, 'expected the seeded row');
-  assert.equal(
-    row.seed_hash,
-    hashTemplatePayload(serializeTemplate(getSeedTemplateById(TEMPLATE_ID)))
-  );
-  assert.equal(row.payload, serializeTemplate(getSeedTemplateById(TEMPLATE_ID)));
-});
-
-test('an untouched row is re-seeded when the shipped seed changes', () => {
-  const db = getDb();
-  restoreToSeed(db);
-  backdate(db);
-
-  const corrected = shippedCorrection(getSeedTemplateById(TEMPLATE_ID), 42.5);
-  assert.equal(reseedArtifactTemplateIfUntouched(db, corrected), 'reseeded');
-
-  const row = readRow(db, TEMPLATE_ID);
-  assert.equal(row.payload, serializeTemplate(corrected));
-  assert.equal(
-    getArtifactTemplate(db, TEMPLATE_ID).layouts.default.elements.find(
-      (e) => e.id === 'e1'
-    ).x,
-    42.5
-  );
-
-  // The row now records the seed it holds, so the next correction lands too.
-  assert.equal(row.seed_hash, hashTemplatePayload(row.payload));
-  const nextCorrection = shippedCorrection(
-    getSeedTemplateById(TEMPLATE_ID),
-    43.5
-  );
-  assert.equal(
-    reseedArtifactTemplateIfUntouched(db, nextCorrection),
-    'reseeded'
-  );
-
-  restoreToSeed(db);
-});
-
-test('a re-seed advances updatedAt like any other write', () => {
-  const db = getDb();
-  restoreToSeed(db);
-  backdate(db);
-  assert.equal(readRow(db, TEMPLATE_ID).updated_at, BACKDATED);
-
-  const corrected = shippedCorrection(getSeedTemplateById(TEMPLATE_ID), 11.25);
-  assert.equal(reseedArtifactTemplateIfUntouched(db, corrected), 'reseeded');
-
-  const after = readRow(db, TEMPLATE_ID).updated_at;
-  assert.notEqual(after, BACKDATED);
-  assert.ok(Date.parse(after) > Date.parse(BACKDATED));
-
-  restoreToSeed(db);
-});
-
-test('a row already holding the current seed is left completely alone', () => {
-  const db = getDb();
-  restoreToSeed(db);
-  backdate(db);
-
-  const seed = getSeedTemplateById(TEMPLATE_ID);
-  assert.equal(reseedArtifactTemplateIfUntouched(db, seed), 'unchanged');
-  // No churn: an untouched startup must not move `updatedAt` under an open
-  // editor holding that value for optimistic concurrency.
-  assert.equal(readRow(db, TEMPLATE_ID).updated_at, BACKDATED);
-
-  restoreToSeed(db);
-});
-
-test("an edited row is preserved even when the shipped seed changed", () => {
-  const db = getDb();
-  restoreToSeed(db);
-
-  const before = getArtifactTemplate(db, TEMPLATE_ID);
-  const adminEdit = shippedCorrection(before, 77.75);
-  const { updatedAt: _ignored, ...body } = adminEdit;
-  const saved = updateArtifactTemplate(db, TEMPLATE_ID, body, before.updatedAt);
-  assert.equal(
-    saved.layouts.default.elements.find((e) => e.id === 'e1').x,
-    77.75
-  );
-  const afterEdit = readRow(db, TEMPLATE_ID);
-
-  // An administrator's save must not re-record the seed hash: leaving the old
-  // one in place is exactly what makes the next startup read this as edited.
-  assert.equal(
-    afterEdit.seed_hash,
-    hashTemplatePayload(serializeTemplate(getSeedTemplateById(TEMPLATE_ID)))
-  );
-  assert.notEqual(hashTemplatePayload(afterEdit.payload), afterEdit.seed_hash);
-
-  const corrected = shippedCorrection(getSeedTemplateById(TEMPLATE_ID), 5.5);
-  assert.equal(
-    reseedArtifactTemplateIfUntouched(db, corrected),
-    'skipped-edited'
-  );
-
-  const afterSeed = readRow(db, TEMPLATE_ID);
-  assert.equal(afterSeed.payload, afterEdit.payload);
-  assert.equal(afterSeed.updated_at, afterEdit.updated_at);
-
-  restoreToSeed(db);
-});
-
-test('a row that reaches the guard with no recorded seed hash is preserved', () => {
-  const db = getDb();
-  restoreToSeed(db);
-  backdate(db);
-  // Content that still matches an old seed, with no evidence that it does. On a
-  // real upgrade the `seed_hash` migration backfills this state away before the
-  // guard ever sees it (see the migration cases below); this pins what the
-  // guard does if it is reached anyway.
-  db.prepare(
-    `UPDATE artifact_templates SET seed_hash = NULL WHERE id = ?`
-  ).run(TEMPLATE_ID);
-  const before = readRow(db, TEMPLATE_ID);
-  assert.equal(before.seed_hash, null);
-
-  const corrected = shippedCorrection(getSeedTemplateById(TEMPLATE_ID), 9.5);
-  assert.equal(
-    reseedArtifactTemplateIfUntouched(db, corrected),
-    'skipped-unrecorded'
-  );
-
-  const after = readRow(db, TEMPLATE_ID);
-  assert.equal(after.payload, before.payload);
-  assert.equal(after.updated_at, BACKDATED);
-  assert.equal(after.seed_hash, null);
-
-  restoreToSeed(db);
-});
-
-test('a missing row is inserted with its seed hash recorded', () => {
-  const db = getDb();
-  db.prepare(`DELETE FROM artifact_templates WHERE id = ?`).run(TEMPLATE_ID);
-  assert.equal(readRow(db, TEMPLATE_ID), undefined);
-
-  const report = seedArtifactRegistry(db);
-  assert.deepEqual(report.inserted, [TEMPLATE_ID]);
-
-  const row = readRow(db, TEMPLATE_ID);
-  assert.ok(row);
-  assert.equal(row.payload, serializeTemplate(getSeedTemplateById(TEMPLATE_ID)));
-  assert.equal(row.seed_hash, hashTemplatePayload(row.payload));
-});
-
-test('reset restores the current shipped seed and re-records the hash', () => {
-  const db = getDb();
-  restoreToSeed(db);
-
-  // Drift the row away from the seed *and* away from its recorded hash.
-  const before = getArtifactTemplate(db, TEMPLATE_ID);
-  const { updatedAt: _ignored, ...body } = shippedCorrection(before, 61.25);
-  const edited = updateArtifactTemplate(
-    db,
-    TEMPLATE_ID,
-    body,
-    before.updatedAt
-  );
-  db.prepare(`UPDATE artifact_templates SET seed_hash = ? WHERE id = ?`).run(
-    'stale-hash-from-an-older-seed',
-    TEMPLATE_ID
-  );
-
-  const seed = getSeedTemplateById(TEMPLATE_ID);
-  const reset = resetArtifactTemplate(db, TEMPLATE_ID, seed, edited.updatedAt);
-  assert.equal(
-    reset.layouts.default.elements.find((e) => e.id === 'e1').x,
-    seed.layouts.default.elements.find((e) => e.id === 'e1').x
-  );
-
-  const row = readRow(db, TEMPLATE_ID);
-  assert.equal(row.payload, serializeTemplate(seed));
-  assert.equal(row.seed_hash, hashTemplatePayload(serializeTemplate(seed)));
-
-  // The re-recorded hash makes the row eligible for the next correction.
-  backdate(db);
-  assert.equal(
-    reseedArtifactTemplateIfUntouched(db, shippedCorrection(seed, 33.25)),
-    'reseeded'
-  );
-
-  restoreToSeed(db);
-});
-
-test('a stale hash on a row that already holds the current seed is repaired', () => {
-  const db = getDb();
-  restoreToSeed(db);
-  backdate(db);
-  // The administrator hand-applied the same correction the team is shipping:
-  // the payload matches the seed, the recorded hash does not. Left stale, this
-  // row would report `skipped-edited` for every *future* correction.
-  db.prepare(`UPDATE artifact_templates SET seed_hash = ? WHERE id = ?`).run(
-    'stale-hash-from-an-older-seed',
-    TEMPLATE_ID
-  );
-
-  const seed = getSeedTemplateById(TEMPLATE_ID);
-  assert.equal(reseedArtifactTemplateIfUntouched(db, seed), 'unchanged');
-
-  const row = readRow(db, TEMPLATE_ID);
-  assert.equal(row.seed_hash, hashTemplatePayload(serializeTemplate(seed)));
-  assert.equal(row.payload, serializeTemplate(seed));
-  // Repairing the evidence is not a write to the template: an open editor
-  // holding this timestamp for optimistic concurrency must not be invalidated.
-  assert.equal(row.updated_at, BACKDATED);
-
-  // And the repair is what puts the row back in reach of the next correction.
-  assert.equal(
-    reseedArtifactTemplateIfUntouched(db, shippedCorrection(seed, 21.5)),
-    'reseeded'
-  );
-
-  restoreToSeed(db);
-});
-
-test('a re-seed whose compare-and-swap matches nothing is reported as a conflict', () => {
-  const db = getDb();
-  restoreToSeed(db);
-  backdate(db);
-
-  const before = readRow(db, TEMPLATE_ID);
-  const corrected = shippedCorrection(getSeedTemplateById(TEMPLATE_ID), 8.75);
-  assert.equal(
-    reseedArtifactTemplateIfUntouched(
-      dbWithConcurrentWriteBeforeReseed(db, TEMPLATE_ID),
-      corrected
-    ),
-    'skipped-conflict'
-  );
-
-  // Nothing was written, so the operator log must not claim a re-seed.
-  const after = readRow(db, TEMPLATE_ID);
-  assert.equal(after.payload, before.payload);
-  assert.equal(after.seed_hash, before.seed_hash);
-
-  restoreToSeed(db);
-});
-
-test('seedArtifactRegistry reports every shipped template exactly once', () => {
-  const db = getDb();
-  const report = seedArtifactRegistry(db);
-  const seen = [
-    ...report.inserted,
-    ...report.reseeded,
-    ...report.unchanged,
-    ...report['skipped-edited'],
-    ...report['skipped-unrecorded'],
-    ...report['skipped-conflict'],
-  ];
-  const seedIds = loadSeedTemplates().map((t) => t.id);
-  assert.equal(new Set(seen).size, seen.length, 'a template was reported twice');
-  assert.deepEqual(new Set(seen), new Set(seedIds));
-});
+const PRE_COUNTER_IDS = ['welcome', 'thank-you', 'contact', 'sermon', 'song-set'];
 
 /**
- * The migration path — the only one that exists on the hub this feature was
- * built for. These boot the real `getDb()` in a child process against a
- * database file that predates the `seed_hash` column.
+ * A bootstrap that encounters legacy rows must not make an inconsistent
+ * registry current. `insertArtifactTemplateIfMissing` intentionally preserves
+ * those rows, so the invariant check has to reject the mixed positions before
+ * either settings stamp commits.
  */
+test('failed bootstrap rolls back both settings stamps when ordered registry positions are malformed', () => {
+  const file = createPreCounterDatabase('malformed-bootstrap.db', PRE_COUNTER_IDS);
+  const db = openFile(file);
 
-test('a database predating seed_hash is migrated and re-seeded on the next boot', () => {
-  const seed = getSeedTemplateById(TEMPLATE_ID);
-  // Exactly what an upgrade finds: the row holds the *older* shipped seed, so
-  // it matches neither the new seed nor any recorded hash.
-  const file = createLegacyDatabase('legacy-untouched.db', (template) =>
-    template.id === TEMPLATE_ID ? shippedCorrection(template, 3.75) : template
+  assert.throws(
+    () => bootstrapArtifactRegistry(db),
+    /position is not well-formed/,
+    'bootstrap must fail closed instead of stamping an inconsistent ordered registry'
   );
+  assert.equal(settingsValue(db, ARTIFACT_REGISTRY_BOOTSTRAP_KEY), undefined);
+  assert.equal(settingsValue(db, DATA_VERSION_KEY), undefined);
 
-  const logs = bootAgainst(file);
-
-  const legacy = openFile(file);
-  const row = readRow(legacy, TEMPLATE_ID);
-  legacy.close();
-
-  const seedPayload = serializeTemplate(seed);
-  assert.equal(row.payload, seedPayload, 'the legacy row was never re-seeded');
-  assert.equal(row.seed_hash, hashTemplatePayload(seedPayload));
-  assert.notEqual(row.updated_at, BACKDATED);
-
-  const total = loadSeedTemplates().length;
-  assert.match(
-    logs,
-    new RegExp(`recorded a seed hash for ${total} template\\(s\\)`),
-    `expected the migration to stamp all ${total} legacy rows:\n${logs}`
-  );
-  assert.match(logs, /0 inserted, 1 re-seeded/, logs);
-  assert.match(logs, /0 kept without a recorded seed hash/, logs);
+  db.close();
 });
 
-test('the seed_hash backfill does not re-arm a row edited after the migration', () => {
-  const file = createLegacyDatabase('legacy-then-edited.db', (template) =>
-    template.id === TEMPLATE_ID ? shippedCorrection(template, 4.75) : template
+test('bootstrapping ahead of the pre-counter repair fails closed without stamping the malformed registry', () => {
+  const file = createPreCounterDatabase('wrong-order.db', PRE_COUNTER_IDS);
+  const db = openFile(file);
+
+  // The wrong order: seed-from-zero runs first. It skips every id the
+  // pre-counter rows already hold (`insertArtifactTemplateIfMissing` is a
+  // no-op for them), so those five keep the meaningless position=0 every
+  // pre-counter row was given, while the other 33 land on their real index —
+  // a database with a duplicated position and a hole where the skipped ids'
+  // real positions would have gone.
+  assert.throws(() => bootstrapArtifactRegistry(db), /position is not well-formed/);
+  assert.equal(settingsValue(db, ARTIFACT_REGISTRY_BOOTSTRAP_KEY), undefined);
+  assert.equal(settingsValue(db, DATA_VERSION_KEY), undefined);
+  assert.equal(
+    db.prepare(`SELECT COUNT(*) AS n FROM artifact_templates`).get().n,
+    PRE_COUNTER_IDS.length,
+    'the failed immediate transaction must roll back every attempted seed insert'
   );
+  for (const id of PRE_COUNTER_IDS) {
+    assert.equal(
+      readRow(db, id).position,
+      0,
+      `pre-counter row "${id}" bootstrap-first left untouched keeps its meaningless position`
+    );
+  }
+  assert.throws(
+    () => assertContiguousPositions(db),
+    /position is not well-formed/,
+    'five rows sharing position 0 is not a well-formed 0..N-1 set'
+  );
+
+  // The bootstrap that just ran stamped `data_version` in the same
+  // transaction as its marker (AC-9) — the repair's own guard condition is
+  // now false, so it cannot undo the wrong order behind it. Getting the
+  // order wrong is not a transient glitch; it is permanent.
+  repairPreCounterArtifactRegistry(db);
+  assert.doesNotThrow(
+    () => assertContiguousPositions(db),
+    /position is not well-formed/,
+    'the repair can no longer fire — the wrong order leaves the database broken for good'
+  );
+
+  db.close();
+});
+
+test('repairing before bootstrapping compacts a pre-counter database into the correct version-1 shape', () => {
+  const file = createPreCounterDatabase('right-order.db', PRE_COUNTER_IDS);
+  const db = openFile(file);
+
+  repairPreCounterArtifactRegistry(db);
+  assert.equal(
+    db.prepare(`SELECT COUNT(*) AS n FROM artifact_templates`).get().n,
+    0,
+    'the repair wipes the pre-counter rows before anything reseeds them'
+  );
+
+  bootstrapArtifactRegistry(db);
+  const templates = loadSeedTemplates();
+  assert.equal(
+    db.prepare(`SELECT COUNT(*) AS n FROM artifact_templates`).get().n,
+    templates.length
+  );
+  assertContiguousPositions(db);
+  assert.equal(settingsValue(db, DATA_VERSION_KEY), String(CURRENT_DATA_VERSION));
+
+  db.close();
+});
+
+test('the real getDb() wires the correct order against a pre-counter database', () => {
+  const file = createPreCounterDatabase('real-boot.db', PRE_COUNTER_IDS);
+
   bootAgainst(file);
 
-  // The administrator saves a layout on the migrated database.
-  const upgraded = openFile(file);
-  const current = getArtifactTemplate(upgraded, TEMPLATE_ID);
-  const { updatedAt: _ignored, ...body } = shippedCorrection(current, 88.5);
-  const edited = updateArtifactTemplate(
-    upgraded,
-    TEMPLATE_ID,
-    body,
-    current.updatedAt
+  const db = openFile(file);
+  const templates = loadSeedTemplates();
+  assert.equal(
+    db.prepare(`SELECT COUNT(*) AS n FROM artifact_templates`).get().n,
+    templates.length,
+    'getDb must compact the pre-counter rows into the fresh 38-row bootstrap'
   );
-  upgraded.close();
+  assertContiguousPositions(db);
+  assert.equal(settingsValue(db, ARTIFACT_REGISTRY_BOOTSTRAP_KEY), '1');
+  assert.equal(settingsValue(db, DATA_VERSION_KEY), String(CURRENT_DATA_VERSION));
+  db.close();
+});
 
-  const logs = bootAgainst(file);
+test('a second real boot against an already-bootstrapped database changes nothing', () => {
+  const file = createPreCounterDatabase('idempotent-boot.db', PRE_COUNTER_IDS);
+  bootAgainst(file);
+
+  const db = openFile(file);
+  db.prepare(`DELETE FROM artifact_templates WHERE id = ?`).run('contact');
+  db.close();
+
+  bootAgainst(file);
 
   const after = openFile(file);
-  const row = readRow(after, TEMPLATE_ID);
+  assert.equal(getArtifactTemplate(after, 'contact'), null);
+  const row = after
+    .prepare(`SELECT id FROM artifact_templates WHERE id = 'contact'`)
+    .get();
+  assert.equal(row, undefined, 'a second real boot must not reinsert the deleted row');
   after.close();
-
-  assert.equal(
-    JSON.parse(row.payload).layouts.default.elements.find((e) => e.id === 'e1')
-      .x,
-    88.5,
-    'the administrator edit was overwritten by a second migration'
-  );
-  assert.notEqual(
-    row.payload,
-    serializeTemplate(getSeedTemplateById(TEMPLATE_ID)),
-    'the row was reset to the shipped seed'
-  );
-  assert.equal(row.updated_at, edited.updatedAt);
-  assert.match(logs, /0 inserted, 0 re-seeded/, logs);
-  assert.match(logs, /1 kept as edited/, logs);
 });

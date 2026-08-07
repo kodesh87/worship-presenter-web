@@ -151,8 +151,8 @@
   },
   {
     "schemaVersion": 1,
-    "id": "opening-song-cue",
-    "label": "OpeningSongCue",
+    "id": "bt-opening-song-cue",
+    "label": "OpeningSongCue_BT",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -193,6 +193,136 @@
           }
         ],
         "backgroundImage": "/assets/song-cue-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "bt-opening-song",
+    "label": "SongSet_BTOpening",
+    "baseType": "song-set",
+    "placeholders": [
+      {
+        "key": "hymnNumber",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "songTitle",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "label",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "lyrics",
+        "type": "text",
+        "required": true
+      }
+    ],
+    "layouts": {
+      "title": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#000000",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "shape",
+            "required": false,
+            "x": 0,
+            "y": 0,
+            "w": 100,
+            "h": 66.67,
+            "zIndex": 0,
+            "style": {
+              "fillColor": "#5C2E16"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "image",
+            "required": false,
+            "x": 0,
+            "y": 60.39,
+            "w": 100,
+            "h": 39.61,
+            "zIndex": 0,
+            "imageRef": "/assets/song-title-bottom.jpeg"
+          },
+          {
+            "id": "e3",
+            "type": "text",
+            "required": false,
+            "x": 26.67,
+            "y": 21.04,
+            "w": 46.67,
+            "h": 11.45,
+            "zIndex": 1,
+            "placeholderKey": "hymnNumber",
+            "style": {
+              "fontSize": 47.66,
+              "fontColor": "#FFFFFF",
+              "textAlign": "center"
+            }
+          },
+          {
+            "id": "e4",
+            "type": "text",
+            "required": false,
+            "x": 8.29,
+            "y": 33.12,
+            "w": 83.43,
+            "h": 8.98,
+            "zIndex": 1,
+            "placeholderKey": "songTitle",
+            "style": {
+              "fontSize": 40.0,
+              "fontColor": "#FFFFFF",
+              "textAlign": "center"
+            }
+          }
+        ]
+      },
+      "lyric": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#5C2E16",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 43.79,
+            "y": 3.33,
+            "w": 12.42,
+            "h": 9.09,
+            "zIndex": 1,
+            "placeholderKey": "label",
+            "style": {
+              "fontSize": 36.57,
+              "fontColor": "#F0EEEB",
+              "textAlign": "center"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 2.08,
+            "y": 20.37,
+            "w": 95.83,
+            "h": 52.36,
+            "zIndex": 1,
+            "placeholderKey": "lyrics",
+            "style": {
+              "fontSize": 46.67,
+              "textAlign": "center"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/song-lyric-bg.jpeg"
       }
     }
   },
@@ -350,8 +480,8 @@
   },
   {
     "schemaVersion": 1,
-    "id": "closing-song-cue",
-    "label": "ClosingSongCue",
+    "id": "bt-closing-song-cue",
+    "label": "ClosingSongCue_BT",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -392,6 +522,136 @@
           }
         ],
         "backgroundImage": "/assets/song-cue-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "bt-closing-song",
+    "label": "SongSet_BTClosing",
+    "baseType": "song-set",
+    "placeholders": [
+      {
+        "key": "hymnNumber",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "songTitle",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "label",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "lyrics",
+        "type": "text",
+        "required": true
+      }
+    ],
+    "layouts": {
+      "title": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#000000",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "shape",
+            "required": false,
+            "x": 0,
+            "y": 0,
+            "w": 100,
+            "h": 66.67,
+            "zIndex": 0,
+            "style": {
+              "fillColor": "#5C2E16"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "image",
+            "required": false,
+            "x": 0,
+            "y": 60.39,
+            "w": 100,
+            "h": 39.61,
+            "zIndex": 0,
+            "imageRef": "/assets/song-title-bottom.jpeg"
+          },
+          {
+            "id": "e3",
+            "type": "text",
+            "required": false,
+            "x": 26.67,
+            "y": 21.04,
+            "w": 46.67,
+            "h": 11.45,
+            "zIndex": 1,
+            "placeholderKey": "hymnNumber",
+            "style": {
+              "fontSize": 47.66,
+              "fontColor": "#FFFFFF",
+              "textAlign": "center"
+            }
+          },
+          {
+            "id": "e4",
+            "type": "text",
+            "required": false,
+            "x": 8.29,
+            "y": 33.12,
+            "w": 83.43,
+            "h": 8.98,
+            "zIndex": 1,
+            "placeholderKey": "songTitle",
+            "style": {
+              "fontSize": 40.0,
+              "fontColor": "#FFFFFF",
+              "textAlign": "center"
+            }
+          }
+        ]
+      },
+      "lyric": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#5C2E16",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 43.79,
+            "y": 3.33,
+            "w": 12.42,
+            "h": 9.09,
+            "zIndex": 1,
+            "placeholderKey": "label",
+            "style": {
+              "fontSize": 36.57,
+              "fontColor": "#F0EEEB",
+              "textAlign": "center"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 2.08,
+            "y": 20.37,
+            "w": 95.83,
+            "h": 52.36,
+            "zIndex": 1,
+            "placeholderKey": "lyrics",
+            "style": {
+              "fontSize": 46.67,
+              "textAlign": "center"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/song-lyric-bg.jpeg"
       }
     }
   },
@@ -602,6 +862,183 @@
   },
   {
     "schemaVersion": 1,
+    "id": "ds-opening-song-cue",
+    "label": "OpeningSongCue_DS",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#DCD7CE",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 5.63,
+            "y": 32.17,
+            "w": 38.13,
+            "h": 30.42,
+            "zIndex": 1,
+            "content": "Opening \nSong",
+            "style": {
+              "fontSize": 80.37,
+              "textAlign": "left"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 5.63,
+            "y": 92.1,
+            "w": 68.97,
+            "h": 6.05,
+            "zIndex": 1,
+            "content": "Congregation,  please stand",
+            "style": {
+              "fontSize": 25.06,
+              "fontColor": "#FFFFFF",
+              "textAlign": "left"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/song-cue-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "ds-opening-song",
+    "label": "SongSet_DSOpening",
+    "baseType": "song-set",
+    "placeholders": [
+      {
+        "key": "hymnNumber",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "songTitle",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "label",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "lyrics",
+        "type": "text",
+        "required": true
+      }
+    ],
+    "layouts": {
+      "title": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#000000",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "shape",
+            "required": false,
+            "x": 0,
+            "y": 0,
+            "w": 100,
+            "h": 66.67,
+            "zIndex": 0,
+            "style": {
+              "fillColor": "#5C2E16"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "image",
+            "required": false,
+            "x": 0,
+            "y": 60.39,
+            "w": 100,
+            "h": 39.61,
+            "zIndex": 0,
+            "imageRef": "/assets/song-title-bottom.jpeg"
+          },
+          {
+            "id": "e3",
+            "type": "text",
+            "required": false,
+            "x": 26.67,
+            "y": 21.04,
+            "w": 46.67,
+            "h": 11.45,
+            "zIndex": 1,
+            "placeholderKey": "hymnNumber",
+            "style": {
+              "fontSize": 47.66,
+              "fontColor": "#FFFFFF",
+              "textAlign": "center"
+            }
+          },
+          {
+            "id": "e4",
+            "type": "text",
+            "required": false,
+            "x": 8.29,
+            "y": 33.12,
+            "w": 83.43,
+            "h": 8.98,
+            "zIndex": 1,
+            "placeholderKey": "songTitle",
+            "style": {
+              "fontSize": 40.0,
+              "fontColor": "#FFFFFF",
+              "textAlign": "center"
+            }
+          }
+        ]
+      },
+      "lyric": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#5C2E16",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 43.79,
+            "y": 3.33,
+            "w": 12.42,
+            "h": 9.09,
+            "zIndex": 1,
+            "placeholderKey": "label",
+            "style": {
+              "fontSize": 36.57,
+              "fontColor": "#F0EEEB",
+              "textAlign": "center"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 2.08,
+            "y": 20.37,
+            "w": 95.83,
+            "h": 52.36,
+            "zIndex": 1,
+            "placeholderKey": "lyrics",
+            "style": {
+              "fontSize": 46.67,
+              "textAlign": "center"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/song-lyric-bg.jpeg"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
     "id": "intercessory-prayer",
     "label": "IntercessoryPrayer",
     "baseType": "general",
@@ -634,6 +1071,37 @@
   },
   {
     "schemaVersion": 1,
+    "id": "intercessory-671-lyric-1",
+    "label": "Intercessory671Lyric1",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#5C2E16",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 2.08,
+            "y": 20.37,
+            "w": 95.83,
+            "h": 52.36,
+            "zIndex": 1,
+            "content": "Now, Dear Lord, as we pray, Take our hearts and minds far away; From the press of the world all around; To Your throne where grace does abound. May our lives be transform'd by Your love, May our souls be refreshed from above. At this moment, let people everywhere; Join us now as we come to You in prayer.",
+            "style": {
+              "fontSize": 46.67,
+              "textAlign": "center"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/song-lyric-bg.jpeg"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
     "id": "intercessory-prayer-during",
     "label": "IntercessoryDuring",
     "baseType": "general",
@@ -661,6 +1129,167 @@
           }
         ],
         "backgroundImage": "/assets/intercessory-during-bg.jpeg"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "intercessory-684-lyric-1",
+    "label": "Intercessory684Lyric1",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#5C2E16",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 2.08,
+            "y": 20.37,
+            "w": 95.83,
+            "h": 52.36,
+            "zIndex": 1,
+            "content": "Hear our prayer, O Lord, Hear our prayer, O Lord; Incline Thine ear to us, And grant us Thy peace. Amen.",
+            "style": {
+              "fontSize": 46.67,
+              "textAlign": "center"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/song-lyric-bg.jpeg"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "song-set",
+    "label": "SongSet",
+    "baseType": "song-set",
+    "placeholders": [
+      {
+        "key": "hymnNumber",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "songTitle",
+        "type": "text",
+        "required": true
+      },
+      {
+        "key": "label",
+        "type": "text",
+        "required": false
+      },
+      {
+        "key": "lyrics",
+        "type": "text",
+        "required": true
+      }
+    ],
+    "layouts": {
+      "title": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#000000",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "shape",
+            "required": false,
+            "x": 0,
+            "y": 0,
+            "w": 100,
+            "h": 66.67,
+            "zIndex": 0,
+            "style": {
+              "fillColor": "#5C2E16"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "image",
+            "required": false,
+            "x": 0,
+            "y": 60.39,
+            "w": 100,
+            "h": 39.61,
+            "zIndex": 0,
+            "imageRef": "/assets/song-title-bottom.jpeg"
+          },
+          {
+            "id": "e3",
+            "type": "text",
+            "required": false,
+            "x": 26.67,
+            "y": 21.04,
+            "w": 46.67,
+            "h": 11.45,
+            "zIndex": 1,
+            "placeholderKey": "hymnNumber",
+            "style": {
+              "fontSize": 47.66,
+              "fontColor": "#FFFFFF",
+              "textAlign": "center"
+            }
+          },
+          {
+            "id": "e4",
+            "type": "text",
+            "required": false,
+            "x": 8.29,
+            "y": 33.12,
+            "w": 83.43,
+            "h": 8.98,
+            "zIndex": 1,
+            "placeholderKey": "songTitle",
+            "style": {
+              "fontSize": 40.0,
+              "fontColor": "#FFFFFF",
+              "textAlign": "center"
+            }
+          }
+        ]
+      },
+      "lyric": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#5C2E16",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 43.79,
+            "y": 3.33,
+            "w": 12.42,
+            "h": 9.09,
+            "zIndex": 1,
+            "placeholderKey": "label",
+            "style": {
+              "fontSize": 36.57,
+              "fontColor": "#F0EEEB",
+              "textAlign": "center"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 2.08,
+            "y": 20.37,
+            "w": 95.83,
+            "h": 52.36,
+            "zIndex": 1,
+            "placeholderKey": "lyrics",
+            "style": {
+              "fontSize": 46.67,
+              "textAlign": "center"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/song-lyric-bg.jpeg"
       }
     }
   },
@@ -814,16 +1443,10 @@
   },
   {
     "schemaVersion": 1,
-    "id": "closing-prayer-ds",
-    "label": "ClosingPrayer_DS",
-    "baseType": "text-placeholder",
-    "placeholders": [
-      {
-        "key": "person",
-        "type": "text",
-        "required": true
-      }
-    ],
+    "id": "ds-closing-song-cue",
+    "label": "ClosingSongCue_DS",
+    "baseType": "general",
+    "placeholders": [],
     "layouts": {
       "default": {
         "aspectRatio": "16:9",
@@ -833,14 +1456,14 @@
             "id": "e1",
             "type": "text",
             "required": false,
-            "x": 8.78,
-            "y": 37.31,
-            "w": 31.26,
-            "h": 22.15,
+            "x": 5.63,
+            "y": 32.17,
+            "w": 35.07,
+            "h": 30.42,
             "zIndex": 1,
-            "content": "Closing \nPrayer",
+            "content": "Closing \nSong",
             "style": {
-              "fontSize": 68.55,
+              "fontSize": 80.37,
               "textAlign": "left"
             }
           },
@@ -848,26 +1471,27 @@
             "id": "e2",
             "type": "text",
             "required": false,
-            "x": 9.69,
-            "y": 62.02,
-            "w": 34.7,
-            "h": 4.28,
+            "x": 5.63,
+            "y": 92.1,
+            "w": 68.97,
+            "h": 6.05,
             "zIndex": 1,
-            "placeholderKey": "person",
+            "content": "Congregation,  please stand",
             "style": {
-              "fontSize": 25.78,
+              "fontSize": 25.06,
+              "fontColor": "#FFFFFF",
               "textAlign": "left"
             }
           }
         ],
-        "backgroundImage": "/assets/closing-prayer-ds-bg.png"
+        "backgroundImage": "/assets/song-cue-bg.png"
       }
     }
   },
   {
     "schemaVersion": 1,
-    "id": "song-set",
-    "label": "SongSet",
+    "id": "ds-closing-song",
+    "label": "SongSet_DSClosing",
     "baseType": "song-set",
     "placeholders": [
       {
@@ -984,6 +1608,120 @@
             "h": 52.36,
             "zIndex": 1,
             "placeholderKey": "lyrics",
+            "style": {
+              "fontSize": 46.67,
+              "textAlign": "center"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/song-lyric-bg.jpeg"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "closing-prayer-ds",
+    "label": "ClosingPrayer_DS",
+    "baseType": "text-placeholder",
+    "placeholders": [
+      {
+        "key": "person",
+        "type": "text",
+        "required": true
+      }
+    ],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#DCD7CE",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 8.78,
+            "y": 37.31,
+            "w": 31.26,
+            "h": 22.15,
+            "zIndex": 1,
+            "content": "Closing \nPrayer",
+            "style": {
+              "fontSize": 68.55,
+              "textAlign": "left"
+            }
+          },
+          {
+            "id": "e2",
+            "type": "text",
+            "required": false,
+            "x": 9.69,
+            "y": 62.02,
+            "w": 34.7,
+            "h": 4.28,
+            "zIndex": 1,
+            "placeholderKey": "person",
+            "style": {
+              "fontSize": 25.78,
+              "textAlign": "left"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/closing-prayer-ds-bg.png"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "hope-lyric-1",
+    "label": "WeHaveThisHopeLyric1",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#5C2E16",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 2.08,
+            "y": 20.37,
+            "w": 95.83,
+            "h": 52.36,
+            "zIndex": 1,
+            "content": "We have this hope that burns within our hearts,\nHope in the coming of the Lord.\nWe have this faith that Christ alone imparts,\nFaith in the promise of His Word.",
+            "style": {
+              "fontSize": 46.67,
+              "textAlign": "center"
+            }
+          }
+        ],
+        "backgroundImage": "/assets/song-lyric-bg.jpeg"
+      }
+    }
+  },
+  {
+    "schemaVersion": 1,
+    "id": "hope-lyric-2",
+    "label": "WeHaveThisHopeLyric2",
+    "baseType": "general",
+    "placeholders": [],
+    "layouts": {
+      "default": {
+        "aspectRatio": "16:9",
+        "backgroundColor": "#5C2E16",
+        "elements": [
+          {
+            "id": "e1",
+            "type": "text",
+            "required": false,
+            "x": 2.08,
+            "y": 20.37,
+            "w": 95.83,
+            "h": 52.36,
+            "zIndex": 1,
+            "content": "We believe the time is here,\nWhen the nations far and near\nShall awake, and shout, and sing\nHallelujah! Christ is King!\nWe have this hope that burns within our hearts,\nHope in the coming of the Lord.",
             "style": {
               "fontSize": 46.67,
               "textAlign": "center"

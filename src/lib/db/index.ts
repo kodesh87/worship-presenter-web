@@ -10,15 +10,10 @@ import {
   loadSongBookCorpus,
   type HymnSeed,
 } from '../corpus';
-import { seedArtifactRegistry } from '../registry/seed';
-import { recordSeedHashesForMigratedRows } from '../registry/store';
-
-/**
- * Marks that the one-time seed-hash backfill has run. Kept in `settings` rather
- * than inferred from the schema so the backfill cannot be skipped by a database
- * that received the column from an earlier build.
- */
-const SEED_HASH_BACKFILL_KEY = 'artifact_seed_hash_backfilled';
+import {
+  bootstrapArtifactRegistry,
+  DATA_VERSION_KEY,
+} from '../registry/seed';
 
 let db: Database.Database | null = null;
 
@@ -279,6 +274,49 @@ export function listBibleTranslations() {
   }[];
 }
 
+/**
+ * AD-21's pre-counter repair: a database holding `artifact_templates` rows
+ * with no `data_version` key predates this story's counter, and its absence
+ * is not read as version 0 (AD-21). AD-4 records that no deployment exists
+ * yet, so AD-18's total-replacement licence applies — the compacted version-1
+ * shape is not migrated row by row; the pre-20.1 rows are wiped so the
+ * AD-17 bootstrap that runs immediately after reseeds the compacted shape
+ * (position included) from zero. This is the story's one recorded repair
+ * transition, and it runs at most once: once the bootstrap stamps
+ * `data_version`, the guard's own condition is false on every later boot.
+ *
+ * DEV NOTE (AC-10): if your local `data.db` predates Story 20.1, this wipes
+ * its `artifact_templates` rows on your next boot and reseeds fresh at
+ * version 1 — any layout edit you made there is not migrated forward, only
+ * the shipped seed. This is a one-time developer-database reset, licensed by
+ * AD-4 (no deployment exists yet) and AD-18's total-replacement rule; that
+ * licence **expires at first deploy**, after which the same kind of change
+ * needs a real migration over live `artifact_templates` rows instead.
+ *
+ * Exported for `tests/registry-reseed.test.mjs`, which calls this and
+ * {@link bootstrapArtifactRegistry} directly, in each order, to prove the
+ * `getDb` step order matters.
+ */
+export function repairPreCounterArtifactRegistry(database: Database.Database) {
+  const hasVersion = database
+    .prepare(`SELECT 1 FROM settings WHERE key = ?`)
+    .get(DATA_VERSION_KEY);
+  if (hasVersion) return;
+
+  const { count } = database
+    .prepare(`SELECT COUNT(*) AS count FROM artifact_templates`)
+    .get() as { count: number };
+  if (count === 0) return;
+
+  database.prepare(`DELETE FROM artifact_templates`).run();
+  console.info(
+    `[registry] Story 20.1: this database predates the AD-21 data-version counter. ` +
+      `Compacting ${count} pre-20.1 template row(s) into a fresh data-version-1 bootstrap ` +
+      `(developer database reset, licensed by AD-4/AD-18 — that licence expires at first ` +
+      `deploy). Any layout edit on those rows was not carried forward; re-apply it after this boot.`
+  );
+}
+
 export function getDb() {
   if (!db) {
     const dbPath = process.env.DB_PATH || path.join(process.cwd(), 'data.db');
@@ -390,17 +428,21 @@ export function getDb() {
       );
 
       -- seed_hash is the hash of the seed payload this row was last seeded or
-      -- reset from; startup re-seeds a row only while its stored payload still
-      -- hashes to that value. NULL means "no evidence" and is treated as
-      -- edited; the migration below backfills it once so rows written before
-      -- the column are not stuck there. See src/lib/registry/store.ts.
+      -- reset from; an explicit Reset stamps it so the row records which seed
+      -- it now holds. See src/lib/registry/store.ts (resetArtifactTemplate).
+      --
+      -- position is the row's place in the deck (AC-1 of Story 20.1): the
+      -- persisted set is exactly 0..N-1 with no duplicate and no gap. It is
+      -- assigned once by the AD-17 bootstrap below and never duplicated into
+      -- the payload.
       CREATE TABLE IF NOT EXISTS artifact_templates (
         id TEXT PRIMARY KEY,
         label TEXT NOT NULL,
         base_type TEXT NOT NULL,
         payload TEXT NOT NULL,
         updated_at TEXT NOT NULL,
-        seed_hash TEXT
+        seed_hash TEXT,
+        position INTEGER NOT NULL DEFAULT 0
       );
     `);
 
@@ -435,20 +477,8 @@ export function getDb() {
     } catch (e) {
       if (!/duplicate column/i.test(String(e))) throw e;
     }
-    // Migrate DBs created before the registry recorded which seed a row came
-    // from. Adding the column alone would leave every existing row NULL, which
-    // the guard reads as "kept, no evidence" — so self-healing would reach zero
-    // templates on exactly the databases it exists for. The backfill stamps
-    // each legacy row with its own payload hash so it is read as untouched
-    // once and re-seeded to the current shipped template; see
-    // `recordSeedHashesForMigratedRows` for why that is safe exactly once.
-    //
-    // The backfill is gated on its own marker rather than on the ALTER
-    // succeeding. Tying it to the ALTER strands any database that received the
-    // column from an earlier build before the backfill existed: the ALTER then
-    // throws `duplicate column`, the backfill never runs, and those rows keep a
-    // NULL hash for good. The marker also makes it idempotent, so a row the
-    // administrator edits after migrating is never re-armed.
+    // Migrate DBs created before the registry recorded which seed a row an
+    // explicit Reset restores. Schema only — no row's stored value changes.
     try {
       db.prepare(
         'ALTER TABLE artifact_templates ADD COLUMN seed_hash TEXT'
@@ -456,33 +486,30 @@ export function getDb() {
     } catch (e) {
       if (!/duplicate column/i.test(String(e))) throw e;
     }
-    const backfillSeedHashes = db.transaction((database: Database.Database) => {
-      const done = database
-        .prepare(`SELECT value FROM settings WHERE key = ?`)
-        .get(SEED_HASH_BACKFILL_KEY) as { value: string } | undefined;
-      if (done) return 0;
-      const recorded = recordSeedHashesForMigratedRows(database);
-      database
-        .prepare(
-          `INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`
-        )
-        .run(SEED_HASH_BACKFILL_KEY, String(recorded));
-      return recorded;
-    });
-    const recorded = backfillSeedHashes.immediate(db);
-    if (recorded > 0) {
-      console.info(
-        `[registry] migration: recorded a seed hash for ${recorded} template(s) ` +
-          `written before the column existed; startup re-seeds the ones still ` +
-          `holding their seed`
-      );
+    // Migrate DBs created before AC-1's ordering column existed. The default
+    // is never trusted as a real position — repairPreCounterArtifactRegistry
+    // below wipes any row that predates the AD-21 counter, and the AD-17
+    // bootstrap that follows assigns every position fresh.
+    try {
+      db.prepare(
+        'ALTER TABLE artifact_templates ADD COLUMN position INTEGER NOT NULL DEFAULT 0'
+      ).run();
+    } catch (e) {
+      if (!/duplicate column/i.test(String(e))) throw e;
     }
-
     migrateHymnsForSongBooks(db);
     migrateBibleVersesTranslationCode(db);
+
+    // --- data migrations (AD-18 / AD-21) ---
+    repairPreCounterArtifactRegistry(db);
+
+    // --- corpus reconcile (AD-25) ---
     upsertHymns(db);
     reconcileBibleCorpus(db);
-    seedArtifactRegistry(db);
+
+    // --- first-boot bootstrap (AD-17) ---
+    bootstrapArtifactRegistry(db);
+
     bootstrapAdminIfEmpty(db);
     } catch (err) {
       db.close();

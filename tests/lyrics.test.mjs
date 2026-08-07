@@ -9,8 +9,9 @@ import { fileURLToPath, pathToFileURL } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 
-const { splitLyricsLabeled, splitWeHaveThisHopeSlides, WE_HAVE_THIS_HOPE_FALLBACK } =
-  await import(pathToFileURL(path.join(root, 'src', 'lib', 'lyrics.ts')).href);
+const { splitLyricsLabeled } = await import(
+  pathToFileURL(path.join(root, 'src', 'lib', 'lyrics.ts')).href
+);
 
 test('continuous join: terminal punctuation joins with space', () => {
   const slides = splitLyricsLabeled(`Verse 1
@@ -134,58 +135,10 @@ Hallelujah! Christ is King!`,
   assert.ok(!slides[0].text.includes(';'));
 });
 
-test('CAP-4: We Have This Hope fallback yields exactly 2 slides with line breaks', () => {
-  const slides = splitWeHaveThisHopeSlides(WE_HAVE_THIS_HOPE_FALLBACK.lyrics);
-  assert.equal(slides.length, 2);
-  assert.ok(slides[0].text.includes('\n'));
-  assert.ok(slides[1].text.includes('\n'));
-  assert.ok(!slides[0].text.includes(';'));
-  assert.ok(!slides[1].text.includes(';'));
-  assert.ok(slides[0].text.endsWith('Faith in the promise of His Word.'));
-  assert.ok(slides[1].text.startsWith('We believe the time is here,'));
-  assert.ok(slides[1].text.endsWith('Hope in the coming of the Lord.'));
-  assert.equal(
-    slides[0].text,
-    [
-      'We have this hope that burns within our hearts,',
-      'Hope in the coming of the Lord.',
-      'We have this faith that Christ alone imparts,',
-      'Faith in the promise of His Word.',
-    ].join('\n')
-  );
-  assert.equal(
-    slides[1].text,
-    [
-      'We believe the time is here,',
-      'When the nations far and near',
-      'Shall awake, and shout, and sing',
-      'Hallelujah! Christ is King!',
-      'We have this hope that burns within our hearts,',
-      'Hope in the coming of the Lord.',
-    ].join('\n')
-  );
-});
-
-test('CAP-4: We Have This Hope hymnal lyrics still use Verse 1 only (2 slides)', () => {
-  const hymnalStyle = `Verse 1
-We have this hope that burns within our hearts,
-Hope in the coming of the Lord.
-We have this faith that Christ alone imparts,
-Faith in the promise of His Word.
-We believe the time is here,
-When the nations far and near
-Shall awake, and shout, and sing
-Hallelujah! Christ is King!
-We have this hope that burns within our hearts,
-Hope in the coming of the Lord.
-
-Verse 2
-We are united in Jesus Christ our Lord.
-We are united in His love.`;
-  const slides = splitWeHaveThisHopeSlides(hymnalStyle);
-  assert.equal(slides.length, 2);
-  assert.ok(slides[0].text.endsWith('Faith in the promise of His Word.'));
-  assert.ok(slides[1].text.startsWith('We believe the time is here,'));
-  assert.ok(slides[1].text.endsWith('Hope in the coming of the Lord.'));
-  assert.ok(!slides.map((s) => s.text).join('\n').includes('We are united'));
-});
+// Story 20.1 (AC-4, AD-20): `splitWeHaveThisHopeSlides` and its
+// `WE_HAVE_THIS_HOPE_FALLBACK` constant are deleted, not migrated — "We Have
+// This Hope" is now two fixed General rows (`hope-lyric-1` / `hope-lyric-2`)
+// authored directly in the registry seed, byte-for-byte what this splitter
+// used to produce (AC-5). `tests/registry-seed-conformance.test.mjs` and
+// `tests/artifact-hydration.test.mjs` cover those rows; there is no longer a
+// splitter here to unit-test in isolation.

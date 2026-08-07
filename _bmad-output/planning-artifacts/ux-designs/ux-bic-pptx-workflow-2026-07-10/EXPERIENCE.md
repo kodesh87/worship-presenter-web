@@ -58,7 +58,7 @@ The route is one page and three authoring surfaces, and which one an administrat
 
 | Authoring surface | Applies to | What the administrator may do | Status |
 | --- | --- | --- | --- |
-| Ordered registry list | every row | Add, delete, rename, reorder. The order of this list is the order of the deck (CAP-2; AD-17 for a delete that stays deleted through a restart) | **⚠ designed, not shipped.** *Owner: Story 20.3.* `artifact_templates` has no ordering column — the list is sorted by label — and `/api/admin/artifacts` carries no create, delete or reorder verb |
+| Ordered registry list | every row | Add, delete, rename, reorder. The order of this list is the order of the deck (CAP-2; AD-17 for a delete that stays deleted through a restart) | **⚠ designed, not shipped.** *Owner: Story 20.3.* `artifact_templates` now has an ordering column and the list is sorted by it (Story 20.1) — but `/api/admin/artifacts` still carries no create, delete or reorder verb |
 | Free canvas | `general` rows **only** | Compose freely, including Placeholder Catalog keys inserted onto the slide (CAP-3, CAP-4; AD-22 for *General only*, AD-19 for the catalog's key set) | **Partly shipped.** The canvas itself ships (AD-13, AD-15). *General only* and the catalog do not: **⚠** *Owners: Story 20.4, Story 20.5.* Today `READ_ONLY_BASE_TYPES` refuses every administrator edit to a `song-set` or `announcement` row instead |
 | Bounded configuration | `songset-*` rows | Exactly two background images — one for the title layout, one for the lyric layout that verse and refrain share — plus font style and font size. **No canvas**, and the row's placeholder set and slot binding are not the administrator's to touch (AD-22, AD-19) | **⚠ designed, not shipped.** *Owner: Story 20.7* |
 

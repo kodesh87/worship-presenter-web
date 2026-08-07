@@ -50,8 +50,10 @@ const TEMPLATE_LABELS: Readonly<Record<string, string>> = {
   'welcome-repeat': 'Welcome',
   'bible-talk-sequence': 'Bible Talk Sequence',
   'prayer-partners': 'Prayer Partners',
-  'opening-song-cue': 'Opening Song',
-  'closing-song-cue': 'Closing Song',
+  'bt-opening-song-cue': 'Opening Song',
+  'ds-opening-song-cue': 'Opening Song',
+  'bt-closing-song-cue': 'Closing Song',
+  'ds-closing-song-cue': 'Closing Song',
   'verse-reading': 'Verse Reading',
   'opening-prayer': 'Opening Prayer',
   'bible-talk': 'Bible Talk',
@@ -61,10 +63,14 @@ const TEMPLATE_LABELS: Readonly<Record<string, string>> = {
   'ds-sequence': 'Divine Service Sequence',
   'bible-verse-contemplation': 'Theme Verse',
   'intercessory-prayer': 'Intercessory Prayer',
+  'intercessory-671-lyric-1': 'Intercessory Song (#671)',
   'intercessory-prayer-during': 'Intercessory Prayer',
+  'intercessory-684-lyric-1': 'Intercessory Song (#684)',
   'special-song': 'Special Song',
   sermon: 'Sermon',
   'sermon-flyer': 'Sermon Flyer',
+  'hope-lyric-1': 'We Have This Hope',
+  'hope-lyric-2': 'We Have This Hope',
   'announcements-header': 'Announcements',
   'announcement-flyer': 'Announcement Flyer',
   'offering-tithe': 'Offering & Tithe',
@@ -111,7 +117,11 @@ function humanize(raw: string): string {
 
 /** The label an operator should see for one hydrated slide. */
 export function previewLabel(instance: ArtifactInstance): string {
-  if (instance.templateId === 'song-set') {
+  // Story 20.1 (AC-6) split the shared `song-set` template into five rows —
+  // the ds-middle row plus four transitional per-position clones — so this
+  // checks `baseType` rather than one hardcoded id; every SongSet template
+  // still speaks by layout key ("Song Title" / "Song Lyric"), never by id.
+  if (instance.baseType === 'song-set') {
     return SONG_SET_LABELS[instance.layoutKey] ?? SONG_SET_LABELS.default;
   }
   const mapped = TEMPLATE_LABELS[instance.templateId];
