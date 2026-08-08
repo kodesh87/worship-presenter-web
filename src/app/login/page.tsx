@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { FormEvent, Suspense, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { safeNextPath } from '@/lib/auth/safe-next';
@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/card';
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -28,6 +27,7 @@ function LoginForm() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
         body: JSON.stringify({ username, password }),
       });
       const data = (await res.json().catch(() => ({}))) as {
@@ -36,8 +36,9 @@ function LoginForm() {
       if (!res.ok) {
         throw new Error(data.error || 'Invalid username or password');
       }
-      router.replace(safeNextPath(searchParams.get('next')));
-      router.refresh();
+      // Full navigation so the session cookie is on the next document request.
+      // Client-side router.replace can race the cookie store under Turbopack HMR.
+      window.location.assign(safeNextPath(searchParams.get('next')));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
