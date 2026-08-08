@@ -101,6 +101,25 @@ Google AI Pro / Antigravity (and similar “jump-to-code” agents) tend to skip
 
    These four artifact families drifted precisely because nothing named them here.
 
+## A guard must be proved to fail
+
+A test that asserts something is **absent** — a guard, a grep, a regression net — is worth nothing
+until it has been seen to fail. Story 20.2 shipped two such guards that could not fail, and the
+second was created by fixing the first.
+
+- MUST prove every new or changed absence-guard by injecting the exact defect it claims to catch,
+  then reverting. Record the command, the injected mutation, the failing assertion, and the revert.
+- MUST inject in **every form the guard claims to cover** — JSON value, TS literal, `switch` case,
+  array member — not only the form easiest to write. A pattern that catches `baseType: 'x'` but
+  misses `"baseType": "x"` covers no JSON file, and `data/` is entirely JSON.
+- MUST NOT record a guard as "verified" without that injection. A proof that is asserted rather
+  than re-runnable does not satisfy this rule.
+- MUST NOT narrow a guard to silence a false positive without re-proving it still fails on the real
+  defect. That over-correction is exactly how Story 20.2's second blind spot appeared.
+- MUST state which surface a guard actually protects. Where a value is constrained by a TypeScript
+  union, `tsc` is the primary guard and a text scan exists for the untyped surfaces (`data/*.json`,
+  `*.mjs` tests); a text scan MUST NOT claim coverage the compiler already provides.
+
 ## Authority map
 
 | Concern | Source of truth |
