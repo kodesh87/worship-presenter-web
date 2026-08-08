@@ -64,7 +64,11 @@ test('every entry carries an operator-recognizable label', () => {
       .map((t) => t.label)
       .filter((label) => PASCAL_OR_SNAKE.test(label))
   );
-  assert.ok(seedLabels.size > 0, 'seed registry should still use PascalCase labels');
+  assert.equal(
+    seedLabels.size,
+    0,
+    'seed registry must not use PascalCase or underscore labels'
+  );
 
   for (const entry of entries) {
     assert.equal(typeof entry.label, 'string');
@@ -96,14 +100,14 @@ test('every entry carries an operator-recognizable label', () => {
   }
 });
 
-test('unmapped template labels fall back to readable words', () => {
+test('row labels are shown as-is; empty labels fall back to readable words', () => {
   assert.equal(
     previewLabel({
       templateId: 'brand-new-thing',
-      label: 'BrandNewThing_DS',
+      label: 'My Custom Label',
       layoutKey: 'default',
     }),
-    'Brand New Thing DS'
+    'My Custom Label'
   );
   assert.equal(
     previewLabel({

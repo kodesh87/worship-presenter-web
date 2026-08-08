@@ -4,7 +4,7 @@ baseline_commit: bcb7349
 
 # Story 20.1: One Ordered Registry
 
-Status: review
+Status: done
 
 ## Story
 
@@ -828,6 +828,16 @@ claude-sonnet-5 (Claude Code), dispatched via the `bmad-dev-story` skill.
   bootstrap-before-repair comment now records the rollback and subsequent
   self-healing wipe accurately; the pre-existing `seed.ts`↔`store.ts` module
   cycle is recorded in `deferred-work.md` without refactoring startup code.
+- **CLOSED BY THE OWNER 2026-08-07.** Merged as PR #37 (merge commit `bc487b3`),
+  both checks green. All 13 ACs carry a recorded disposition; none is open.
+  WHAT THE CLOSE DOES NOT COVER, recorded rather than hidden: the FINAL state
+  after fix round 2 was verified only by the coordinator (492 tests / 491 passed
+  / 0 failed / 1 skipped, public-repo guard 9/9, forbidden-path audit clean) and
+  was never read by an independent reviewer. Both round-2 changes are textual —
+  one duplicate log line removed, one test comment corrected. The coordinator
+  noted this repository has seen a fix round surface the next round's headline
+  finding; the owner elected to close. If a later round finds something here,
+  this is why.
 
 ### File List
 

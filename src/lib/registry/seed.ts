@@ -43,6 +43,11 @@ const LOCAL_SEED_PATH = path.join(
  * Automated tests and fidelity smokes set `WPW_USE_SHIPPED_REGISTRY=1` so a
  * developer's gitignored `data/local/` override cannot change expected PPTX
  * copy or fail the public-repo placeholder assertions.
+ *
+ * Story 20.2: if your local override still carries retired base types, delete
+ * it or re-author it onto `general` / `song-set` / `announcement` — the
+ * startup reset will wipe a database seeded from stale kinds, but it does not
+ * rewrite this file.
  */
 export function resolveSeedPath(): string {
   if (process.env.WPW_USE_SHIPPED_REGISTRY === '1') return SEED_PATH;

@@ -11,9 +11,11 @@ import {
   type HymnSeed,
 } from '../corpus';
 import {
+  ARTIFACT_REGISTRY_BOOTSTRAP_KEY,
   bootstrapArtifactRegistry,
   DATA_VERSION_KEY,
 } from '../registry/seed';
+import { ARTIFACT_ENTRY_KEYS } from '../registry/types';
 
 let db: Database.Database | null = null;
 
@@ -317,6 +319,66 @@ export function repairPreCounterArtifactRegistry(database: Database.Database) {
   );
 }
 
+/**
+ * Story 20.2's one-time reset: a developer database bootstrapped before the
+ * three-kind collapse holds rows whose `base_type` is no longer legal. Left
+ * alone, every row fails closed on validation and the deck comes out empty.
+ * When any such row exists, wipe `artifact_templates` and the AD-17 bootstrap
+ * marker in one transaction so the bootstrap in the same boot re-seeds from the
+ * re-authored seed. Triggered by that content predicate, not the version
+ * counter — `CURRENT_DATA_VERSION` stays `1`. Self-limiting once no retired
+ * base type can exist.
+ *
+ * Licensed by AD-4 (no deployment exists yet) and AD-18's total-replacement
+ * rule; that licence **expires at first deploy**, after which the same change
+ * needs a real migration over live `artifact_templates` rows plus every service
+ * snapshot.
+ *
+ * DEV NOTE: if you seed from `data/local/default-registry.json`, re-author that
+ * file onto the three kinds or delete it to fall back to the shipped seed —
+ * the override is not rewritten by this change set. Any administrator layout
+ * edit on an otherwise-valid row is destroyed when the reset fires, not only
+ * rows carrying a retired base type.
+ *
+ * Exported for `tests/registry-three-kind-reset.test.mjs`.
+ */
+export function repairPreThreeKindArtifactRegistry(database: Database.Database) {
+  // Story 20.7 widens `base_type` with `songset-*` slot identities; derive the
+  // allowed set from ARTIFACT_ENTRY_KEYS so this predicate cannot drift.
+  const allowedPlaceholders = ARTIFACT_ENTRY_KEYS.map(() => '?').join(', ');
+
+  const tx = database.transaction(() => {
+    const retired = database
+      .prepare(
+        `SELECT 1 FROM artifact_templates
+         WHERE base_type NOT IN (${allowedPlaceholders})
+         LIMIT 1`
+      )
+      .get(...ARTIFACT_ENTRY_KEYS);
+    if (!retired) return;
+
+    const { count } = database
+      .prepare(`SELECT COUNT(*) AS count FROM artifact_templates`)
+      .get() as { count: number };
+
+    database.prepare(`DELETE FROM artifact_templates`).run();
+    database
+      .prepare(`DELETE FROM settings WHERE key = ?`)
+      .run(ARTIFACT_REGISTRY_BOOTSTRAP_KEY);
+
+    console.info(
+      `[registry] Story 20.2: this database carries retired template base types. ` +
+        `Resetting all ${count} row(s) — including otherwise-valid rows and any ` +
+        `administrator layout edits on them — and clearing the bootstrap marker so the ` +
+        `re-authored seed can load (developer database reset, licensed by AD-4/AD-18 — ` +
+        `that licence expires at first deploy). Re-author ` +
+        `data/local/default-registry.json` +
+        ` onto the three kinds or delete it to use the shipped seed.`
+    );
+  });
+  tx.immediate();
+}
+
 export function getDb() {
   if (!db) {
     const dbPath = process.env.DB_PATH || path.join(process.cwd(), 'data.db');
@@ -502,6 +564,7 @@ export function getDb() {
 
     // --- data migrations (AD-18 / AD-21) ---
     repairPreCounterArtifactRegistry(db);
+    repairPreThreeKindArtifactRegistry(db);
 
     // --- corpus reconcile (AD-25) ---
     upsertHymns(db);

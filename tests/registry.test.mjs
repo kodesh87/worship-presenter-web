@@ -426,7 +426,6 @@ test('save cannot add elements to read-only templates', () => {
   for (const [id, layoutKey] of [
     ['song-set', 'title'],
     ['announcement-flyer', 'default'],
-    ['sermon-flyer', 'default'],
   ]) {
     const before = getArtifactTemplate(db, id);
     assert.ok(before, `expected seeded template ${id}`);
@@ -451,6 +450,27 @@ test('save cannot add elements to read-only templates', () => {
     );
     assert.deepEqual(getArtifactTemplate(db, id), before);
   }
+});
+
+test('sermon-flyer accepts canvas element authoring after fullscreen-image collapse (AC-5)', () => {
+  const db = getDb();
+  const before = getArtifactTemplate(db, 'sermon-flyer');
+  assert.ok(before);
+  assert.equal(before.baseType, 'general');
+  const { updatedAt } = before;
+  const payload = withDefaultElements(before, [
+    ...before.layouts.default.elements,
+    userElement('usr-sermon-flyer-shape'),
+  ]);
+
+  const updated = updateArtifactTemplate(db, 'sermon-flyer', payload, updatedAt);
+  assert.equal(
+    updated.layouts.default.elements.length,
+    before.layouts.default.elements.length + 1
+  );
+  assert.ok(
+    updated.layouts.default.elements.some((e) => e.id === 'usr-sermon-flyer-shape')
+  );
 });
 
 test('stale updatedAt on a valid element add still returns 409 path', () => {

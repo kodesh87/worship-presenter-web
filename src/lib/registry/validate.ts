@@ -1,5 +1,5 @@
 import {
-  ARTIFACT_BASE_TYPES,
+  ARTIFACT_ENTRY_KEYS,
   type ArtifactBaseType,
   type ArtifactLayout,
   type ArtifactTemplate,
@@ -354,61 +354,11 @@ function enforceBaseTypeRules(template: ArtifactTemplate) {
   const hasText = placeholders.some(
     (p) => p.type === 'text' || p.type === 'text[]'
   );
-  const hasImage = placeholders.some(
-    (p) => p.type === 'image' || p.type === 'image[]'
-  );
 
   switch (baseType) {
     case 'general':
       if (!layouts.default) {
         throw new RegistryValidationError('General templates require layouts.default');
-      }
-      if (placeholders.length > 0) {
-        throw new RegistryValidationError('General templates cannot have placeholders');
-      }
-      validateLayoutElements(layouts.default, placeholders, 'layouts.default');
-      break;
-    case 'text-placeholder':
-      if (!layouts.default) {
-        throw new RegistryValidationError('TextPlaceholder requires layouts.default');
-      }
-      if (!hasText) {
-        throw new RegistryValidationError('TextPlaceholder requires text placeholders');
-      }
-      validateLayoutElements(layouts.default, placeholders, 'layouts.default');
-      break;
-    case 'fullscreen-image':
-      if (!layouts.default) {
-        throw new RegistryValidationError('FullScreenImage requires layouts.default');
-      }
-      if (
-        placeholders.length !== 1 ||
-        placeholders[0].type !== 'image' ||
-        !placeholders[0].required
-      ) {
-        throw new RegistryValidationError(
-          'FullScreenImage requires one required image placeholder'
-        );
-      }
-      validateLayoutElements(layouts.default, placeholders, 'layouts.default');
-      break;
-    case 'image-placeholder':
-      if (!layouts.default) {
-        throw new RegistryValidationError('ImagePlaceholder requires layouts.default');
-      }
-      if (!hasImage) {
-        throw new RegistryValidationError('ImagePlaceholder requires image placeholders');
-      }
-      validateLayoutElements(layouts.default, placeholders, 'layouts.default');
-      break;
-    case 'mix-placeholder':
-      if (!layouts.default) {
-        throw new RegistryValidationError('MixPlaceholder requires layouts.default');
-      }
-      if (!hasText || !hasImage) {
-        throw new RegistryValidationError(
-          'MixPlaceholder requires at least one text and one image placeholder'
-        );
       }
       validateLayoutElements(layouts.default, placeholders, 'layouts.default');
       break;
@@ -463,7 +413,7 @@ export function validateArtifactTemplate(raw: unknown): ArtifactTemplate {
   const baseType = obj.baseType;
   if (
     typeof baseType !== 'string' ||
-    !(ARTIFACT_BASE_TYPES as readonly string[]).includes(baseType)
+    !(ARTIFACT_ENTRY_KEYS as readonly string[]).includes(baseType)
   ) {
     throw new RegistryValidationError('template.baseType is invalid');
   }

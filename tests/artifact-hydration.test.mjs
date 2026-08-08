@@ -60,7 +60,7 @@ test('fixed content and background hydrate; absent optional date is omitted', ()
 
   assert.equal(instance.runtimeVersion, ARTIFACT_RUNTIME_VERSION);
   assert.equal(instance.templateId, 'welcome');
-  assert.equal(instance.baseType, 'text-placeholder');
+  assert.equal(instance.baseType, 'general');
   assert.equal(instance.layoutKey, 'default');
   assert.equal(instance.layout.aspectRatio, '16:9');
   assert.equal(instance.layout.backgroundImage, '/assets/welcome-bg.png');
@@ -124,7 +124,7 @@ test('required-with-default placeholders fall back to the seed default', () => {
   const text = instance.layout.elements.find((e) => e.placeholderKey === 'text');
   assert.equal(reference.text, 'John 4:23');
   assert.match(text.text, /true worshipers/);
-  assert.equal(instance.baseType, 'text-placeholder');
+  assert.equal(instance.baseType, 'general');
 });
 
 test('optional placeholder absent omits the element', () => {
@@ -184,7 +184,7 @@ test('text[] joins on newline and empty string counts as supplied', () => {
     schemaVersion: 1,
     id: 'synthetic-lines',
     label: 'Synthetic',
-    baseType: 'text-placeholder',
+    baseType: 'general',
     placeholders: [
       { key: 'lines', type: 'text[]', required: true },
       { key: 'note', type: 'text', required: true, defaultValue: 'fallback' },
@@ -434,7 +434,7 @@ test('theme verse default comes from the registry, weekly value overrides it', (
   assert.equal(fallback.subtitle, 'John 4:23');
   assert.match(fallback.body, /true worshipers/);
   assert.equal(fallback.artifact.templateId, 'bible-verse-contemplation');
-  assert.equal(fallback.artifact.baseType, 'text-placeholder');
+  assert.equal(fallback.artifact.baseType, 'general');
 
   const weekly = parseRundown(sample);
   weekly.themeVerse = { reference: 'Ps 23:1', text: 'The Lord is my shepherd.' };

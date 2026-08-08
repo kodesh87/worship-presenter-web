@@ -15,9 +15,13 @@ Presenter / slideshow / PPTX are **playback** surfaces.
 
 `AD-19` makes every cross-boundary key a **server-owned value**: the row's **kind**, its **SongSet slot identity**, and every **Placeholder Catalog key**. These are set when the row is created and no authoring surface exposes them for editing. The recognized entry set is **closed** — `general`, the four `songset-*` slot identities, `announcement`: six keys over three kinds, and no write path admits a seventh.
 
-Why it is a hard boundary and not a UI preference: the slot identity **is** the handle the worship-service settings form binds a hymnal number to. A retype control lets one row become `songset-ds-open` while another already holds it, and the binding that the whole four-slot scheme depends on stops having one answer. Adding a SongSet row therefore means **claiming one of the four slot identities no row currently holds** — a fifth slot is a code-plus-tests change, never administrator configuration.
+Why it is a hard boundary and not a UI preference: the slot identity **is** the handle the worship-service settings form binds a hymnal number to. A retype control lets one row become `songset-ds-open` while another already holds it, and the binding that the whole four-slot scheme depends on stops having one answer. Adding a SongSet row therefore means **claiming one of the four slot identities not currently in the order** — a fifth slot is a code-plus-tests change, never administrator configuration.
 
-Deleting a slot row is allowed and is not an error: the slot simply does not appear, because the administrator removed that song from the order, and the entered hymnal number survives in the service's own data (`AD-19`, `AD-16`).
+**The predefined set is not the order, and only the order is the administrator's** (owner, 2026-08-07). The special kinds the system offers — the four `songset-*` identities and `announcement` — are **permanently available**; nothing an administrator does removes anything from that set, and `delete` on a row means **removal from the order**, nothing more. What differs per kind is only the membership cap: a `songset-*` identity sits in the order **at most once** and may be **absent** (a valid configuration, not an error); `announcement` may appear **more than once** and has no cap. A removed row is re-addable by the administrator — never a developer ticket.
+
+**Not editable is not the same as not shown.** `AD-19` bars *editing*, never display, and the two decisions taken on it point opposite ways on purpose: the row's **kind** appears as its list chip, and the row's **slot** is stated read-only on the bounded configuration surface, both phrased in worship vocabulary (`EXPERIENCE.md` → *Row display*, 2026-07-31). The raw `songset-*` key reaches no human surface. The slot statement is required precisely *because* the label is renameable and the four SongSet rows share one chip — without it a rename leaves no screen saying which song the row feeds.
+
+Removing a slot row is allowed and is not an error: the slot simply does not appear, because the administrator took that song out of the order, and the entered hymnal number survives in the service's own data (`AD-19`, `AD-16`).
 
 ## Answer: where do I change "Bible Talk Sequence"?
 
@@ -36,7 +40,9 @@ Fixed chrome text that is **not** a placeholder (baked General copy on the canva
 - **Two background images** — one for the row's **title** layout, one for its **lyric** layout, which verse and refrain **share**. There is no third layout and no third background.
 - **Font style** and **font size**.
 
-Nothing else. Layout composition itself is developer-owned seed data and is not exposed here; it stays registry data hydrated into the plan (`AD-11`, `AD-12`). The row's placeholder set and its slot binding are server-defined — nothing may be added, removed, or rebound, and the validator refuses it on every write path (`AD-15`).
+Nothing else is **configurable** — and that is a rule about the surface's **controls**, not its content. One thing the surface must nonetheless **display**: the row's slot, read-only, in worship vocabulary (`EXPERIENCE.md` → *Row display*). A read-only statement widens no authoring authority; read as a content rule, "nothing else" would ship Story 20.7 without it — the same trap that once left this surface with no font controls.
+
+Layout composition itself is developer-owned seed data and is not exposed here; it stays registry data hydrated into the plan (`AD-11`, `AD-12`). The row's placeholder set and its slot binding are server-defined — nothing may be added, removed, or rebound, and the validator refuses it on every write path (`AD-15`).
 
 **Where those values live matters to anyone building this surface.** Administrator-configured values persist as an **override record keyed by row and field, outside the layout JSON**, re-applied over the developer layout at hydration. The layout stays developer-owned in full and a migration may replace it wholesale; the override record stays administrator-owned in full and no migration, Reset, or re-seed writes it. A bounded surface that writes *into* the layout is refused on every write path — and would silently lose every background and font size the administrator chose the first time a layout migration ran.
 

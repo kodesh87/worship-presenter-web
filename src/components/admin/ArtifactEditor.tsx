@@ -7,7 +7,7 @@ import type {
   CanvasElement,
   StoredArtifactTemplate,
 } from '@/lib/registry/types';
-import { READ_ONLY_BASE_TYPES } from '@/lib/registry/types';
+import { isCanvasAuthorable, kindChipLabel } from '@/lib/registry/types';
 import {
   beforeUnloadGuard,
   CANVAS_MUTATION_EVENTS,
@@ -110,7 +110,7 @@ function normalizeFontSize(value: unknown): number {
 }
 
 function getEditableLayout(template: StoredArtifactTemplate): ArtifactLayout | null {
-  if (READ_ONLY_BASE_TYPES.has(template.baseType)) return null;
+  if (!isCanvasAuthorable(template.baseType)) return null;
   return template.layouts.default ?? null;
 }
 
@@ -839,7 +839,10 @@ export default function ArtifactEditor() {
     }
   };
 
-  const isEditable = template ? !READ_ONLY_BASE_TYPES.has(template.baseType) : false;
+  const isEditable = template ? isCanvasAuthorable(template.baseType) : false;
+
+  const kindChipClass =
+    'inline-flex rounded-md border border-border bg-muted px-1.5 py-0.5 text-xs font-medium text-muted-foreground';
 
   // The browser-level exits: closing the tab, reloading, typing a new URL. The
   // listener is the registration itself — armed only while an editable canvas
@@ -930,9 +933,9 @@ export default function ArtifactEditor() {
                 }`}
               >
                 <div className="font-medium">{item.label}</div>
-                <div className="text-xs opacity-80">
-                  {item.baseType}
-                  {!item.editable ? ' · read-only' : ''}
+                <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs opacity-80">
+                  <span className={kindChipClass}>[{kindChipLabel(item.baseType)}]</span>
+                  {!item.editable ? <span>read-only</span> : null}
                 </div>
               </button>
             </li>
@@ -948,7 +951,9 @@ export default function ArtifactEditor() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg font-semibold">{template.label}</h2>
-                <p className="text-sm text-muted-foreground">{template.baseType}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  <span className={kindChipClass}>[{kindChipLabel(template.baseType)}]</span>
+                </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {isDirty && isEditable ? (
@@ -993,8 +998,9 @@ export default function ArtifactEditor() {
 
             {!isEditable ? (
               <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-6 text-sm text-muted-foreground">
-                This template is read-only ({template.baseType}). Its layout
-                cannot be edited and elements cannot be added or deleted; use
+                This template is read-only (
+                <span className={kindChipClass}>[{kindChipLabel(template.baseType)}]</span>
+                ). Its layout cannot be edited and elements cannot be added or deleted; use
                 Reset to restore the shipped seed.
               </div>
             ) : (

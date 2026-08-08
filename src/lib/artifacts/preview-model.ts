@@ -13,7 +13,7 @@
  * `role`) instead of as a node of its own, so nesting the UI can never reorder
  * or renumber slides.
  */
-import type { ArtifactBaseType } from '@/lib/registry/types';
+import { kindChipLabel, type ArtifactBaseType } from '@/lib/registry/types';
 import {
   flattenArtifactPlan,
   type ArtifactInstance,
@@ -41,46 +41,6 @@ export type PreviewBadgeTone =
   | 'image'
   | 'default';
 
-/**
- * Template id → operator vocabulary. Ids not listed fall back to a humanized
- * form of the template label, so a newly seeded template still reads sensibly.
- */
-const TEMPLATE_LABELS: Readonly<Record<string, string>> = {
-  welcome: 'Welcome',
-  'welcome-repeat': 'Welcome',
-  'bible-talk-sequence': 'Bible Talk Sequence',
-  'prayer-partners': 'Prayer Partners',
-  'bt-opening-song-cue': 'Opening Song',
-  'ds-opening-song-cue': 'Opening Song',
-  'bt-closing-song-cue': 'Closing Song',
-  'ds-closing-song-cue': 'Closing Song',
-  'verse-reading': 'Verse Reading',
-  'opening-prayer': 'Opening Prayer',
-  'bible-talk': 'Bible Talk',
-  'closing-prayer': 'Closing Prayer',
-  'closing-prayer-ds': 'Closing Prayer',
-  'break-time': 'Break Time',
-  'ds-sequence': 'Divine Service Sequence',
-  'bible-verse-contemplation': 'Theme Verse',
-  'intercessory-prayer': 'Intercessory Prayer',
-  'intercessory-671-lyric-1': 'Intercessory Song (#671)',
-  'intercessory-prayer-during': 'Intercessory Prayer',
-  'intercessory-684-lyric-1': 'Intercessory Song (#684)',
-  'special-song': 'Special Song',
-  sermon: 'Sermon',
-  'sermon-flyer': 'Sermon Flyer',
-  'hope-lyric-1': 'We Have This Hope',
-  'hope-lyric-2': 'We Have This Hope',
-  'announcements-header': 'Announcements',
-  'announcement-flyer': 'Announcement Flyer',
-  'offering-tithe': 'Offering & Tithe',
-  'midweek-prayer': 'Midweek Prayer',
-  'fellowship-etiquette': 'Fellowship Etiquette',
-  contact: 'Contact',
-  'family-youth': 'Family & Youth',
-  'thank-you': 'Thank You',
-};
-
 /** SongSet reuses one template across three layouts; the layout names the slide. */
 const SONG_SET_LABELS: Readonly<Record<string, string>> = {
   title: 'Song Title',
@@ -94,10 +54,12 @@ const SCRIPTURE_TEMPLATE_IDS: ReadonlySet<string> = new Set([
   'bible-verse-contemplation',
 ]);
 
-/** Base types that put a picture on screen rather than words. */
-const IMAGE_BASE_TYPES: ReadonlySet<ArtifactBaseType> = new Set([
-  'fullscreen-image',
-  'announcement',
+/**
+ * Templates whose slide is primarily a picture. Story 20.5 may replace this
+ * id-list with a Placeholder Catalog key check.
+ */
+const IMAGE_TEMPLATE_IDS: ReadonlySet<string> = new Set([
+  'sermon-flyer',
 ]);
 
 /** `ClosingPrayer_DS` → `Closing Prayer DS`; `family-youth` → `Family Youth`. */
@@ -117,16 +79,17 @@ function humanize(raw: string): string {
 
 /** The label an operator should see for one hydrated slide. */
 export function previewLabel(instance: ArtifactInstance): string {
-  // Story 20.1 (AC-6) split the shared `song-set` template into five rows —
-  // the ds-middle row plus four transitional per-position clones — so this
-  // checks `baseType` rather than one hardcoded id; every SongSet template
-  // still speaks by layout key ("Song Title" / "Song Lyric"), never by id.
-  if (instance.baseType === 'song-set') {
+  // Non-throwing on purpose: this is reached from the Presenter render and from
+  // /api/services/preview, and an unrecognised key must fall through to the
+  // label rather than 500 the preview or crash the page.
+  if (instance.baseType && kindChipLabel(instance.baseType) === 'song-set') {
     return SONG_SET_LABELS[instance.layoutKey] ?? SONG_SET_LABELS.default;
   }
-  const mapped = TEMPLATE_LABELS[instance.templateId];
-  if (mapped) return mapped;
-  return humanize(instance.label || instance.templateId);
+  const trimmed = instance.label?.trim();
+  if (trimmed) {
+    return trimmed;
+  }
+  return humanize(instance.templateId);
 }
 
 /**
@@ -137,7 +100,16 @@ export function previewBadgeTone(entry: PreviewEntry): PreviewBadgeTone {
   if (entry.role === 'title') return 'song-title';
   if (entry.role === 'lyric') return 'song-lyric';
   if (SCRIPTURE_TEMPLATE_IDS.has(entry.templateId)) return 'scripture';
-  if (IMAGE_BASE_TYPES.has(entry.baseType)) return 'image';
+  // `kindChipLabel`, not `kindOf`: this runs inside SlidePreviewList's render and
+  // there is no ErrorBoundary in src/, so an unrecognised key must degrade to a
+  // tone rather than take the whole preview list down. The old `IMAGE_BASE_TYPES`
+  // lookup could not throw; this keeps that property.
+  if (
+    kindChipLabel(entry.baseType) === 'announcement' ||
+    IMAGE_TEMPLATE_IDS.has(entry.templateId)
+  ) {
+    return 'image';
+  }
   return 'default';
 }
 

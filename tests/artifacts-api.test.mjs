@@ -78,3 +78,25 @@ test('invalid template payload is rejected before persistence', () => {
   const unchanged = getArtifactTemplate(db, 'welcome');
   assert.equal(unchanged?.updatedAt, updatedAt);
 });
+
+test('PUT refuses to change a row kind against its persisted state', () => {
+  const db = getDb();
+  const welcome = getArtifactTemplate(db, 'welcome');
+  assert.ok(welcome);
+  const { updatedAt, ...body } = welcome;
+  assert.throws(
+    () =>
+      updateArtifactTemplate(
+        db,
+        'welcome',
+        { ...body, baseType: 'song-set' },
+        updatedAt
+      ),
+    (err) =>
+      err instanceof RegistryValidationError &&
+      err.message === 'baseType cannot be changed'
+  );
+  const after = getArtifactTemplate(db, 'welcome');
+  assert.equal(after?.baseType, 'general');
+  assert.equal(after?.updatedAt, welcome.updatedAt);
+});
