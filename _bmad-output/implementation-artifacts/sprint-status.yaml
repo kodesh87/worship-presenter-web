@@ -64,7 +64,22 @@
 #   - n/a: Not applicable — the epic was retired, so there is nothing to retro
 
 generated: 2026-07-10
-last_updated: 2026-08-07 # Story 20.1 done — owner close after PR #37 merged (bc487b3), both checks
+last_updated: 2026-08-08 # Correct Course (sprint-change-proposal-2026-08-08.md) gave NFR-3 its first
+#   owner. Story 20.1's authored seed shipped four liturgical lyric rows whose readability nothing
+#   checks: the PPTX fit estimator pins contentWidth: 0 and counts only authored newlines, so
+#   wrapping never forces a shrink there, while the web path measures glyphs and does. Live Preview
+#   — the surface PRD §8 names as the Admin's eye — IS the web renderer, so it cannot reveal a
+#   divergence in the PPTX that NFR-1 makes load-bearing. TWO STORIES ADDED, both backlog:
+#   20-9-readability-guarantee and 20-10-font-set-is-closed (proposes AD-30). PRD amended at three
+#   sites for NFR-3 and one for NFR-7; both epics.md NFR rows rewritten; the spine's Deferred bullet
+#   corrected — it carried TWO DEAD CITATIONS (prd.md:563 and epics.md:52 are blank lines) and
+#   claimed a hardcoded fontSize where a shrink-to-fit policy exists.
+#   THE OWNER'S 2026-07-30 MANUAL-AUTHORING DECISION IS NOT REOPENED — what changed is that the
+#   mechanism it named is now split by path, because no Admin authors the shipped seed.
+#   ONE THING THIS DOES NOT COVER, recorded rather than hidden: no PPTX was generated and opened in
+#   PowerPoint. The finding rests on the source (contentWidth: 0 is structural) and on the code's own
+#   contradictory comments, render-model.ts:250 vs pptx.ts:236. Story 20.9 AC-3 settles which is true.
+#   PRIOR ENTRY # 2026-08-07 Story 20.1 done — owner close after PR #37 merged (bc487b3), both checks
 #   green; epic-20 stays in-progress and 20-2-three-slide-kinds is the next unit. The close carries
 #   one stated gap (final post-fix state read only by the coordinator) and one forward debt (AD-20
 #   still open, owned by Story 20.7) — both in its row.
@@ -580,7 +595,9 @@ development_status:
   # removes or migrates these five rows with the closed set and unclaimed-hymn behaviour. Until
   # then every slide EXCEPT those five SongSet groups originates from an ordered registry entry,
   # and no [TARGET] tag may be flipped on that basis.
-  epic-20: in-progress # 2026-08-07 first story contexted; 20.1 done, 20.2 is the direct successor
+  epic-20: in-progress # 2026-08-08 two stories added by Correct Course (20.9, 20.10) — the epic now
+  #   carries NFR-3's owner as well as its capabilities. 20.2 is STILL the next unit to build; neither
+  #   new story reorders it. PRIOR ENTRY # 2026-08-07 first story contexted; 20.1 done
   20-1-ordered-registry: done # 2026-08-07 CLOSED BY THE OWNER. Merged as PR #37 (merge commit
   #   bc487b3), both checks green. All 13 ACs carry a recorded disposition and none is open.
   #   ONE THING THE CLOSE DOES NOT COVER, recorded because the owner closed with it stated rather
@@ -610,13 +627,49 @@ development_status:
   #   when it lands (the counter's unassigned owner, seed_hash becoming work without a job, the
   #   "no ordering column" surface, and the AD-20 cost of the three liturgical songs) and
   #   repairing them, including any tag flip, is a bmad-architecture Update run.
-  20-2-three-slide-kinds: backlog
+  20-2-three-slide-kinds: in-progress # 2026-08-08 contexted, validated (3 rounds, 0 blockers) and
+  #   implemented; the two-reviewer panel ran THREE times across TWO fix rounds, every finding
+  #   adjudicated against the cited lines rather than by vote. Seven base types collapse
+  #   to three kinds; the 38-row seed is re-authored onto them and every row label rewritten into the
+  #   operator vocabulary that `TEMPLATE_LABELS` held, because that map was consulted BEFORE the row's
+  #   own label for 33 of 38 ids and made CAP-5's success clause structurally unreachable. Deleting it
+  #   and re-authoring the labels ship together or every Presenter badge regresses.
+  #   TWO FINDINGS DECIDED THE STORY AND NEITHER WAS IN THE ARTIFACTS: `TEMPLATE_LABELS` above, and
+  #   that all eight rows moving onto `general` declare placeholders while the General case of
+  #   `enforceBaseTypeRules` forbade exactly that (`validate.ts:366-368` AT THE 553a4c5 BASELINE —
+  #   that branch is deleted by this story, so the citation is historical, not current) — a naive
+  #   collapse throws inside the first-boot bootstrap.
+  #   GATE — ARCHITECTURE-SPINE.md was NOT edited from inside this change set and no [TARGET] tag was
+  #   flipped. A `bmad-architecture` Update run is OWED: AC-4 answers a schema question the spine's own
+  #   Deferred section delegates to this story by number, and eight spine statements go stale — see the
+  #   story's Gate for the enumerated list.
+  #   DOC DEFECT RAISED, NOT FIXED HERE: `epics.md:432` maps `fullscreen-image → Announcement`, which
+  #   contradicts AD-19, `slide-kinds.md`, `placeholder-catalog.md` and CAP-4. The code settles it —
+  #   `sermon-flyer` is filled from `ctx.sermonGraphic` (`slide-plan.ts:551-560`), not `ctx.flyers`
+  #   (`:698-706`). The story implements the SPEC (`general`) and leaves `epics.md` to its owner,
+  #   because that file carries uncommitted Correct Course edits.
   20-3-add-delete-rename-reorder: backlog
   20-4-general-canvas-authoring: backlog
   20-5-placeholder-catalog: backlog
   20-6-announcement-expands: backlog
   20-7-songset-slots: backlog
   20-8-service-clone-and-sync: backlog
+  20-9-readability-guarantee: backlog # 2026-08-08 registered by Correct Course as NFR-3's FIRST
+  #   owner — epics.md carried "None" for this NFR from 2026-07-29 until today. AC-1 (build-time fit
+  #   assertion over the shipped seed) is NOT gated on 20.10: the seed carries zero fontFamily
+  #   overrides, so every element is Arial and the check runs today. AC-2 (the two renderers must
+  #   agree) IS gated, or must be scoped in writing to the closed set as it then stands. Measured
+  #   defect: estimateTextFitScale pins contentWidth: 0 and counts only authored newlines, so
+  #   wrapping can never force a PPTX shrink — intercessory-671-lyric-1 (305 chars, zero line
+  #   breaks) bakes scale 1.0 against a web-measured ~0.77. AC-3 resolves two code comments that
+  #   contradict each other about whether PowerPoint's autofit covers the remainder.
+  20-10-font-set-is-closed: backlog # 2026-08-08 registered by Correct Course from the owner's
+  #   decision the same day: several fonts eventually, from a list fixed in code; target machines get
+  #   them installed; an Admin cannot add one. CARRIES A GATE of the same shape Story 20.1 had — it
+  #   fixes what data may exist, so ARCHITECTURE-SPINE.md must NOT be edited from inside its change
+  #   set; AD-30 is written by a bmad-architecture Update run. Ships with one member (Arial). Today
+  #   the rule is held ONLY by ArtifactEditor exposing no font control; validate.ts:135-140 accepts
+  #   any non-empty string, while its neighbour aspectRatio is a literal that throws.
   epic-20-retrospective: optional
 
   # --- Epic 21: Scripture is on hand, in the translation being read ---

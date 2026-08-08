@@ -6,7 +6,7 @@ import type {
   ArtifactTemplateSummary,
   StoredArtifactTemplate,
 } from './types';
-import { READ_ONLY_BASE_TYPES } from './types';
+import { isCanvasAuthorable } from './types';
 import { RegistryValidationError, validateArtifactTemplate } from './validate';
 import { getSeedTemplateById } from './seed';
 
@@ -68,7 +68,7 @@ export function listArtifactSummaries(
     label: row.label,
     baseType: row.base_type as ArtifactBaseType,
     updatedAt: row.updated_at,
-    editable: !READ_ONLY_BASE_TYPES.has(row.base_type as ArtifactBaseType),
+    editable: isCanvasAuthorable(row.base_type as ArtifactBaseType),
   }));
 }
 
@@ -223,15 +223,33 @@ export function updateArtifactTemplate(
     markAsSeeded?: boolean;
   }
 ): StoredArtifactTemplate {
-  const existing = getArtifactTemplate(db, id);
-  if (!existing) {
+  const row = db
+    .prepare(
+      `SELECT id, label, base_type, payload, updated_at
+       FROM artifact_templates WHERE id = ?`
+    )
+    .get(id) as Row | undefined;
+  if (!row) {
     throw new RegistryNotFoundError(id);
   }
+  const existing = rowToStored(row);
+  const persistedBaseType = row.base_type as ArtifactBaseType;
   if (existing.updatedAt !== expectedUpdatedAt) {
     throw new RegistryStaleError();
   }
-  if (!options?.allowReadOnly && READ_ONLY_BASE_TYPES.has(existing.baseType)) {
+  if (!options?.allowReadOnly && !isCanvasAuthorable(persistedBaseType)) {
     throw new RegistryValidationError('Template base type is read-only');
+  }
+
+  if (
+    !options?.allowReadOnly &&
+    payload &&
+    typeof payload === 'object' &&
+    'baseType' in payload &&
+    typeof (payload as { baseType?: unknown }).baseType === 'string' &&
+    (payload as { baseType: string }).baseType !== persistedBaseType
+  ) {
+    throw new RegistryValidationError('baseType cannot be changed');
   }
 
   const validated = validateArtifactTemplate(payload);

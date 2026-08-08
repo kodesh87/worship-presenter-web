@@ -3,7 +3,7 @@
     "schemaVersion": 1,
     "id": "welcome",
     "label": "Welcome",
-    "baseType": "text-placeholder",
+    "baseType": "general",
     "placeholders": [
       {
         "key": "date",
@@ -72,7 +72,7 @@
   {
     "schemaVersion": 1,
     "id": "bible-talk-sequence",
-    "label": "BibleTalkSequence",
+    "label": "Bible Talk Sequence",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -120,7 +120,7 @@
   {
     "schemaVersion": 1,
     "id": "prayer-partners",
-    "label": "PrayerPartners",
+    "label": "Prayer Partners",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -139,7 +139,7 @@
             "zIndex": 1,
             "content": "Prayer \nPartners",
             "style": {
-              "fontSize": 70.0,
+              "fontSize": 70,
               "fontColor": "#FFFFFF",
               "textAlign": "left"
             }
@@ -152,7 +152,7 @@
   {
     "schemaVersion": 1,
     "id": "bt-opening-song-cue",
-    "label": "OpeningSongCue_BT",
+    "label": "Opening Song",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -199,7 +199,7 @@
   {
     "schemaVersion": 1,
     "id": "bt-opening-song",
-    "label": "SongSet_BTOpening",
+    "label": "Bible Talk Opening Song",
     "baseType": "song-set",
     "placeholders": [
       {
@@ -279,7 +279,7 @@
             "zIndex": 1,
             "placeholderKey": "songTitle",
             "style": {
-              "fontSize": 40.0,
+              "fontSize": 40,
               "fontColor": "#FFFFFF",
               "textAlign": "center"
             }
@@ -329,8 +329,8 @@
   {
     "schemaVersion": 1,
     "id": "verse-reading",
-    "label": "VerseReading",
-    "baseType": "text-placeholder",
+    "label": "Verse Reading",
+    "baseType": "general",
     "placeholders": [
       {
         "key": "reference",
@@ -401,7 +401,7 @@
   {
     "schemaVersion": 1,
     "id": "opening-prayer",
-    "label": "OpeningPrayer",
+    "label": "Opening Prayer",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -433,7 +433,7 @@
   {
     "schemaVersion": 1,
     "id": "bible-talk",
-    "label": "BibleTalk",
+    "label": "Bible Talk",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -481,7 +481,7 @@
   {
     "schemaVersion": 1,
     "id": "bt-closing-song-cue",
-    "label": "ClosingSongCue_BT",
+    "label": "Closing Song",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -528,7 +528,7 @@
   {
     "schemaVersion": 1,
     "id": "bt-closing-song",
-    "label": "SongSet_BTClosing",
+    "label": "Bible Talk Closing Song",
     "baseType": "song-set",
     "placeholders": [
       {
@@ -608,7 +608,7 @@
             "zIndex": 1,
             "placeholderKey": "songTitle",
             "style": {
-              "fontSize": 40.0,
+              "fontSize": 40,
               "fontColor": "#FFFFFF",
               "textAlign": "center"
             }
@@ -658,7 +658,7 @@
   {
     "schemaVersion": 1,
     "id": "closing-prayer",
-    "label": "ClosingPrayer_BT",
+    "label": "Closing Prayer",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -690,7 +690,7 @@
   {
     "schemaVersion": 1,
     "id": "break-time",
-    "label": "BreakTime",
+    "label": "Break Time",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -709,7 +709,7 @@
             "zIndex": 1,
             "content": "Break Time",
             "style": {
-              "fontSize": 80.0,
+              "fontSize": 80,
               "fontColor": "#FFFFFF",
               "textAlign": "center"
             }
@@ -741,7 +741,7 @@
             "zIndex": 1,
             "content": "Bank Mandiri \n12345 67 8901 23 \nGereja Masehi Advent Hari Ketujuh BIC",
             "style": {
-              "fontSize": 20.0,
+              "fontSize": 20,
               "fontColor": "#FFFFFF",
               "textAlign": "left"
             }
@@ -754,7 +754,7 @@
   {
     "schemaVersion": 1,
     "id": "ds-sequence",
-    "label": "DivineServiceSequence",
+    "label": "Divine Service Sequence",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -802,8 +802,8 @@
   {
     "schemaVersion": 1,
     "id": "bible-verse-contemplation",
-    "label": "BibleVerseContemplation",
-    "baseType": "text-placeholder",
+    "label": "Theme Verse",
+    "baseType": "general",
     "placeholders": [
       {
         "key": "reference",
@@ -863,7 +863,7 @@
   {
     "schemaVersion": 1,
     "id": "ds-opening-song-cue",
-    "label": "OpeningSongCue_DS",
+    "label": "Opening Song",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -910,7 +910,7 @@
   {
     "schemaVersion": 1,
     "id": "ds-opening-song",
-    "label": "SongSet_DSOpening",
+    "label": "Divine Service Opening Song",
     "baseType": "song-set",
     "placeholders": [
       {
@@ -990,7 +990,7 @@
             "zIndex": 1,
             "placeholderKey": "songTitle",
             "style": {
-              "fontSize": 40.0,
+              "fontSize": 40,
               "fontColor": "#FFFFFF",
               "textAlign": "center"
             }
@@ -1040,7 +1040,7 @@
   {
     "schemaVersion": 1,
     "id": "intercessory-prayer",
-    "label": "IntercessoryPrayer",
+    "label": "Intercessory Prayer",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -1072,7 +1072,7 @@
   {
     "schemaVersion": 1,
     "id": "intercessory-671-lyric-1",
-    "label": "Intercessory671Lyric1",
+    "label": "Intercessory Song (#671)",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -1103,7 +1103,7 @@
   {
     "schemaVersion": 1,
     "id": "intercessory-prayer-during",
-    "label": "IntercessoryDuring",
+    "label": "Intercessory Prayer",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -1135,7 +1135,7 @@
   {
     "schemaVersion": 1,
     "id": "intercessory-684-lyric-1",
-    "label": "Intercessory684Lyric1",
+    "label": "Intercessory Song (#684)",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -1166,7 +1166,7 @@
   {
     "schemaVersion": 1,
     "id": "song-set",
-    "label": "SongSet",
+    "label": "Divine Service Song Set",
     "baseType": "song-set",
     "placeholders": [
       {
@@ -1246,7 +1246,7 @@
             "zIndex": 1,
             "placeholderKey": "songTitle",
             "style": {
-              "fontSize": 40.0,
+              "fontSize": 40,
               "fontColor": "#FFFFFF",
               "textAlign": "center"
             }
@@ -1296,8 +1296,8 @@
   {
     "schemaVersion": 1,
     "id": "special-song",
-    "label": "SpecialSong",
-    "baseType": "text-placeholder",
+    "label": "Special Song",
+    "baseType": "general",
     "placeholders": [
       {
         "key": "performer",
@@ -1351,7 +1351,7 @@
     "schemaVersion": 1,
     "id": "sermon",
     "label": "Sermon",
-    "baseType": "text-placeholder",
+    "baseType": "general",
     "placeholders": [
       {
         "key": "title",
@@ -1409,8 +1409,8 @@
   {
     "schemaVersion": 1,
     "id": "sermon-flyer",
-    "label": "SermonFlyer",
-    "baseType": "fullscreen-image",
+    "label": "Sermon Flyer",
+    "baseType": "general",
     "placeholders": [
       {
         "key": "imageUrl",
@@ -1444,7 +1444,7 @@
   {
     "schemaVersion": 1,
     "id": "ds-closing-song-cue",
-    "label": "ClosingSongCue_DS",
+    "label": "Closing Song",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -1491,7 +1491,7 @@
   {
     "schemaVersion": 1,
     "id": "ds-closing-song",
-    "label": "SongSet_DSClosing",
+    "label": "Divine Service Closing Song",
     "baseType": "song-set",
     "placeholders": [
       {
@@ -1571,7 +1571,7 @@
             "zIndex": 1,
             "placeholderKey": "songTitle",
             "style": {
-              "fontSize": 40.0,
+              "fontSize": 40,
               "fontColor": "#FFFFFF",
               "textAlign": "center"
             }
@@ -1621,8 +1621,8 @@
   {
     "schemaVersion": 1,
     "id": "closing-prayer-ds",
-    "label": "ClosingPrayer_DS",
-    "baseType": "text-placeholder",
+    "label": "Closing Prayer",
+    "baseType": "general",
     "placeholders": [
       {
         "key": "person",
@@ -1673,7 +1673,7 @@
   {
     "schemaVersion": 1,
     "id": "hope-lyric-1",
-    "label": "WeHaveThisHopeLyric1",
+    "label": "We Have This Hope",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -1704,7 +1704,7 @@
   {
     "schemaVersion": 1,
     "id": "hope-lyric-2",
-    "label": "WeHaveThisHopeLyric2",
+    "label": "We Have This Hope",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -1735,7 +1735,7 @@
   {
     "schemaVersion": 1,
     "id": "announcements-header",
-    "label": "AnnouncementsHeader",
+    "label": "Announcements",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -1755,7 +1755,7 @@
             "content": "Announcements",
             "style": {
               "fontColor": "#FFFFFF",
-              "fontSize": 64.0,
+              "fontSize": 64,
               "textAlign": "center"
             }
           },
@@ -1771,7 +1771,7 @@
             "content": "Part C",
             "style": {
               "fontColor": "#FFFFFF",
-              "fontSize": 32.0,
+              "fontSize": 32,
               "textAlign": "center"
             }
           }
@@ -1830,7 +1830,7 @@
   {
     "schemaVersion": 1,
     "id": "offering-tithe",
-    "label": "OfferingTithe",
+    "label": "Offering & Tithe",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -1894,7 +1894,7 @@
   {
     "schemaVersion": 1,
     "id": "midweek-prayer",
-    "label": "MidweekPrayer",
+    "label": "Midweek Prayer",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -1915,7 +1915,7 @@
             "content": "Midweek Prayer Meeting",
             "style": {
               "fontColor": "#FFFFFF",
-              "fontSize": 48.0,
+              "fontSize": 48,
               "textAlign": "center"
             }
           },
@@ -1942,7 +1942,7 @@
   {
     "schemaVersion": 1,
     "id": "fellowship-etiquette",
-    "label": "FellowshipEtiquette",
+    "label": "Fellowship Etiquette",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -2004,8 +2004,8 @@
   {
     "schemaVersion": 1,
     "id": "family-youth",
-    "label": "FamilyYouth",
-    "baseType": "mix-placeholder",
+    "label": "Family & Youth",
+    "baseType": "general",
     "placeholders": [
       {
         "key": "familyText",
@@ -2180,7 +2180,7 @@
   {
     "schemaVersion": 1,
     "id": "announcement-flyer",
-    "label": "AnnouncementFlyer",
+    "label": "Announcement Flyer",
     "baseType": "announcement",
     "placeholders": [
       {
@@ -2215,7 +2215,7 @@
   {
     "schemaVersion": 1,
     "id": "thank-you",
-    "label": "ThankYou",
+    "label": "Thank You",
     "baseType": "general",
     "placeholders": [],
     "layouts": {
@@ -2236,7 +2236,7 @@
             "content": "Thank You",
             "style": {
               "fontColor": "#FFFFFF",
-              "fontSize": 64.0,
+              "fontSize": 64,
               "textAlign": "center"
             }
           },
