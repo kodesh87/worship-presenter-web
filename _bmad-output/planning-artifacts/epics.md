@@ -56,11 +56,11 @@ Until 2026-07-29 the PRD presented these as unnumbered prose, so no story or tes
 |-----|-------------|---------------------|
 | NFR-1 | Offline reliability (load-bearing) — a downloaded PPTX presents a full Service with zero network access | Epic 3 + Epic 7 (FR-14) |
 | NFR-2 | Generation performance — full ~68-slide assemble/regenerate within the ≤ 5-min late-change window | Epic 3 + Epic 5 (FR-13) |
-| NFR-3 | Readability — lyric slides never over-full; splitting governed by FR-5 | **None.** No epic and no UX artifact owns "is this readable from the pews?" — see the readiness report F4-6 |
+| NFR-3 | Readability — lyric slides never over-full; splitting governed by FR-5, **except the hand-authored liturgical pages, which leave the splitter and carry their own mechanisms** (PRD §8, §10) | **Epic 20 — Story 20.9** *(registered 2026-08-08 by Correct Course; this row read "None" from 2026-07-29 until then)*. Two obligations now have a named owner: the web and PPTX renderers must lay the same text out the same way — measured 2026-08-08, they do not — and rows the product **ships** pre-authored must be asserted readable at build time, since no Admin stands in their loop. The *"no UX artifact"* half is answered by PRD §8 naming **Live Preview** as the surface, not by a new UX artifact — `EXPERIENCE.md` is unchanged and needs no edit. The readiness report's **F4-6** stands as the record of why this row was empty for ten months, not as a still-open item |
 | NFR-4 | Headless-safe rendering — no interactive PowerPoint; all background paths render | Epic 3 + Epic 6 (Story 6.3) |
 | NFR-5 | Robust parsing — tolerate the real semi-structured format and **fail visibly**, surfacing every unmapped line or image (a general channel, not hymn-only) | Epic 5 (5.1) + Epic 6 (6.6). **Partial:** the general unmapped-input channel has no UX surface (F4-5) |
 | NFR-6 | Access control — all Service data and actions authenticated and Role-gated; no public endpoint exposes member PII | Epic 1 + Epic 6 (6.2, 6.7) via FR-18 |
-| NFR-7 | Font licensing and availability — freely-licensed, headless-safe; embedded when feasible, else a standardized documented font, verified on a **clean** machine | Epic 7 (7-4 deploy note). **Tension:** 7-4 documents Arial, which is not freely licensed — see readiness report M5-4 |
+| NFR-7 | Font licensing and availability — headless-safe; a **closed, code-defined** font set, documented and installed on the presentation machine(s), verified on a **clean** machine. **The embedding branch is closed** *(2026-08-08)*: `pptxgenjs` embeds images but offers no font-embedding mechanism, so "embed when feasible" had an answer and never got one recorded | Epic 7 (7-4 deploy note — owns the documented list) **+ Epic 20 Story 20.10** *(the closed set in the type and validator, registered 2026-08-08)*. Ships with one member: **Arial**, which all 110 registry text elements resolve to, none overriding it. **Tension now stated rather than dangling:** 7-4 documents Arial, which is not freely licensed — but the product embeds no font bytes and only names the face, so *freely-licensed* binds **admission of a new font to the set**, not the shipped default (readiness report M5-4). **NFR-7 is a precondition of NFR-3** — wrapping is fixed by advance widths, so an unknown substituted face makes the readability guarantee lapse **silently** |
 
 ### Architecture Decisions
 
@@ -464,7 +464,48 @@ As an administrator, I want a single Announcement entry that expands to one full
 As an administrator, I want four predefined SongSet slots — Bible Talk open/close, Divine Service open/close — with configurable backgrounds, reorderable, each receiving its hymn number from worship-service settings. No freeform canvas for lyric pages. **The identity question is settled at spine altitude, not here:** `AD-19` makes the slot's own immutable identity the binding key, carried by the type vocabulary, so identity is immutable by construction. What this story owes is the two requirements that make it unambiguous — `base_type` not administrator-editable for a slot-carrying type, at most one row per slot type — and the inert-binding behaviour when a slot row is deleted.
 
 #### Story 20.8: Service Clones the Registry, and Sync Artifact *(backlog)* — CAP-6
-As an operator, I want a service to hold its own snapshot of the registry, and a **Sync Artifact** action to refresh it. Live registry edits must not reach an existing service until Sync. **Still blocked, but on one item rather than two** — `AD-16` was recorded on 2026-07-30, so what remains is the `EXPERIENCE.md` reconciliation above. Two `AD-16` clauses the story must implement rather than re-decide: Sync carries the service's `updated_at` precondition (`AD-6`, which the spine had been silent on — a different decision, not a typo), and Sync is permitted on **any** service including one already presented — because the freeze event is service **creation**, and what a service holds against the registry is its supporting data entry, not a reproducible deck. Announcement membership is deliberately **not** frozen, and a later structural change need not keep an old snapshot renderable. It is last for a reason: every story above defines what gets cloned.
+As an operator, I want a service to hold its own snapshot of the registry, and a **Sync Artifact** action to refresh it. Live registry edits must not reach an existing service until Sync. **Still blocked, but on one item rather than two** — `AD-16` was recorded on 2026-07-30, so what remains is the `EXPERIENCE.md` reconciliation above. Two `AD-16` clauses the story must implement rather than re-decide: Sync carries the service's `updated_at` precondition (`AD-6`, which the spine had been silent on — a different decision, not a typo), and Sync is permitted on **any** service including one already presented — because the freeze event is service **creation**, and what a service holds against the registry is its supporting data entry, not a reproducible deck. Announcement membership is deliberately **not** frozen, and a later structural change need not keep an old snapshot renderable. It is last for a reason: every story above defines what gets cloned. *(Last of the **capability** stories, CAP-1..CAP-8. Stories 20.9 and 20.10 follow as NFR owners and clone nothing — appended 2026-08-08 so this sentence stays true.)*
+
+#### Story 20.9: The Readability Guarantee Is Testable *(backlog)* — **NFR-3**
+
+*Registered by Correct Course 2026-08-08. Carries no CAP: Epic 20's capability list predates it, and this story owns a non-functional requirement rather than a capability.*
+
+As the congregation, I want a lyric slide that fits in Live Preview to also fit in the downloaded PPTX, so that the artifact actually projected on Sabbath is the one that was checked.
+
+**The defect, measured rather than suspected (2026-08-08).** `estimateTextFitScale` (`render-model.ts:253`) pins `contentWidth: 0` and counts only authored `\n`, so **wrapping can never force a shrink on the PPTX side** — structural, not an approximation error. On the shipped seed: `intercessory-671-lyric-1` is 305 characters with zero line breaks in a 920×283 box at `fontSize` 46.67, so the estimator sees one 56 px line and bakes scale **1.0** while the web path measures ≈0.77; `hope-lyric-1` bakes 1.0 against ≈0.87. `hope-lyric-2` agrees at 0.84/0.83 — the estimator is correct **whenever the author typed the breaks**, which is exactly the boundary of the bug.
+
+**Acceptance criteria, in dependency order:**
+
+1. **The shipped seed is asserted readable at build time.** Every text element in `data/default-registry.json` fits its box at its authored size and font, or the test fails naming the row *and* the element. This closes the path PRD §8 now states the Admin's eye does not reach.
+2. **The two renderers agree.** For a given element, the PPTX baked scale and the web measured scale may not diverge beyond a tolerance the story states. This is the obligation PRD §10 adds; it is what makes Live Preview able to certify a PPTX at all.
+3. **The contradiction inside the code is resolved.** `render-model.ts:250` says PowerPoint's own autofit covers the remainder; `pptx.ts:236` says PowerPoint computes none until the shape is edited — *which is the stated reason the scale is baked at all*. Both cannot be true. One comment is wrong and must be corrected, not left for the next reader to re-derive.
+
+**Sequencing.** AC-1 is **not** gated on Story 20.10 — the seed carries zero `fontFamily` overrides, so every element is Arial today. AC-2's general form **is** gated, because an arbitrary font name has unknown advance widths; it either follows 20.10 or is scoped in writing to the closed set as it then stands.
+
+**Testing note.** Wrapping is invariant under the locked 16:9 stage (`validate.ts:263` rejects any other ratio) — scaling the stage multiplies box width and font size by the same factor, so characters-per-line is fixed. The residual variable is the font, not the resolution. A deck opened on Linux/LibreOffice substitutes Liberation Sans, which is metric-compatible with Arial, so the guarantee survives that particular substitution and no other is assured.
+
+**Explicitly not in scope:** reopening the manual-authoring decision, routing these pages back through FR-5's splitter, or adding an automated readability check to the canvas editor. PRD §4.10 forbids the last two deliberately, and the first is the owner's standing decision of 2026-07-30.
+
+#### Story 20.10: The Font Set Is Closed *(backlog)* — **AD-30 (proposed)**
+
+*Registered by Correct Course 2026-08-08, from the owner's decision the same day: the product will offer several fonts from a fixed list, target machines will have them installed, and adding one is a coding change — an Admin cannot add a font type.*
+
+As an administrator, I want the fonts I can choose to be a set the product ships, so that a slide can never be authored in a face the presentation machine does not have.
+
+**Current state, verified 2026-08-08 — the rule holds in practice but nothing in the contract holds it.** `validate.ts:135-140` accepts **any** non-empty string as `fontFamily`, and the type is a bare `fontFamily?: string` (`runtime-contract.ts:34`). Compare its neighbour in the same validator: `aspectRatio` is the literal `'16:9'` and **throws** on anything else (`:263`). What actually prevents an Admin adding a font today is that `ArtifactEditor` **exposes no font control at all** — it hardcodes `'Arial'` when creating text (`:604`). So there is no live leak through the intended surface, and no contract standing behind that. Any other write path — API, import, a future editor field — passes.
+
+`DEFAULT_FONT_FAMILY = 'Arial'` is also **defined twice**, at `render-model.ts:94` and `ArtifactEditor.tsx:45`. At one member that is untidy; at N members it is two copies of a list that must not diverge.
+
+**Acceptance criteria:**
+
+1. **One source of truth** for the set — a single exported constant, with both existing definition sites reading from it rather than restating it.
+2. **The validator rejects a font outside the set**, in the same shape `aspectRatio` is rejected: throw, with an error naming the offending value.
+3. **The type narrows** from `string` to the set's union, so an out-of-set face fails to compile as well as to validate.
+4. **The documented deploy list and the code cannot drift** — Story 7-4's note names exactly the set's members, and a test binds the two so a font added in code without the doc (or the reverse) fails.
+
+**Ships with one member, Arial.** The story's value is the closure, not the count.
+
+**Gate — the same shape Story 20.1 carried.** This fixes what data may exist, so it is a structural invariant and per `AGENTS.md` needs a spine amendment. **Story 20.10 must not edit `ARCHITECTURE-SPINE.md` from inside its own change set.** The AD is written by a `bmad-architecture` Update run. Proposed as **AD-30** (highest today is AD-29; ids 1–29 contiguous, nothing renumbered): *The Font Set Is a Closed, Server-Owned Vocabulary* — an element's font is chosen from a set fixed in code; the administrator selects from it and cannot extend it. **Binds** registry validation, both renderers, and the documented deploy prerequisite (NFR-7). **Prevents** an unknown face reaching a renderer, which makes NFR-3's readability guarantee lapse **silently**, because wrapping is fixed by advance widths and nothing errors when they change.
 
 
 ### Epic 21: Scripture is on hand, in the translation being read *(in-progress — Story 21.1 done 2026-08-01; 21.2 done 2026-08-02; 21.3, 21.4 and 21.5 backlog)*
